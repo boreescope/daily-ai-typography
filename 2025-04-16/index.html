@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>겁 많은 고양이</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      min-height: 100vh;
+      overflow-x: hidden;
+      overflow-y: auto;
+      font-family: 'Gowun Dodum', sans-serif;
+      color: #e8e4dc;
+      background: linear-gradient(to bottom, #070b18 0%, #0c1225 50%, #0e0e16 100%);
+      background-attachment: fixed;
+    }
+
+    /* Stars */
+    .stars { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .star {
+      position: absolute; width: 1px; height: 1px;
+      background: #fff; border-radius: 50%;
+      animation: twinkle var(--dur) ease-in-out infinite;
+      transition: opacity 0.8s, transform 0.8s;
+    }
+    .star.near {
+      opacity: 0.9 !important;
+      transform: scale(2);
+    }
+    @keyframes twinkle {
+      0%, 100% { opacity: var(--min-o); }
+      50% { opacity: var(--max-o); }
+    }
+
+    /* Cursor ambient glow */
+    .cursor-glow {
+      position: fixed;
+      width: 350px; height: 350px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,240,200,0.07) 0%, rgba(255,230,150,0.02) 40%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+      transform: translate(-50%, -50%);
+      transition: left 0.12s ease-out, top 0.12s ease-out;
+    }
+
+    /* ── Layout ── */
+    .layout {
+      position: relative;
+      width: 100%; min-height: 100vh;
+      display: flex;
+      z-index: 1;
+    }
+
+    /* ── LEFT: street lamp ── */
+    .left {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-bottom: 8vh;
+    }
+
+    .ground {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%; height: 18vh;
+      background: linear-gradient(to top, #0e0e16, transparent);
+    }
+
+    /* ── Streetlamp + light cone — single unit ── */
+    .lamp-unit {
+      position: absolute;
+      right: 5%;
+      bottom: 0;
+      width: 50%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .lamp-unit svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    /* ── Lyrics left ── */
+    .lyrics-left {
+      position: relative;
+      z-index: 3;
+      text-align: left;
+      padding-right: 18%;
+    }
+
+    .line {
+      font-size: clamp(0.95rem, 1.8vw, 1.3rem);
+      line-height: 2.4;
+      word-break: keep-all;
+      transition: color 0.5s, text-shadow 0.5s;
+      cursor: default;
+      min-height: 1.3em;
+    }
+    .line:hover {
+      color: rgba(255,240,200,0.9);
+      text-shadow: 0 0 25px rgba(255,230,150,0.15);
+    }
+    .line .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: rgba(255,240,200,0.4);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.6s step-end infinite;
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ── Divider ── */
+    .divider {
+      width: 1px;
+      background: linear-gradient(to bottom, transparent 10%, rgba(255,255,255,0.05) 50%, transparent 90%);
+      flex-shrink: 0;
+    }
+
+    /* ── RIGHT: window ── */
+    .right {
+      flex: 1;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-start;
+      padding: 0 8% 0 0;
+      overflow: visible;
+    }
+
+    .window-wrap { position: relative; margin-top: -40px; }
+
+    .window-frame {
+      width: 200px;
+      height: 280px;
+      border: 1.5px solid #2a2a35;
+      border-radius: 3px;
+      position: relative;
+      overflow: visible;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(0.92);
+      animation: windowIn 1.5s ease 3.5s forwards;
+    }
+    @keyframes windowIn { to { opacity: 1; transform: scale(1); } }
+
+    /* Warm curtain */
+    .curtain {
+      position: absolute; inset: 0;
+      background: linear-gradient(
+        165deg,
+        rgba(200,160,60,0.1) 0%,
+        rgba(220,180,80,0.16) 30%,
+        rgba(200,160,60,0.08) 50%,
+        rgba(220,180,80,0.18) 70%,
+        rgba(180,140,50,0.08) 100%
+      );
+      transition: background 0.8s;
+    }
+    .curtain::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: repeating-linear-gradient(
+        90deg, transparent 0px, transparent 30px,
+        rgba(180,140,50,0.05) 30px, rgba(180,140,50,0.05) 32px
+      );
+    }
+    .window-frame:hover .curtain {
+      background: linear-gradient(
+        165deg,
+        rgba(220,180,80,0.22) 0%,
+        rgba(240,200,100,0.32) 30%,
+        rgba(220,180,80,0.18) 50%,
+        rgba(240,200,100,0.35) 70%,
+        rgba(200,160,60,0.18) 100%
+      );
+    }
+
+    /* Cat silhouette from SVG file — sitting on the sill */
+    .cat-sil {
+      position: absolute;
+      bottom: -2px;
+      right: 20px;
+      width: 75px;
+      height: auto;
+      opacity: 0.45;
+      transition: opacity 0.8s, transform 1.5s ease;
+      pointer-events: none;
+      filter: brightness(0);
+      transform-origin: bottom center;
+      z-index: 3;
+    }
+    .window-frame:hover .cat-sil {
+      opacity: 0.6;
+      transform: translateY(-2px);
+    }
+
+    /* Windowsill — ledge below the window */
+    .windowsill {
+      position: absolute;
+      bottom: -8px;
+      left: -12px;
+      right: -12px;
+      height: 8px;
+      background: #2a2a35;
+      border-radius: 1px;
+      z-index: 2;
+    }
+
+    /* Inner window glass area (clips the curtain) */
+    .window-glass {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      border-radius: 2px;
+    }
+
+    .window-spill {
+      position: absolute;
+      width: 320px; height: 280px;
+      border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(220,180,80,0.04) 0%, transparent 70%);
+      top: 50%; left: 50%;
+      transform: translate(-50%, -35%);
+      pointer-events: none;
+      transition: background 0.8s;
+    }
+    .window-frame:hover ~ .window-spill {
+      background: radial-gradient(ellipse, rgba(220,180,80,0.12) 0%, transparent 70%);
+    }
+
+    .lyrics-right {
+      position: absolute;
+      bottom: calc(18vh + 8vh);
+      right: 8%;
+      text-align: right;
+      max-width: 350px;
+      padding: 0;
+    }
+
+    .line2 {
+      font-size: clamp(0.95rem, 1.8vw, 1.3rem);
+      line-height: 2.4;
+      color: rgba(255,240,200,0.4);
+      word-break: keep-all;
+      transition: color 0.5s, text-shadow 0.5s;
+      cursor: default;
+      min-height: 1.3em;
+    }
+    .line2:hover {
+      color: rgba(255,240,200,0.8);
+      text-shadow: 0 0 20px rgba(255,220,150,0.1);
+    }
+    .line2 .cursor {
+      display: inline-block;
+      width: 2px;
+      height: 1em;
+      background: rgba(255,240,200,0.3);
+      margin-left: 2px;
+      vertical-align: text-bottom;
+      animation: blink 0.6s step-end infinite;
+    }
+
+    /* ── Music button ── */
+    .music-btn {
+      position: fixed;
+      bottom: 3vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      background: rgba(255,240,200,0.06);
+      border: 1px solid rgba(255,240,200,0.12);
+      border-radius: 20px;
+      color: rgba(255,240,200,0.4);
+      font-family: 'Gowun Dodum', sans-serif;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: background 0.3s, color 0.3s, border-color 0.3s;
+      backdrop-filter: blur(8px);
+    }
+    .music-btn:hover {
+      background: rgba(255,240,200,0.1);
+      color: rgba(255,240,200,0.7);
+      border-color: rgba(255,240,200,0.2);
+    }
+    .music-btn.playing {
+      color: rgba(255,240,200,0.6);
+      border-color: rgba(255,240,200,0.2);
+    }
+    .music-btn .icon {
+      width: 14px; height: 14px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 8px;
+      line-height: 1;
+      padding-left: 1px;
+    }
+
+    /* YouTube iframe hidden */
+    .yt-player {
+      position: fixed;
+      width: 1px; height: 1px;
+      bottom: 0; left: 0;
+      opacity: 0;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    @media (max-width: 768px) {
+      .layout {
+        flex-direction: column;
+        min-height: 100vh;
+        height: auto;
+      }
+      .divider { width: 80%; height: 1px; margin: 0 auto; flex-shrink: 0; }
+      .left {
+        flex: none;
+        height: auto;
+        min-height: 80vh;
+        padding: 8vh 6% 6vh;
+      }
+      .right {
+        flex: none;
+        height: auto;
+        min-height: 60vh;
+        padding: 6vh 6% 12vh;
+        align-items: center;
+      }
+      .lyrics-left { padding-right: 10%; }
+      .lamp-unit {
+        right: -5%;
+        width: 70%;
+      }
+      .lyrics-right {
+        text-align: center;
+        align-self: center;
+      }
+      .cursor-glow { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="stars" id="stars"></div>
+<div class="cursor-glow" id="cursorGlow"></div>
+
+<!-- Music -->
+<button class="music-btn" id="musicBtn" aria-label="Play music">
+  <span class="icon">▶</span>
+  <span id="musicLabel">music</span>
+</button>
+<iframe class="yt-player" id="ytPlayer"
+  src="https://www.youtube.com/embed/kTMgga-Afi0?enablejsapi=1&autoplay=0&loop=1&playlist=kTMgga-Afi0"
+  allow="autoplay; encrypted-media"
+  allowfullscreen></iframe>
+
+<div class="layout">
+  <!-- LEFT -->
+  <div class="left">
+    <div class="ground"></div>
+
+    <!-- Streetlamp + light — one SVG, cone starts exactly at bulb -->
+    <div class="lamp-unit">
+      <svg viewBox="0 0 500 600" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMaxYMax meet">
+        <defs>
+          <radialGradient id="coneG" cx="50%" cy="0%" r="100%">
+            <stop offset="0%" stop-color="rgba(255,230,150,0.18)"/>
+            <stop offset="40%" stop-color="rgba(255,230,150,0.05)"/>
+            <stop offset="100%" stop-color="rgba(255,230,150,0)"/>
+          </radialGradient>
+          <filter id="glow"><feGaussianBlur stdDeviation="15"/></filter>
+          <filter id="bulbGlow"><feGaussianBlur stdDeviation="6"/></filter>
+        </defs>
+
+        <!-- Light cone: triangle from bulb (350,95) down to ground -->
+        <polygon points="350,95 80,600 450,600" fill="url(#coneG)" filter="url(#glow)"/>
+        <!-- Inner brighter cone -->
+        <polygon points="350,95 180,600 420,600" fill="rgba(255,230,150,0.04)" filter="url(#glow)"/>
+
+        <!-- Pole -->
+        <line x1="420" y1="600" x2="420" y2="100" stroke="#3a3a48" stroke-width="2.5"/>
+        <!-- Curved arm from pole top to lamp head -->
+        <path d="M420,100 C420,70 400,60 365,58" stroke="#3a3a48" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <!-- Lamp housing -->
+        <rect x="340" y="55" width="28" height="10" rx="2" fill="#3a3a48"/>
+        <!-- Bulb -->
+        <circle cx="354" cy="70" r="4" fill="#ffe8aa"/>
+        <!-- Bulb glow halos -->
+        <circle cx="354" cy="70" r="14" fill="rgba(255,230,150,0.4)" filter="url(#bulbGlow)"/>
+        <circle cx="354" cy="70" r="30" fill="rgba(255,230,150,0.1)" filter="url(#bulbGlow)"/>
+
+        <!-- Ground light pool -->
+        <ellipse cx="300" cy="598" rx="180" ry="15" fill="rgba(255,220,130,0.06)"/>
+      </svg>
+    </div>
+
+    <div class="lyrics-left">
+      <div class="line">기다리라는 그 말도</div>
+      <div class="line">다시 만나자는 약속도</div>
+      <div class="line">아마 넌 까맣게 다 잊었을 테지만</div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- RIGHT -->
+  <div class="right">
+    <div class="window-wrap">
+      <div class="window-frame">
+        <div class="window-glass">
+          <div class="curtain"></div>
+        </div>
+        <div class="windowsill"></div>
+        <img class="cat-sil" src="cat.svg" alt="cat silhouette"/>
+      </div>
+      <div class="window-spill"></div>
+    </div>
+    <div class="lyrics-right">
+      <div class="line2">오늘도 너와 너의</div>
+      <div class="line2">겁 많은 고양이가</div>
+      <div class="line2">어제보다 편안하길 기도할게</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Stars
+  const starsEl = document.getElementById('stars');
+  const starEls = [];
+  for (let i = 0; i < 40; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    s.style.left = Math.random() * 100 + '%';
+    s.style.top = Math.random() * 50 + '%';
+    s.style.setProperty('--dur', (3 + Math.random() * 4) + 's');
+    s.style.setProperty('--min-o', (0.05 + Math.random() * 0.1).toFixed(2));
+    s.style.setProperty('--max-o', (0.2 + Math.random() * 0.3).toFixed(2));
+    s.style.animationDelay = (Math.random() * 5) + 's';
+    if (Math.random() > 0.9) { s.style.width = '2px'; s.style.height = '2px'; }
+    starsEl.appendChild(s);
+    starEls.push(s);
+  }
+
+  // Cursor glow + star proximity
+  const cursorGlow = document.getElementById('cursorGlow');
+  let mx = -999, my = -999;
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX;
+    my = e.clientY;
+    cursorGlow.style.left = mx + 'px';
+    cursorGlow.style.top = my + 'px';
+  });
+
+  setInterval(() => {
+    starEls.forEach(s => {
+      const r = s.getBoundingClientRect();
+      const sx = r.left + r.width / 2;
+      const sy = r.top + r.height / 2;
+      const dist = Math.sqrt((mx - sx) ** 2 + (my - sy) ** 2);
+      s.classList.toggle('near', dist < 120);
+    });
+  }, 200);
+
+  // ── Typing effect ──
+  function typeText(el, text, speed, delay) {
+    return new Promise(resolve => {
+      el.textContent = '';
+      const cursor = document.createElement('span');
+      cursor.className = 'cursor';
+      el.appendChild(cursor);
+
+      setTimeout(() => {
+        let i = 0;
+        const interval = setInterval(() => {
+          if (i < text.length) {
+            el.insertBefore(document.createTextNode(text[i]), cursor);
+            i++;
+          } else {
+            clearInterval(interval);
+            cursor.remove();
+            resolve();
+          }
+        }, speed + Math.random() * 40);
+      }, delay);
+    });
+  }
+
+  // Left lines
+  const lines = document.querySelectorAll('.line');
+  const lineTexts = ['기다리라는 그 말도', '다시 만나자는 약속도', '아마 넌 까맣게 다 잊었을 테지만'];
+
+  // Right lines
+  const lines2 = document.querySelectorAll('.line2');
+  const lineTexts2 = ['오늘도 너와 너의', '겁 많은 고양이가', '어제보다 편안하길 기도할게'];
+
+  // Clear all text initially
+  lines.forEach(l => l.textContent = '');
+  lines2.forEach(l => l.textContent = '');
+
+  async function runTyping() {
+    // Left side
+    for (let i = 0; i < lines.length; i++) {
+      await typeText(lines[i], lineTexts[i], 80, i === 0 ? 800 : 400);
+      await new Promise(r => setTimeout(r, 300));
+    }
+
+    // Pause between sides
+    await new Promise(r => setTimeout(r, 800));
+
+    // Right side
+    for (let i = 0; i < lines2.length; i++) {
+      await typeText(lines2[i], lineTexts2[i], 80, 200);
+      await new Promise(r => setTimeout(r, 300));
+    }
+  }
+
+  document.fonts.ready.then(runTyping);
+
+  // Music toggle
+  const musicBtn = document.getElementById('musicBtn');
+  const musicLabel = document.getElementById('musicLabel');
+  const ytPlayer = document.getElementById('ytPlayer');
+  let isPlaying = false;
+
+  musicBtn.addEventListener('click', () => {
+    if (!isPlaying) {
+      ytPlayer.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
+      musicBtn.classList.add('playing');
+      musicBtn.querySelector('.icon').textContent = '❚❚';
+      musicLabel.textContent = 'pause';
+      isPlaying = true;
+    } else {
+      ytPlayer.contentWindow.postMessage('{"event":"command","func":"pauseVideo","args":""}', '*');
+      musicBtn.classList.remove('playing');
+      musicBtn.querySelector('.icon').textContent = '▶';
+      musicLabel.textContent = 'music';
+      isPlaying = false;
+    }
+  });
+</script>
+
+</body>
+</html>
