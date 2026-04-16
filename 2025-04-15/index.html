@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Z세대는 왜 카세트를 다시 집어들었나</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Moirai+One&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 100vw;
+      min-height: 100vh;
+      background: #ffffff;
+      display: flex; flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 4vh 0;
+      gap: 0;
+    }
+    #tape { width: 90vw; max-width: 1200px; flex-shrink: 0; }
+    #stack { width: 90vw; max-width: 1200px; flex-shrink: 0; margin-top: -2vh; }
+  </style>
+</head>
+<body>
+
+<svg id="tape" viewBox="-90 -55 1180 750" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="bodyClip">
+      <rect x="20" y="10" width="960" height="620" rx="26"/>
+    </clipPath>
+  </defs>
+
+  <!-- ═══ CASSETTE SHELL (thin lines) ═══ -->
+
+  <!-- Outer body -->
+  <rect x="20" y="10" width="960" height="620" rx="26"
+        fill="none" stroke="#1a1a1a" stroke-width="3"/>
+  <!-- Inner border -->
+  <rect x="42" y="32" width="916" height="576" rx="16"
+        fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+
+  <!-- Label area (solid line, no dash) -->
+  <rect x="100" y="50" width="800" height="160" rx="6"
+        fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+  <!-- Date + link -->
+  <a href="https://oncuration.com/z%EC%84%B8%EB%8C%80%EB%8A%94-%EC%99%9C-%EC%B9%B4%EC%84%B8%ED%8A%B8%EB%A5%BC-%EB%8B%A4%EC%8B%9C-%EC%A7%91%EC%96%B4%EB%93%A4%EC%97%88%EB%82%98/" target="_blank" style="pointer-events:auto">
+    <text x="500" y="85" font-family="'Noto Sans KR', sans-serif" font-size="14" fill="#1a1a1a" text-anchor="middle" dominant-baseline="central">20260416</text>
+  </a>
+  <!-- Label lines -->
+  <line x1="130" y1="100" x2="870" y2="100" stroke="#bbb" stroke-width="0.4"/>
+  <line x1="130" y1="125" x2="870" y2="125" stroke="#bbb" stroke-width="0.4"/>
+  <line x1="130" y1="150" x2="870" y2="150" stroke="#bbb" stroke-width="0.4"/>
+  <line x1="130" y1="175" x2="870" y2="175" stroke="#bbb" stroke-width="0.4"/>
+
+  <!-- Reel window -->
+  <rect x="105" y="228" width="790" height="260" rx="10"
+        fill="none" stroke="#1a1a1a" stroke-width="1"/>
+
+  <!-- Head shell opening -->
+  <rect x="200" y="505" width="600" height="95" rx="4"
+        fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+
+  <!-- Head assembly -->
+  <rect x="455" y="530" width="90" height="40" rx="3"
+        fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+  <line x1="500" y1="530" x2="500" y2="570" stroke="#1a1a1a" stroke-width="0.5"/>
+
+  <!-- Capstan + pinch rollers -->
+  <circle cx="390" cy="555" r="4" fill="#1a1a1a"/>
+  <circle cx="375" cy="555" r="9" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+  <circle cx="610" cy="555" r="4" fill="#1a1a1a"/>
+  <circle cx="625" cy="555" r="9" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+
+  <!-- Guide rollers -->
+  <circle cx="230" cy="545" r="7" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+  <circle cx="770" cy="545" r="7" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+
+  <!-- Pressure pad -->
+  <rect x="475" y="515" width="50" height="12" rx="2"
+        fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+
+  <!-- Corner screws -->
+  <g stroke="#1a1a1a" fill="none">
+    <g transform="translate(60,48)">
+      <circle r="10" stroke-width="0.8"/><circle r="3" stroke-width="0.5"/>
+      <line x1="-5" y1="0" x2="5" y2="0" stroke-width="0.6"/>
+    </g>
+    <g transform="translate(940,48)">
+      <circle r="10" stroke-width="0.8"/><circle r="3" stroke-width="0.5"/>
+      <line x1="-5" y1="0" x2="5" y2="0" stroke-width="0.6"/>
+    </g>
+    <g transform="translate(60,592)">
+      <circle r="10" stroke-width="0.8"/><circle r="3" stroke-width="0.5"/>
+      <line x1="-5" y1="0" x2="5" y2="0" stroke-width="0.6"/>
+    </g>
+    <g transform="translate(940,592)">
+      <circle r="10" stroke-width="0.8"/><circle r="3" stroke-width="0.5"/>
+      <line x1="-5" y1="0" x2="5" y2="0" stroke-width="0.6"/>
+    </g>
+    <g transform="translate(500,610)">
+      <circle r="8" stroke-width="0.6"/><circle r="3" stroke-width="0.4"/>
+      <line x1="-4" y1="0" x2="4" y2="0" stroke-width="0.5"/>
+    </g>
+  </g>
+
+  <!-- ═══ DYNAMIC ELEMENTS ═══ -->
+
+  <!-- Supply spool (left) -->
+  <g id="supplyGroup">
+    <circle id="supplyTape" cx="340" cy="360" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+    <g id="supplyHub">
+      <circle cx="340" cy="360" r="38" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+      <circle cx="340" cy="360" r="28" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="340" cy="360" r="5" fill="#1a1a1a"/>
+      <circle cx="340" cy="336" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="361" cy="348" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="361" cy="372" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="340" cy="384" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="319" cy="372" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="319" cy="348" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+    </g>
+  </g>
+
+  <!-- Take-up spool (right) -->
+  <g id="takeupGroup">
+    <circle id="takeupTape" cx="660" cy="360" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+    <g id="takeupHub">
+      <circle cx="660" cy="360" r="38" fill="none" stroke="#1a1a1a" stroke-width="0.8"/>
+      <circle cx="660" cy="360" r="28" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="660" cy="360" r="5" fill="#1a1a1a"/>
+      <circle cx="660" cy="336" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="681" cy="348" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="681" cy="372" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="660" cy="384" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="639" cy="372" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+      <circle cx="639" cy="348" r="5" fill="none" stroke="#1a1a1a" stroke-width="0.5"/>
+    </g>
+  </g>
+
+  <!-- Tape ribbon (BLACK, thick) -->
+  <path id="tapeRibbon" fill="none" stroke="#111" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Text on tape -->
+  <g id="tapeText" clip-path="url(#bodyClip)"></g>
+</svg>
+
+<img id="stack" src="ref/othertapes.svg" alt="Stacked cassette tapes"/>
+
+<script>
+const NS = 'http://www.w3.org/2000/svg';
+
+const LX = 340, LY = 360;
+const RX = 660, RY = 360;
+const HUB_R = 38;
+const MAX_SPOOL = 108;
+
+const GL  = { x: 230, y: 545 };
+const PL  = { x: 375, y: 555 };
+const HDL = { x: 455, y: 550 };
+const HDR = { x: 545, y: 550 };
+const PR  = { x: 625, y: 555 };
+const GR  = { x: 770, y: 545 };
+
+const TAPE_W = 28;
+const PLAY_DUR = 20;
+const REWIND_DUR = 6;
+
+const tapeArea = MAX_SPOOL ** 2 - HUB_R ** 2;
+function spoolR(t) {
+  return {
+    sup: Math.sqrt(HUB_R ** 2 + (1 - t) * tapeArea),
+    tak: Math.sqrt(HUB_R ** 2 + t * tapeArea),
+  };
+}
+
+function buildPath(supR, takR) {
+  const pts = [];
+  const off = TAPE_W / 2;
+  const rS = supR + off;
+  const rT = takR + off;
+
+  function arc(cx, cy, r, a0, a1, n) {
+    for (let i = 0; i <= n; i++) {
+      const a = a0 + (a1 - a0) * (i / n);
+      pts.push({ x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r });
+    }
+  }
+  function line(x0, y0, x1, y1, n) {
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      pts.push({ x: x0 + (x1 - x0) * t, y: y0 + (y1 - y0) * t });
+    }
+  }
+
+  const aToGL = Math.atan2(GL.y - LY, GL.x - LX);
+  const supExit = aToGL;
+  const supStart = supExit + Math.PI * 2 * 0.88;
+  arc(LX, LY, rS, supStart, supExit, 100);
+
+  line(LX + Math.cos(supExit) * rS, LY + Math.sin(supExit) * rS, GL.x, GL.y, 20);
+
+  line(GL.x, GL.y, PL.x, PL.y, 15);
+  line(PL.x, PL.y, HDL.x, HDL.y, 12);
+  line(HDL.x, HDL.y, HDR.x, HDR.y, 15);
+  line(HDR.x, HDR.y, PR.x, PR.y, 12);
+  line(PR.x, PR.y, GR.x, GR.y, 15);
+
+  const aToGR = Math.atan2(GR.y - RY, GR.x - RX);
+  const takEntry = aToGR;
+  line(GR.x, GR.y, RX + Math.cos(takEntry) * rT, RY + Math.sin(takEntry) * rT, 20);
+
+  const takEnd = takEntry - Math.PI * 2 * 0.82;
+  arc(RX, RY, rT, takEntry, takEnd, 80);
+
+  let total = 0;
+  const dists = [0];
+  for (let i = 1; i < pts.length; i++) {
+    const dx = pts[i].x - pts[i-1].x;
+    const dy = pts[i].y - pts[i-1].y;
+    total += Math.sqrt(dx * dx + dy * dy);
+    dists.push(total);
+  }
+  return { pts, dists, total };
+}
+
+function ptAt(P, d) {
+  const dd = ((d % P.total) + P.total) % P.total;
+  let i = 0;
+  for (let j = 1; j < P.dists.length; j++) {
+    if (P.dists[j] >= dd) { i = j - 1; break; }
+    if (j === P.dists.length - 1) i = j - 1;
+  }
+  const seg = P.dists[i+1] - P.dists[i];
+  const t = seg > 0 ? (dd - P.dists[i]) / seg : 0;
+  const a = P.pts[i], b = P.pts[Math.min(i+1, P.pts.length-1)];
+  return {
+    x: a.x + (b.x - a.x) * t,
+    y: a.y + (b.y - a.y) * t,
+    angle: Math.atan2(b.y - a.y, b.x - a.x),
+  };
+}
+
+const supplyTape = document.getElementById('supplyTape');
+const takeupTape = document.getElementById('takeupTape');
+const supplyHub = document.getElementById('supplyHub');
+const takeupHub = document.getElementById('takeupHub');
+const ribbonPath = document.getElementById('tapeRibbon');
+const textGroup = document.getElementById('tapeText');
+
+const chars = [...'Z세대는 왜 카세트를 다시 집어들었나 … WHY DID GEN Z PICK UP CASSETTES AGAIN … '];
+
+let phase = 'play', progress = 0, textOff = 0, hubAngle = 0, lastT = 0;
+
+const TEXT_N = 280;
+const tEls = [];
+for (let i = 0; i < TEXT_N; i++) {
+  const t = document.createElementNS(NS, 'text');
+  t.setAttribute('font-family', "'Moirai One', system-ui");
+  t.setAttribute('font-size', '18');
+  t.setAttribute('fill', '#ffffff');
+  t.setAttribute('stroke', '#ffffff');
+  t.setAttribute('stroke-width', '0.5');
+  t.setAttribute('text-anchor', 'middle');
+  t.setAttribute('dominant-baseline', 'central');
+  t.setAttribute('visibility', 'hidden');
+  textGroup.appendChild(t);
+  tEls.push(t);
+}
+
+function frame(ts) {
+  const dt = lastT ? (ts - lastT) / 1000 : 0;
+  lastT = ts;
+
+  if (phase === 'play') {
+    progress += dt / PLAY_DUR;
+    if (progress >= 1) { progress = 1; phase = 'rewind'; }
+  } else {
+    progress -= dt / REWIND_DUR;
+    if (progress <= 0) { progress = 0; phase = 'play'; }
+  }
+
+  const dir = phase === 'play' ? -1 : 1;
+  hubAngle += dir * 2.5 * dt;
+  textOff += (phase === 'play' ? 1 : -1.8) * 90 * dt;
+
+  const { sup, tak } = spoolR(progress);
+
+  supplyTape.setAttribute('r', sup);
+  takeupTape.setAttribute('r', tak);
+
+  supplyHub.setAttribute('transform', `rotate(${hubAngle * (HUB_R / sup) * (180 / Math.PI)} ${LX} ${LY})`);
+  takeupHub.setAttribute('transform', `rotate(${hubAngle * (HUB_R / tak) * (180 / Math.PI)} ${RX} ${RY})`);
+
+  const P = buildPath(sup, tak);
+  let d = `M${P.pts[0].x.toFixed(1)},${P.pts[0].y.toFixed(1)}`;
+  for (let i = 3; i < P.pts.length; i += 3) {
+    d += `L${P.pts[i].x.toFixed(1)},${P.pts[i].y.toFixed(1)}`;
+  }
+  ribbonPath.setAttribute('d', d);
+
+  const sp = 20;
+  const unitLen = chars.length * sp;
+  const wOff = ((textOff % unitLen) + unitLen) % unitLen;
+  const need = Math.ceil((P.total + unitLen) / sp) + 2;
+
+  let ti = 0;
+  for (let i = 0; i < need && ti < TEXT_N; i++) {
+    const dist = i * sp - wOff;
+    if (dist < -sp * 2 || dist > P.total + sp * 2) continue;
+    const p = ptAt(P, dist);
+    const el = tEls[ti++];
+    el.setAttribute('visibility', 'visible');
+    el.setAttribute('transform', `translate(${p.x.toFixed(1)},${p.y.toFixed(1)}) rotate(${(p.angle * 180 / Math.PI).toFixed(1)})`);
+    el.textContent = chars[i % chars.length];
+  }
+  for (let i = ti; i < TEXT_N; i++) tEls[i].setAttribute('visibility', 'hidden');
+
+  requestAnimationFrame(frame);
+}
+
+document.fonts.ready.then(() => requestAnimationFrame(frame));
+</script>
+</body>
+</html>
