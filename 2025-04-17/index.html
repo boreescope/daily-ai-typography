@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>한국 유조선, 홍해 통과</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gugi&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #b0b0b0;
+      font-family: 'Gugi', sans-serif;
+    }
+
+    .container {
+      width: 100%; height: 100%;
+      position: relative;
+    }
+
+    /* SVG filter for metaball merging effect */
+    .meta-filter {
+      position: absolute;
+      width: 0; height: 0;
+    }
+
+    /* The blob layer — blurred blobs that merge */
+    .blob-layer {
+      position: absolute;
+      inset: 0;
+      filter: url(#goo);
+    }
+
+    .blob {
+      position: absolute;
+      background: #000;
+      border-radius: 50%;
+      will-change: transform;
+    }
+
+    /* Text layer — on top, white text at blob positions */
+    .text-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .char {
+      position: absolute;
+      color: #fff;
+      font-weight: 700;
+      text-align: center;
+      pointer-events: none;
+      will-change: transform;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+
+    .source-link {
+      position: fixed;
+      bottom: 3vh;
+      right: 4vw;
+      font-family: 'Gugi', sans-serif;
+      font-size: 0.7rem;
+      color: rgba(0,0,0,0.3);
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      z-index: 10;
+      transition: color 0.3s;
+    }
+    .source-link:hover {
+      color: rgba(0,0,0,0.6);
+    }
+
+    .home-btn {
+      position: fixed; top: 2vh; left: 2vw; z-index: 50;
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      text-decoration: none; color: rgba(0,0,0,0.3); font-size: 1.2rem;
+      border: 1px solid rgba(0,0,0,0.15); border-radius: 50%;
+      background: rgba(255,255,255,0.4); backdrop-filter: blur(4px);
+      transition: color 0.3s, border-color 0.3s;
+    }
+    .home-btn:hover { color: rgba(0,0,0,0.7); border-color: rgba(0,0,0,0.3); }
+  </style>
+</head>
+<body>
+
+<a class="home-btn" href="../index.html" title="목록으로">⌂</a>
+
+<div class="container">
+  <!-- SVG filter for gooey/metaball effect -->
+  <svg class="meta-filter" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="goo">
+        <feGaussianBlur in="SourceGraphic" stdDeviation="8" result="blur"/>
+        <feColorMatrix in="blur" mode="matrix"
+          values="1 0 0 0 0
+                  0 1 0 0 0
+                  0 0 1 0 0
+                  0 0 0 25 -10" result="goo"/>
+      </filter>
+    </defs>
+  </svg>
+
+  <div class="blob-layer" id="blobLayer"></div>
+  <div class="text-layer" id="textLayer"></div>
+  <a class="source-link" href="https://www.hani.co.kr/arti/area/yeongnam/1254702.html" target="_blank">원문 기사 →</a>
+</div>
+
+<script>
+const fullText = '한국 유조선, \u2018우회로\u2019 홍해 통과…호르무즈 봉쇄 뒤 처음';
+const chars = [...fullText];
+
+const blobLayer = document.getElementById('blobLayer');
+const textLayer = document.getElementById('textLayer');
+
+let blobs = [];
+let mx = -9999, my = -9999;
+
+function init() {
+  blobLayer.innerHTML = '';
+  textLayer.innerHTML = '';
+  blobs = [];
+
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const fontSize = Math.max(15, Math.min(vw * 0.02, 24));
+  const blobSize = fontSize * 2.4;
+  const cols = Math.max(8, Math.min(Math.floor(vw / (blobSize * 0.95)), 16));
+  const gapX = blobSize * 0.95;
+  const gapY = blobSize * 1.4;
+
+  // Fill the screen: calculate how many rows we need for ~70% coverage
+  const totalRows = Math.ceil(vh * 0.8 / gapY);
+  const totalSlots = totalRows * cols;
+
+  // Place text chars in the center rows
+  const textRows = Math.ceil(chars.length / cols);
+  const textStartRow = Math.floor((totalRows - textRows) / 2);
+
+  const totalW = cols * gapX;
+  const startX = (vw - totalW) / 2 + gapX / 2;
+  const startY = vh * 0.1;
+
+  for (let row = 0; row < totalRows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const offsetX = row % 2 === 1 ? gapX * 0.4 : 0;
+      const hx = startX + col * gapX + offsetX;
+      const hy = startY + row * gapY;
+
+      // Check if this slot has a text character
+      const textRow = row - textStartRow;
+      const charIdx = textRow >= 0 && textRow < textRows ? textRow * cols + col : -1;
+      const hasChar = charIdx >= 0 && charIdx < chars.length && chars[charIdx] !== ' ';
+      const ch = hasChar ? chars[charIdx] : null;
+
+      // Skip some empty blobs randomly for organic feel
+      if (!hasChar && Math.random() < 0.25) continue;
+
+      // Vary blob size for empty ones
+      const sizeScale = hasChar ? 1 : 0.5 + Math.random() * 0.7;
+      const bw = blobSize * sizeScale;
+      const bh = blobSize * 0.7 * sizeScale;
+
+      // Some empty blobs are white
+      const isWhite = !hasChar && Math.random() < 0.25;
+
+      // Blob element
+      const bEl = document.createElement('div');
+      bEl.className = 'blob';
+      bEl.style.width = bw + 'px';
+      bEl.style.height = bh + 'px';
+      bEl.style.borderRadius = '45%';
+      bEl.style.background = isWhite ? '#fff' : '#000';
+      blobLayer.appendChild(bEl);
+
+      // Text element (only for chars)
+      let tEl = null;
+      if (hasChar) {
+        tEl = document.createElement('div');
+        tEl.className = 'char';
+        tEl.style.fontSize = fontSize + 'px';
+        tEl.textContent = ch;
+        textLayer.appendChild(tEl);
+      }
+
+      blobs.push({
+        ch: ch || '',
+        hx, hy,
+        x: hx, y: hy,
+        vx: 0, vy: 0,
+        phase: Math.random() * Math.PI * 2,
+        amp: 5 + Math.random() * 15,
+        freq: 0.5 + Math.random() * 0.8,
+        bEl, tEl,
+        w: bw, h: bh,
+      });
+    }
+  }
+}
+
+function frame(t) {
+  const time = t * 0.001;
+
+  blobs.forEach(b => {
+    // Wave motion
+    const waveX = Math.sin(time * b.freq + b.phase) * b.amp * 0.6;
+    const waveY = Math.cos(time * b.freq * 0.6 + b.phase + 1.5) * b.amp;
+
+    let tx = b.hx + waveX;
+    let ty = b.hy + waveY;
+
+    // Mouse repulsion — strong, like parting water
+    const dx = b.x - mx;
+    const dy = b.y - my;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const repelR = 200;
+    if (dist < repelR && dist > 0) {
+      const force = ((1 - dist / repelR) ** 1.5) * 180;
+      tx += (dx / dist) * force;
+      ty += (dy / dist) * force;
+    }
+
+    // Spring physics — softer return like water settling
+    b.vx += (tx - b.x) * 0.04;
+    b.vy += (ty - b.y) * 0.04;
+    b.vx *= 0.88;
+    b.vy *= 0.88;
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // Update DOM
+    const bx = b.x - b.w / 2;
+    const by = b.y - b.h / 2;
+    b.bEl.style.transform = `translate(${bx}px, ${by}px)`;
+    if (b.tEl) {
+      b.tEl.style.transform = `translate(${b.x}px, ${b.y}px) translate(-50%, -50%)`;
+      b.tEl.style.left = '0';
+      b.tEl.style.top = '0';
+    }
+  });
+
+  requestAnimationFrame(frame);
+}
+
+// Mouse
+document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+document.addEventListener('mouseleave', () => { mx = -9999; my = -9999; });
+document.addEventListener('touchmove', e => {
+  mx = e.touches[0].clientX; my = e.touches[0].clientY;
+}, { passive: true });
+document.addEventListener('touchend', () => { mx = -9999; my = -9999; });
+
+// Click splash — water splash feel (upward bias, tighter radius, softer)
+document.addEventListener('click', e => {
+  const cx = e.clientX;
+  const cy = e.clientY;
+  blobs.forEach(b => {
+    const dx = b.x - cx;
+    const dy = b.y - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxR = 220;
+    if (dist < maxR && dist > 0) {
+      const strength = ((1 - dist / maxR) ** 2) * 120;
+      // Splash upward bias + slight random scatter
+      const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.8;
+      const upBias = -Math.abs(strength) * 0.4; // push upward
+      b.vx += Math.cos(angle) * strength * (0.6 + Math.random() * 0.4);
+      b.vy += Math.sin(angle) * strength * (0.4 + Math.random() * 0.3) + upBias;
+    }
+  });
+});
+
+document.addEventListener('touchstart', e => {
+  const cx = e.touches[0].clientX;
+  const cy = e.touches[0].clientY;
+  blobs.forEach(b => {
+    const dx = b.x - cx;
+    const dy = b.y - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const maxR = 220;
+    if (dist < maxR && dist > 0) {
+      const strength = ((1 - dist / maxR) ** 2) * 120;
+      const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 0.8;
+      const upBias = -Math.abs(strength) * 0.4;
+      b.vx += Math.cos(angle) * strength * (0.6 + Math.random() * 0.4);
+      b.vy += Math.sin(angle) * strength * (0.4 + Math.random() * 0.3) + upBias;
+    }
+  });
+}, { passive: true });
+
+window.addEventListener('resize', init);
+
+document.fonts.ready.then(() => {
+  init();
+  requestAnimationFrame(frame);
+});
+</script>
+</body>
+</html>
