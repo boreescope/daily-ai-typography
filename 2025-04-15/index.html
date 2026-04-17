@@ -24,20 +24,18 @@
     #tape { width: 90vw; max-width: 1200px; flex-shrink: 0; }
     #stack { width: 90vw; max-width: 1200px; flex-shrink: 0; margin-top: -2vh; }
     .home-btn {
-      position: fixed; top: 2vh; left: 2vw; z-index: 50;
-      width: 36px; height: 36px;
-      display: flex; align-items: center; justify-content: center;
-      text-decoration: none; color: #999; font-size: 1.2rem;
-      border: 1px solid #ddd; border-radius: 50%;
-      background: rgba(255,255,255,0.8); backdrop-filter: blur(4px);
-      transition: color 0.3s, border-color 0.3s;
+      position: fixed; top: 2.5vh; left: 2.5vw; z-index: 50;
+      text-decoration: none; color: rgba(0,0,0,0.2);
+      font-family: sans-serif; font-size: 0.6rem; font-weight: 400;
+      letter-spacing: 0.12em;
+      transition: color 0.3s;
     }
-    .home-btn:hover { color: #333; border-color: #aaa; }
+    .home-btn:hover { color: rgba(0,0,0,0.5); }
   </style>
 </head>
 <body>
 
-<a class="home-btn" href="../index.html" title="목록으로">⌂</a>
+<a class="home-btn" href="../index.html">HOME</a>
 
 <svg id="tape" viewBox="-90 -55 1180 750" xmlns="http://www.w3.org/2000/svg">
   <defs>
