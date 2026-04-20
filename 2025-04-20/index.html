@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>You're the product</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw; height: 100vh;
+      overflow: hidden;
+      background: #fff;
+      font-family: 'IBM Plex Mono', 'Noto Sans KR', monospace;
+      color: #333;
+      cursor: default;
+    }
+
+    .terms-scroll {
+      position: absolute; inset: 0;
+      overflow: hidden;
+    }
+
+    .terms-inner {
+      position: absolute; top: 0; left: 0;
+      width: 100%;
+      padding: 12vh 6vw 10vh;
+      columns: 2;
+      column-gap: 3vw;
+      font-size: clamp(0.55rem, 0.85vw, 0.75rem);
+      font-weight: 300;
+      line-height: 1.85;
+      letter-spacing: 0;
+      word-break: keep-all;
+      overflow-wrap: break-word;
+    }
+
+    .terms-inner span { color: #333; }
+
+    .truth-wrap { display: inline; position: relative; cursor: default; }
+
+    .truth-text {
+      background: rgba(255,230,0,0.25);
+      color: #555;
+      padding: 0 2px;
+      border-radius: 1px;
+      transition: all 0.5s ease;
+    }
+
+    .truth-wrap:hover .truth-text {
+      background: rgba(255,230,0,0.5);
+      color: #111;
+      font-size: clamp(0.9rem, 1.8vw, 1.3rem);
+      font-weight: 500;
+      line-height: 1.8;
+      letter-spacing: 0;
+      padding: 0.3em 0.5em;
+    }
+
+    .truth-ko {
+      display: inline;
+      background: rgba(255,230,0,0.2);
+      color: #777;
+      font-family: 'Noto Sans KR', sans-serif;
+      padding: 0 2px;
+      border-radius: 1px;
+      transition: all 0.5s ease;
+    }
+
+    .truth-wrap:hover .truth-ko {
+      display: block;
+      background: rgba(255,230,0,0.4);
+      color: #111;
+      font-size: clamp(0.75rem, 1.3vw, 1rem);
+      font-weight: 400;
+      line-height: 1.8;
+      letter-spacing: 0;
+      padding: 0.3em 0.5em;
+      margin-top: 0.3em;
+    }
+
+    /* ── Title ── */
+    .page-title {
+      position: fixed;
+      top: 4vh; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(1.4rem, 3vw, 2.2rem);
+      font-weight: 500;
+      color: #111;
+      letter-spacing: -0.02em;
+      z-index: 10;
+      background: linear-gradient(to bottom, #fff 60%, transparent);
+      padding: 0 3vw 3vh;
+    }
+
+    /* ── Timer ── */
+    .timer {
+      position: fixed;
+      top: 2.5vh; right: 2.5vw;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 300;
+      color: rgba(0,0,0,0.2);
+      z-index: 10;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Progress bar ── */
+    .progress-track {
+      position: fixed;
+      right: 1.5vw;
+      top: 15vh;
+      bottom: 15vh;
+      width: 3px;
+      background: rgba(0,0,0,0.06);
+      border-radius: 2px;
+      z-index: 10;
+    }
+
+    .progress-fill {
+      position: absolute;
+      bottom: 0; left: 0;
+      width: 100%;
+      background: rgba(0,0,0,0.15);
+      border-radius: 2px;
+      transition: height 0.3s;
+    }
+
+    .progress-label {
+      position: fixed;
+      right: 1.5vw;
+      bottom: calc(15vh - 1.5em);
+      font-size: 0.5rem;
+      color: rgba(0,0,0,0.15);
+      font-weight: 300;
+      z-index: 10;
+      text-align: right;
+    }
+
+    /* ── Bottom bar ── */
+    .bottom-bar {
+      position: fixed;
+      bottom: 0; left: 0;
+      width: 100%;
+      padding: 2.5vh 6vw;
+      background: linear-gradient(to top, #fff 70%, transparent);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .agree-group {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+
+    .checkbox {
+      width: 14px; height: 14px;
+      border: 1.5px solid #888;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.3s;
+      flex-shrink: 0;
+    }
+    .checkbox:hover { border-color: #444; }
+    .checkbox.checked { background: #111; border-color: #111; }
+
+    .agree-text {
+      font-size: 0.6rem;
+      color: #666;
+      font-weight: 300;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    .agree-text:hover { color: #111; }
+
+    .skip-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 400;
+      color: #666;
+      background: none;
+      border: 1px solid #999;
+      border-radius: 3px;
+      padding: 0.4em 1.2em;
+      cursor: pointer;
+      transition: all 0.3s;
+      letter-spacing: 0.05em;
+    }
+    .skip-btn:hover {
+      color: #111;
+      border-color: #555;
+    }
+
+    .decline-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 400;
+      color: #888;
+      background: none;
+      border: 1px solid #aaa;
+      border-radius: 3px;
+      padding: 0.4em 1.2em;
+      cursor: pointer;
+      letter-spacing: 0.05em;
+      position: fixed;
+      bottom: 2.5vh;
+      transition: left 0.2s ease, top 0.2s ease, color 0.3s, border-color 0.3s;
+      z-index: 11;
+    }
+    .decline-btn:hover {
+      color: #333;
+      border-color: #666;
+    }
+
+    /* ── Reveal overlay ── */
+    .reveal-overlay {
+      position: fixed; inset: 0;
+      background: #111;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1.5s ease;
+    }
+    .reveal-overlay.show { opacity: 1; pointer-events: auto; }
+
+    .reveal-overlay .msg {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(1.1rem, 2.8vw, 2rem);
+      font-weight: 500;
+      color: #fff;
+      text-align: center;
+      line-height: 1.8;
+      max-width: 700px;
+      padding: 0 2rem;
+      opacity: 0;
+      transform: translateY(15px);
+      transition: opacity 1s ease 0.8s, transform 1s ease 0.8s;
+    }
+    .reveal-overlay.show .msg { opacity: 1; transform: translateY(0); }
+
+    .reveal-overlay .msg-ko {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: clamp(0.8rem, 1.6vw, 1.1rem);
+      font-weight: 300;
+      color: rgba(255,255,255,0.45);
+      text-align: center;
+      line-height: 1.8;
+      margin-top: 1.5rem;
+      max-width: 600px;
+      padding: 0 2rem;
+      opacity: 0;
+      transition: opacity 1s ease 1.8s;
+    }
+    .reveal-overlay.show .msg-ko { opacity: 1; }
+
+    .reveal-overlay .stat {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(0.6rem, 1vw, 0.8rem);
+      font-weight: 300;
+      color: rgba(255,255,255,0.2);
+      text-align: center;
+      margin-top: 3rem;
+      opacity: 0;
+      transition: opacity 1s ease 2.8s;
+    }
+    .reveal-overlay.show .stat { opacity: 1; }
+
+    /* Skip reveal — different message */
+    .reveal-overlay .skip-msg {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(0.8rem, 1.5vw, 1.1rem);
+      font-weight: 300;
+      color: rgba(255,255,255,0.35);
+      text-align: center;
+      margin-top: 2rem;
+      opacity: 0;
+      transition: opacity 1s ease 2s;
+    }
+    .reveal-overlay.show .skip-msg { opacity: 1; }
+
+    .home-btn {
+      position: fixed; top: 2.5vh; left: 2.5vw; z-index: 50;
+      text-decoration: none; color: rgba(0,0,0,0.15);
+      font-family: sans-serif; font-size: 0.6rem; font-weight: 400;
+      letter-spacing: 0.12em;
+      transition: color 0.3s;
+    }
+    .home-btn:hover { color: rgba(0,0,0,0.45); }
+  </style>
+</head>
+<body>
+
+<a class="home-btn" href="../index.html">HOME</a>
+
+<div class="page-title">Terms and Conditions</div>
+
+<div class="timer" id="timer">Time spent reading: 00:00</div>
+
+<div class="progress-track">
+  <div class="progress-fill" id="progressFill" style="height:0%"></div>
+</div>
+<div class="progress-label" id="progressLabel">0%</div>
+
+<div class="terms-scroll">
+  <div class="terms-inner" id="termsInner"></div>
+</div>
+
+<div class="bottom-bar">
+  <div class="agree-group">
+    <div class="checkbox" id="checkbox"></div>
+    <div class="agree-text" id="agreeText">I have read and agree to the Terms of Service and Privacy Policy</div>
+  </div>
+  <button class="skip-btn" id="skipBtn">Skip</button>
+  <button class="decline-btn" id="declineBtn">Decline</button>
+</div>
+
+<div class="reveal-overlay" id="reveal">
+  <div class="msg" id="revealMsg">You're not the customer.<br>You're the product being sold.</div>
+  <div class="msg-ko">당신이 어떤 상품에 돈을 지불하지 않고 있다면,<br>당신 자신이 바로 그 상품이다</div>
+  <div class="stat" id="revealStat"></div>
+  <div class="skip-msg" id="skipMsg"></div>
+</div>
+
+<script>
+  const phrases = [
+    'By accessing or using our Services you agree to be bound by these Terms of Service and all applicable laws and regulations.',
+    'We reserve the right to modify these Terms at any time without prior notice to you.',
+    'Your continued use of the Service after changes constitutes acceptance of the modified Terms.',
+    'We may collect store and process personal data including but not limited to your name email address location device information browsing history and usage patterns as described in our Privacy Policy.',
+    'You grant us a non-exclusive worldwide royalty-free perpetual irrevocable license to use reproduce modify adapt publish translate distribute and display your content in any media.',
+    'We may share your information with third-party partners affiliates and advertisers for marketing and advertising purposes.',
+    'The Service is provided as is and as available without warranties of any kind either express or implied including but not limited to implied warranties of merchantability fitness for a particular purpose and non-infringement.',
+    'In no event shall we be liable for any indirect incidental special consequential or punitive damages.',
+    'You agree not to reproduce duplicate copy sell resell or exploit any portion of the Service.',
+    'We may terminate or suspend your access to the Service immediately without prior notice or liability for any reason whatsoever.',
+    'All data collected may be transferred to and maintained on servers located outside of your state province country or other governmental jurisdiction.',
+    'By using this service you consent to the collection of behavioral analytics including mouse movements click patterns scroll depth session duration and interaction frequency.',
+    'Your usage patterns preferences interactions social connections and behavioral data may be used to build comprehensive user profiles for targeted advertising.',
+    'We use cookies web beacons pixel tags and similar tracking technologies to collect information about your browsing activities over time and across different websites.',
+    'Third-party advertisers and their ad servers may have access to your browsing history search queries purchase history and preference data.',
+    'You acknowledge that free services are primarily supported by targeted advertising revenue generated from your personal data.',
+    'We may retain your data indefinitely for as long as your account is active or as needed to provide you services comply with legal obligations resolve disputes and enforce agreements.',
+    'Aggregated anonymized and pseudonymized data derived from your usage may be shared with research partners data brokers and analytics companies without restriction.',
+    '귀하는 본 서비스를 이용함으로써 개인정보 수집 및 이용에 동의하는 것으로 간주됩니다.',
+    '수집된 개인정보는 서비스 제공 마케팅 활용 및 제3자 제공 목적으로 사용될 수 있습니다.',
+    '회사는 이용자의 서비스 이용 기록 접속 로그 쿠키 접속 IP 정보 등을 자동으로 수집할 수 있습니다.',
+    '본 약관에 동의하지 않을 경우 서비스 이용이 제한될 수 있습니다.',
+    '회사는 사전 통지 없이 서비스의 전부 또는 일부를 변경하거나 중단할 수 있습니다.',
+    'You are responsible for maintaining the confidentiality of your account and password.',
+    'These Terms shall be governed by and construed in accordance with the laws of the applicable jurisdiction without regard to conflict of law provisions.',
+    'Any disputes arising out of or relating to these Terms shall be resolved through binding arbitration.',
+    'We reserve the right to assign or transfer these Terms and your personal data to any third party without restriction or notification.',
+    'Your personal information may be disclosed if required by law subpoena or other legal process.',
+    'We make no guarantees regarding the security availability or uptime of the Service and shall not be held responsible for any data breaches or unauthorized access.',
+    '이용자의 개인정보는 수집 목적 달성 후에도 관련 법령에 따라 일정 기간 보관될 수 있습니다.',
+    'The Service may contain links to third-party websites or services that are not owned or controlled by us.',
+    'You agree to indemnify defend and hold harmless the Company its officers directors employees and agents from any claims damages losses liabilities and expenses.',
+    'We may update our Privacy Policy from time to time and will notify you of any changes by posting the new Privacy Policy on this page.',
+    'By creating an account you represent and warrant that you are at least 13 years of age.',
+    'We may use your email address phone number and push notifications to send you promotional materials service updates and marketing communications.',
+    '회사는 이용자의 동의 없이 이용자의 개인정보를 제3자에게 제공하지 않습니다 다만 법령에 특별한 규정이 있는 경우는 예외로 합니다.',
+  ];
+
+  const truthEN = "If you are not paying for it, you're not the customer; you're the product being sold.";
+  const truthKO = '당신이 어떤 상품에 돈을 지불하지 않고 있다면, 당신 자신이 바로 그 상품이다';
+
+  const termsInner = document.getElementById('termsInner');
+
+  // Count total words
+  const totalWords = phrases.reduce((sum, p) => sum + p.split(/\s+/).length, 0) * 2;
+
+  function buildTerms() {
+    let html = '';
+    for (let copy = 0; copy < 3; copy++) {
+      const shuffled = [...phrases].sort(() => Math.random() - 0.5);
+      shuffled.forEach((p, i) => {
+        html += `<span>${p} </span>`;
+        if (i === Math.floor(shuffled.length / 2)) {
+          html += `<span class="truth-wrap"><span class="truth-text">${truthEN}</span> <span class="truth-ko">${truthKO}</span></span> `;
+        }
+      });
+    }
+    termsInner.innerHTML = html;
+  }
+
+  buildTerms();
+
+  // Pause scroll when hovering on truth
+  document.querySelectorAll('.truth-wrap').forEach(el => {
+    el.addEventListener('mouseenter', () => { scrollPaused = true; });
+    el.addEventListener('mouseleave', () => { scrollPaused = false; });
+  });
+
+  // ── Timer ──
+  const timerEl = document.getElementById('timer');
+  const startTime = Date.now();
+
+  function updateTimer() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    timerEl.textContent = `Time spent reading: ${m}:${s}`;
+    requestAnimationFrame(updateTimer);
+  }
+  updateTimer();
+
+  // ── Scroll with irregular speed (slower) ──
+  let scrollY = 0;
+  let scrollSpeed = 0.4;
+  let targetSpeed = 0.4;
+  let lastSpeedChange = 0;
+  let progress = 0;
+  let scrollPaused = false;
+
+  const progressFill = document.getElementById('progressFill');
+  const progressLabel = document.getElementById('progressLabel');
+
+  function animateScroll(t) {
+    if (!scrollPaused) {
+      if (t - lastSpeedChange > 1200 + Math.random() * 3000) {
+        targetSpeed = Math.random() < 0.15 ? (1.5 + Math.random() * 2) : (0.2 + Math.random() * 0.6);
+        lastSpeedChange = t;
+      }
+
+      scrollSpeed += (targetSpeed - scrollSpeed) * 0.02;
+      scrollY += scrollSpeed;
+    }
+
+    const thirdH = termsInner.scrollHeight / 3;
+    if (thirdH > 0) {
+      progress = Math.min(1, scrollY / thirdH);
+      if (scrollY >= thirdH * 2) scrollY -= thirdH;
+    }
+
+    termsInner.style.transform = `translateY(${-scrollY}px)`;
+
+    // Update progress bar
+    const pct = Math.floor(progress * 100);
+    progressFill.style.height = pct + '%';
+    progressLabel.textContent = pct + '%';
+
+    requestAnimationFrame(animateScroll);
+  }
+
+  requestAnimationFrame(animateScroll);
+
+  // ── Reveal ──
+  const checkbox = document.getElementById('checkbox');
+  const agreeText = document.getElementById('agreeText');
+  const skipBtn = document.getElementById('skipBtn');
+  const reveal = document.getElementById('reveal');
+  const revealStat = document.getElementById('revealStat');
+  const skipMsgEl = document.getElementById('skipMsg');
+  let revealed = false;
+
+  function getTimeStr() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    return elapsed;
+  }
+
+  function triggerReveal(skipped) {
+    if (revealed) return;
+    revealed = true;
+    checkbox.classList.add('checked');
+
+    const secs = getTimeStr();
+    revealStat.textContent = `You spent ${secs} seconds on ${totalWords.toLocaleString()}+ words of terms.`;
+
+    if (skipped) {
+      skipMsgEl.textContent = "You just proved the point.";
+    } else {
+      skipMsgEl.textContent = "";
+    }
+
+    setTimeout(() => reveal.classList.add('show'), 400);
+  }
+
+  checkbox.addEventListener('click', () => triggerReveal(false));
+  agreeText.addEventListener('click', () => triggerReveal(false));
+  skipBtn.addEventListener('click', () => triggerReveal(true));
+
+  reveal.addEventListener('click', () => {
+    reveal.classList.remove('show');
+    checkbox.classList.remove('checked');
+    revealed = false;
+    // Reset progress so it doesn't immediately re-trigger
+    scrollY = 0;
+    progress = 0;
+  });
+
+  // ── Decline button runs away ──
+  const declineBtn = document.getElementById('declineBtn');
+  let declineAttempts = 0;
+
+  declineBtn.addEventListener('mouseenter', () => {
+    declineAttempts++;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const pad = 80;
+    const newX = pad + Math.random() * (vw - pad * 2);
+    const newY = pad + Math.random() * (vh - pad * 2);
+    declineBtn.style.left = newX + 'px';
+    declineBtn.style.top = newY + 'px';
+    declineBtn.style.bottom = 'auto';
+
+    if (declineAttempts === 3) declineBtn.textContent = 'Decline?';
+    if (declineAttempts === 5) declineBtn.textContent = 'Nice try';
+    if (declineAttempts === 8) declineBtn.textContent = "You can't";
+    if (declineAttempts >= 10) {
+      declineBtn.textContent = '\u{1F60A}';
+      declineBtn.style.fontSize = '1rem';
+    }
+  });
+
+  declineBtn.addEventListener('click', () => {
+    declineBtn.textContent = 'Not an option.';
+    declineBtn.style.color = '#f66';
+    declineBtn.style.borderColor = '#f66';
+    setTimeout(() => {
+      declineBtn.textContent = 'Decline';
+      declineBtn.style.color = '';
+      declineBtn.style.borderColor = '';
+      declineBtn.style.fontSize = '';
+      declineAttempts = 0;
+    }, 1500);
+  });
+</script>
+
+</body>
+</html>
