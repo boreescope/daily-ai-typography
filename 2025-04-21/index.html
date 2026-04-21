@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>늑구빵 공식 판매 중</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background: #1a0f08;
+      font-family: 'Jua', 'Noto Sans KR', sans-serif;
+      cursor: pointer;
+    }
+
+    /* ── Oven interior ── */
+    .oven {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(
+        ellipse at 50% 60%,
+        #5a2e0a 0%,
+        #3d1c05 40%,
+        #1f0d02 80%,
+        #0a0502 100%
+      );
+      overflow: hidden;
+    }
+
+    /* Oven rack lines (horizontal) */
+    .rack {
+      position: absolute;
+      bottom: 15vh;
+      left: 5%;
+      right: 5%;
+      height: 2px;
+      background: rgba(0,0,0,0.5);
+      box-shadow: 0 20vh 0 rgba(0,0,0,0.3);
+    }
+
+    /* Baking tray */
+    .tray {
+      position: absolute;
+      bottom: 14vh;
+      left: 50%;
+      width: 70vw;
+      max-width: 900px;
+      height: 22vh;
+      transform: translateX(-150%) perspective(800px) rotateX(25deg);
+      transform-origin: center top;
+      background: linear-gradient(
+        180deg,
+        #4a3a28 0%,
+        #3a2c1e 50%,
+        #2a2012 100%
+      );
+      border-radius: 4px;
+      box-shadow:
+        inset 0 6px 10px rgba(255,150,50,0.15),
+        inset 0 -4px 8px rgba(0,0,0,0.6),
+        0 8px 20px rgba(0,0,0,0.5),
+        0 0 40px rgba(255,100,30,0.2);
+      transition: transform 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+      z-index: 3;
+    }
+
+    .tray.in {
+      transform: translateX(-50%) perspective(800px) rotateX(25deg);
+    }
+
+    /* Tray shine */
+    .tray::before {
+      content: '';
+      position: absolute;
+      top: 8%;
+      left: 4%;
+      right: 4%;
+      height: 25%;
+      background: linear-gradient(180deg, rgba(255,180,80,0.2), transparent);
+      border-radius: 2px;
+      pointer-events: none;
+    }
+
+    /* Heat glow (bottom) */
+    .heat {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 25vh;
+      background: linear-gradient(
+        to top,
+        rgba(255, 120, 30, 0.4) 0%,
+        rgba(255, 160, 60, 0.15) 40%,
+        transparent 100%
+      );
+      animation: heatPulse 3s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    @keyframes heatPulse {
+      0%, 100% { opacity: 0.9; }
+      50% { opacity: 1.1; }
+    }
+
+    /* Heating element (red glow at bottom) */
+    .element {
+      position: absolute;
+      bottom: 5vh;
+      left: 10%;
+      right: 10%;
+      height: 4px;
+      background: linear-gradient(90deg,
+        rgba(255, 80, 20, 0.3) 0%,
+        rgba(255, 120, 40, 0.9) 50%,
+        rgba(255, 80, 20, 0.3) 100%
+      );
+      border-radius: 2px;
+      box-shadow: 0 0 30px rgba(255, 100, 30, 0.6);
+      animation: elementFlicker 2s ease-in-out infinite;
+    }
+
+    @keyframes elementFlicker {
+      0%, 100% { opacity: 0.85; }
+      50% { opacity: 1; }
+    }
+
+    /* ── Bread text ── */
+    .bread-stage {
+      position: absolute;
+      bottom: 18vh;
+      left: 50%;
+      transform: translate(-250%, 0);
+      z-index: 5;
+      text-align: center;
+      transition: transform 1s cubic-bezier(0.34, 1.2, 0.64, 1);
+    }
+
+    .bread-stage.slide-in {
+      transform: translate(-50%, 0);
+    }
+
+    .bread-text {
+      font-family: 'Jua', sans-serif;
+      font-size: clamp(5rem, 18vw, 16rem);
+      font-weight: 400;
+      line-height: 1;
+      color: #f4d19f;
+      letter-spacing: 0.02em;
+      text-shadow:
+        0 2px 0 #d19b5a,
+        0 4px 0 #b37a3c,
+        0 6px 20px rgba(255, 100, 30, 0.4);
+      transition:
+        transform 2.2s cubic-bezier(0.45, 0.05, 0.55, 0.95),
+        color 8s linear,
+        text-shadow 8s linear,
+        filter 8s linear;
+      transform-origin: center bottom;
+    }
+
+    /* States — raw to baked */
+    .bread-text.raw {
+      color: #f5e6d0;
+      text-shadow:
+        0 2px 0 #e0c9a8,
+        0 4px 0 #c9af85;
+      transform: scale(0.45, 0.5);
+      filter: blur(0.5px);
+    }
+
+    .bread-text.rising {
+      color: #f0d5a5;
+      transform: scale(0.7, 0.72);
+    }
+
+    .bread-text.rising-2 {
+      color: #edc690;
+      transform: scale(0.88, 0.86);
+    }
+
+    .bread-text.baking {
+      color: #e8b870;
+      transform: scale(1.0, 0.98);
+    }
+
+    .bread-text.golden {
+      color: transparent;
+      background: linear-gradient(
+        180deg,
+        #f5c580 0%,
+        #e09845 25%,
+        #b86820 55%,
+        #7a3a0f 85%,
+        #4a2208 100%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      text-shadow:
+        0 3px 0 rgba(90, 40, 10, 0.8),
+        0 5px 0 rgba(60, 25, 5, 0.8),
+        0 7px 2px rgba(40, 15, 3, 0.9),
+        0 10px 25px rgba(255, 100, 30, 0.5),
+        0 0 40px rgba(255, 140, 50, 0.3);
+      filter:
+        drop-shadow(0 2px 0 #8a4515)
+        drop-shadow(0 4px 2px rgba(50, 20, 5, 0.8));
+      transform: scale(1.15, 1.1);
+    }
+
+    /* Subtitle */
+    .subtitle {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: clamp(0.8rem, 1.8vw, 1.3rem);
+      font-weight: 400;
+      color: rgba(255, 220, 180, 0.6);
+      margin-top: 1.5rem;
+      opacity: 0;
+      transition: opacity 2s ease;
+    }
+
+    .subtitle.visible {
+      opacity: 1;
+    }
+
+    /* Status label */
+    .status {
+      position: fixed;
+      top: 6vh;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Jua', sans-serif;
+      font-size: 0.8rem;
+      color: rgba(255, 180, 100, 0.5);
+      letter-spacing: 0.2em;
+      z-index: 20;
+      text-transform: uppercase;
+    }
+
+    .status .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: #ff6020;
+      border-radius: 50%;
+      margin-right: 8px;
+      vertical-align: middle;
+      animation: blink 1.5s ease-in-out infinite;
+      box-shadow: 0 0 10px rgba(255, 100, 30, 0.8);
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    /* Timer */
+    .timer {
+      position: fixed;
+      top: 2.5vh;
+      right: 2.5vw;
+      font-family: 'Jua', sans-serif;
+      font-size: 0.9rem;
+      color: rgba(255, 180, 100, 0.5);
+      letter-spacing: 0.1em;
+      z-index: 20;
+    }
+
+    /* Steam particles */
+    .steam-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4;
+    }
+
+    .steam {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: rise 3s ease-out forwards;
+    }
+
+    @keyframes rise {
+      0% {
+        transform: translate(0, 0) scale(0.3);
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(var(--drift), -300px) scale(2);
+        opacity: 0;
+      }
+    }
+
+    /* Hint */
+    .hint {
+      position: fixed;
+      bottom: 3vh;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 0.7rem;
+      color: rgba(255, 180, 100, 0.4);
+      letter-spacing: 0.15em;
+      z-index: 20;
+      animation: hintPulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes hintPulse {
+      0%, 100% { opacity: 0.4; }
+      50% { opacity: 0.8; }
+    }
+
+    /* Home button */
+    .home-btn {
+      position: fixed; top: 2.5vh; left: 2.5vw; z-index: 50;
+      text-decoration: none; color: rgba(255, 180, 100, 0.3);
+      font-family: sans-serif; font-size: 0.6rem; font-weight: 400;
+      letter-spacing: 0.12em;
+      transition: color 0.3s;
+    }
+    .home-btn:hover { color: rgba(255, 180, 100, 0.7); }
+
+    /* Ready state */
+    .bread-stage.ready {
+      animation: bounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes bounce {
+      0% { transform: translate(-50%, 0) scale(1); }
+      50% { transform: translate(-50%, -10px) scale(1.08); }
+      100% { transform: translate(-50%, 0) scale(1); }
+    }
+
+    /* Wolf character walking in */
+    .wolf {
+      position: absolute;
+      bottom: 15vh;
+      left: -18vw;
+      width: 140px;
+      height: 110px;
+      z-index: 6;
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .wolf.walking {
+      opacity: 1;
+      animation: wolfWalk 2.8s linear forwards;
+    }
+
+    @keyframes wolfWalk {
+      0% { left: -18vw; }
+      100% { left: calc(50vw - 70px); }
+    }
+
+    /* Body bob while walking — subtle, predator-like */
+    .wolf.walking .wolf-body {
+      animation: bodyBob 0.45s ease-in-out infinite;
+      transform-origin: center bottom;
+    }
+    @keyframes bodyBob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-1.5px); }
+    }
+
+    /* Legs walking */
+    .wolf .leg-front-l,
+    .wolf .leg-back-l {
+      transform-origin: top center;
+      animation: legA 0.45s ease-in-out infinite;
+    }
+    .wolf .leg-front-r,
+    .wolf .leg-back-r {
+      transform-origin: top center;
+      animation: legB 0.45s ease-in-out infinite;
+    }
+    .wolf.sitting .leg-front-l,
+    .wolf.sitting .leg-front-r,
+    .wolf.sitting .leg-back-l,
+    .wolf.sitting .leg-back-r {
+      animation: none;
+    }
+    @keyframes legA {
+      0%, 100% { transform: rotate(18deg); }
+      50% { transform: rotate(-18deg); }
+    }
+    @keyframes legB {
+      0%, 100% { transform: rotate(-18deg); }
+      50% { transform: rotate(18deg); }
+    }
+
+    /* Tail — low, slow sway (not wag) */
+    .wolf .tail {
+      transform-origin: 100% 50%;
+      animation: tailSway 1.4s ease-in-out infinite;
+    }
+    @keyframes tailSway {
+      0%, 100% { transform: rotate(-4deg); }
+      50% { transform: rotate(4deg); }
+    }
+
+    /* Sitting pose */
+    .wolf.sitting {
+      opacity: 1;
+      left: calc(50vw - 70px);
+      animation: sitBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes sitBounce {
+      0% { transform: translateY(-6px) scale(1, 1); }
+      50% { transform: translateY(1px) scale(1.04, 0.96); }
+      100% { transform: translateY(0) scale(1, 1); }
+    }
+
+    /* Fade into bread */
+    .wolf.fade-out {
+      animation: wolfFade 0.6s ease-in forwards;
+    }
+    @keyframes wolfFade {
+      0% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
+      100% { opacity: 0; transform: translateY(20px) scale(0.6); filter: blur(4px); }
+    }
+
+    /* Welcome banner */
+    .banner {
+      position: absolute;
+      top: -25vh;
+      left: 50%;
+      transform: translateX(-50%) rotate(-1.5deg);
+      z-index: 7;
+      pointer-events: none;
+      width: clamp(320px, 55vw, 720px);
+      opacity: 0;
+    }
+
+    .banner.drop {
+      animation: bannerDrop 1.2s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+    }
+
+    @keyframes bannerDrop {
+      0% { top: -25vh; opacity: 0; }
+      60% { top: 11vh; opacity: 1; }
+      75% { top: 8vh; }
+      90% { top: 10vh; }
+      100% { top: 9vh; opacity: 1; }
+    }
+
+    .banner.sway {
+      animation: bannerSway 3s ease-in-out infinite;
+    }
+
+    @keyframes bannerSway {
+      0%, 100% { transform: translateX(-50%) rotate(-1.5deg); }
+      50% { transform: translateX(-50%) rotate(1.5deg); }
+    }
+
+    .banner.lift {
+      animation: bannerLift 1s ease-in forwards;
+    }
+
+    @keyframes bannerLift {
+      0% { opacity: 1; }
+      100% { top: -25vh; opacity: 0; }
+    }
+
+    /* Confetti */
+    .confetti {
+      position: absolute;
+      width: 8px;
+      height: 14px;
+      top: 10vh;
+      pointer-events: none;
+      z-index: 8;
+      opacity: 0;
+    }
+
+    .confetti.falling {
+      animation: confettiFall linear forwards;
+    }
+
+    @keyframes confettiFall {
+      0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(70vh) rotate(720deg);
+      }
+    }
+
+    /* Warm steam (stronger, after baking done) */
+    .warm-steam {
+      position: absolute;
+      width: 50px;
+      height: 50px;
+      background: radial-gradient(circle,
+        rgba(255,240,220,0.35) 0%,
+        rgba(255,220,180,0.15) 40%,
+        transparent 70%);
+      border-radius: 50%;
+      pointer-events: none;
+      animation: warmRise 4s ease-out forwards;
+    }
+
+    @keyframes warmRise {
+      0% {
+        transform: translate(0, 0) scale(0.4);
+        opacity: 0.9;
+      }
+      40% {
+        opacity: 0.8;
+      }
+      100% {
+        transform: translate(var(--drift), -400px) scale(3);
+        opacity: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<a class="home-btn" href="../index.html">HOME</a>
+
+<!-- Welcome banner -->
+<svg class="banner" id="banner" viewBox="0 0 600 160" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="clothGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f4e6c9"/>
+      <stop offset="50%" stop-color="#e8d3a3"/>
+      <stop offset="100%" stop-color="#c9a873"/>
+    </linearGradient>
+    <filter id="clothShadow">
+      <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.4"/>
+    </filter>
+  </defs>
+
+  <!-- Ropes -->
+  <path d="M 10 15 Q 80 55 50 95" fill="none" stroke="#6b4423" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M 590 15 Q 520 55 550 95" fill="none" stroke="#6b4423" stroke-width="2.5" stroke-linecap="round"/>
+
+  <!-- Banner cloth with wavy bottom edge -->
+  <path d="M 50 30
+           L 550 30
+           Q 555 55 550 80
+           L 540 130
+           Q 520 120 500 130
+           Q 480 120 460 130
+           Q 440 120 420 130
+           Q 400 120 380 130
+           Q 360 120 340 130
+           Q 320 120 300 130
+           Q 280 120 260 130
+           Q 240 120 220 130
+           Q 200 120 180 130
+           Q 160 120 140 130
+           Q 120 120 100 130
+           Q 80 120 60 130
+           L 50 80
+           Q 45 55 50 30 Z"
+        fill="url(#clothGrad)"
+        filter="url(#clothShadow)"/>
+
+  <!-- Cloth fold highlight -->
+  <path d="M 55 35 Q 300 28 545 35 L 545 45 Q 300 40 55 45 Z"
+        fill="#fff"
+        opacity="0.3"/>
+
+  <!-- Grommet holes (knots) -->
+  <circle cx="60" cy="45" r="5" fill="#6b4423"/>
+  <circle cx="60" cy="45" r="2.5" fill="#3a2410"/>
+  <circle cx="540" cy="45" r="5" fill="#6b4423"/>
+  <circle cx="540" cy="45" r="2.5" fill="#3a2410"/>
+
+  <!-- Text -->
+  <text x="300" y="85"
+        text-anchor="middle"
+        font-family="Jua, sans-serif"
+        font-size="42"
+        fill="#5a3a1a"
+        letter-spacing="1">WELCOME BACK</text>
+  <text x="300" y="118"
+        text-anchor="middle"
+        font-family="Jua, sans-serif"
+        font-size="32"
+        fill="#8a3a1a">늑구 🐺</text>
+</svg>
+
+<!-- Confetti container -->
+<div class="confetti-container" id="confettiContainer" style="position:absolute;inset:0;pointer-events:none;z-index:8;"></div>
+
+<div class="oven">
+  <div class="heat"></div>
+  <div class="element"></div>
+  <div class="rack"></div>
+  <div class="tray" id="tray"></div>
+
+  <!-- Wolf character -->
+  <svg class="wolf" id="wolf" viewBox="0 0 160 120" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="wolfGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#6b6b6b"/>
+        <stop offset="60%" stop-color="#4a4a4a"/>
+        <stop offset="100%" stop-color="#333"/>
+      </linearGradient>
+    </defs>
+    <g class="wolf-body">
+      <!-- Tail (thick, bushy, low) -->
+      <path class="tail" d="M 28 62 Q 8 58 4 42 Q 0 36 6 32 Q 12 40 18 48 Q 24 54 30 58 Z" fill="#3a3a3a"/>
+      <path class="tail" d="M 28 62 Q 12 58 10 46" fill="none" stroke="#2a2a2a" stroke-width="1.2" opacity="0.5"/>
+
+      <!-- Back legs (longer, leaner) -->
+      <path class="leg-back-l" d="M 38 70 L 37 98 L 34 100 L 42 100 L 43 72 Z" fill="#2f2f2f"/>
+      <path class="leg-back-r" d="M 48 72 L 47 100 L 44 102 L 52 102 L 53 72 Z" fill="#3a3a3a"/>
+
+      <!-- Front legs (longer, leaner) -->
+      <path class="leg-front-l" d="M 98 70 L 97 100 L 94 102 L 102 102 L 103 72 Z" fill="#2f2f2f"/>
+      <path class="leg-front-r" d="M 108 72 L 107 100 L 104 102 L 112 102 L 113 72 Z" fill="#3a3a3a"/>
+
+      <!-- Body (long, low, predatory silhouette) -->
+      <path d="M 32 64 Q 36 54 52 52 Q 70 50 90 52 Q 108 54 118 60 Q 122 66 118 74 Q 100 78 70 78 Q 45 78 34 74 Q 28 68 32 64 Z" fill="url(#wolfGrad)"/>
+
+      <!-- Underbelly (lighter grey) -->
+      <path d="M 44 74 Q 70 80 108 74 Q 106 80 80 82 Q 56 82 44 74 Z" fill="#8a8a8a" opacity="0.8"/>
+
+      <!-- Back mane/ruff -->
+      <path d="M 52 52 Q 58 46 64 50 Q 70 46 76 50 Q 82 46 88 50 Q 94 46 98 52" fill="none" stroke="#2a2a2a" stroke-width="1.5" opacity="0.6"/>
+      <path d="M 60 50 L 62 46 M 72 49 L 74 45 M 84 49 L 86 45" stroke="#2a2a2a" stroke-width="1" opacity="0.5"/>
+
+      <!-- Neck to head -->
+      <path d="M 112 60 Q 124 56 132 50 Q 140 46 146 48 Q 144 54 140 58 Q 128 66 118 66 Z" fill="url(#wolfGrad)"/>
+
+      <!-- Head (elongated, wolf-like) -->
+      <path d="M 128 38 Q 140 36 150 40 Q 156 44 154 52 Q 150 58 142 60 Q 130 60 124 54 Q 120 46 128 38 Z" fill="#555"/>
+
+      <!-- Long snout -->
+      <path d="M 148 48 Q 158 48 156 55 Q 150 58 146 56 Z" fill="#3a3a3a"/>
+
+      <!-- Ears (tall, pointed, alert) -->
+      <path d="M 128 38 L 124 22 L 134 32 Z" fill="#2a2a2a"/>
+      <path d="M 134 32 L 132 24 L 138 32 Z" fill="#6a6a6a"/>
+      <path d="M 140 36 L 140 20 L 148 34 Z" fill="#2a2a2a"/>
+      <path d="M 144 33 L 144 25 L 147 33 Z" fill="#6a6a6a"/>
+
+      <!-- Yellow wolf eye — sharp -->
+      <ellipse cx="140" cy="46" rx="2.2" ry="1.6" fill="#d4a017"/>
+      <ellipse cx="140.3" cy="46" rx="0.8" ry="1.4" fill="#1a0f08"/>
+
+      <!-- Nose -->
+      <ellipse cx="156" cy="52" rx="2.2" ry="1.6" fill="#1a0f08"/>
+
+      <!-- Mouth line -->
+      <path d="M 150 56 Q 153 57 155 56" fill="none" stroke="#1a0f08" stroke-width="0.8"/>
+    </g>
+  </svg>
+
+  <div class="steam-container" id="steamContainer"></div>
+</div>
+
+<div class="status">
+  <span class="dot"></span>
+  <span id="statusText">READY</span>
+</div>
+
+<div class="timer" id="timer">00:00</div>
+
+<div class="bread-stage" id="breadStage" style="opacity:0;">
+  <div class="bread-text raw" id="breadText">늑구빵</div>
+  <div class="subtitle" id="subtitle">대전 빵집서 공식 판매 중</div>
+</div>
+
+<div class="hint" id="hint">click to bake</div>
+
+<script>
+  const breadText = document.getElementById('breadText');
+  const breadStage = document.getElementById('breadStage');
+  const subtitle = document.getElementById('subtitle');
+  const statusText = document.getElementById('statusText');
+  const timer = document.getElementById('timer');
+  const hint = document.getElementById('hint');
+  const steamContainer = document.getElementById('steamContainer');
+  const tray = document.getElementById('tray');
+  const wolf = document.getElementById('wolf');
+  const banner = document.getElementById('banner');
+  const confettiContainer = document.getElementById('confettiContainer');
+
+  let baked = false;
+  let startTime = null;
+  let running = false;
+
+  // Baking stages
+  const stages = [
+    { class: 'raw', status: 'READY', time: 0 },
+    { class: 'rising', status: 'RISING', time: 700 },
+    { class: 'rising-2', status: 'RISING', time: 1500 },
+    { class: 'baking', status: 'BAKING', time: 2400 },
+    { class: 'golden', status: 'GOLDEN', time: 3400 },
+  ];
+
+  let currentStage = 0;
+
+  function updateTimer() {
+    if (!startTime) return;
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+    const s = String(elapsed % 60).padStart(2, '0');
+    timer.textContent = `${m}:${s}`;
+    if (!baked) requestAnimationFrame(updateTimer);
+  }
+
+  function setStage(idx) {
+    currentStage = idx;
+    const stage = stages[idx];
+    breadText.className = 'bread-text ' + stage.class;
+    statusText.textContent = stage.status;
+  }
+
+  function createSteam() {
+    if (currentStage < 2) return;
+    const steam = document.createElement('div');
+    steam.className = 'steam';
+    const rect = breadText.getBoundingClientRect();
+    const x = rect.left + Math.random() * rect.width;
+    const y = rect.top;
+    steam.style.left = x + 'px';
+    steam.style.top = y + 'px';
+    steam.style.setProperty('--drift', (Math.random() * 60 - 30) + 'px');
+    steamContainer.appendChild(steam);
+    setTimeout(() => steam.remove(), 3000);
+  }
+
+  function dropConfetti(count = 40) {
+    const colors = ['#ff6b6b', '#ffd93d', '#6bcbff', '#ff9e3d', '#b891ff', '#5de3a4', '#ff6fc0'];
+    for (let i = 0; i < count; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti falling';
+      c.style.left = (20 + Math.random() * 60) + 'vw';
+      c.style.background = colors[i % colors.length];
+      c.style.animationDuration = (2 + Math.random() * 1.5) + 's';
+      c.style.animationDelay = (Math.random() * 0.8) + 's';
+      c.style.transform = `rotate(${Math.random() * 360}deg)`;
+      c.style.width = (5 + Math.random() * 6) + 'px';
+      c.style.height = (10 + Math.random() * 8) + 'px';
+      confettiContainer.appendChild(c);
+      setTimeout(() => c.remove(), 4500);
+    }
+  }
+
+  function startBaking() {
+    if (running) return;
+    if (baked) {
+      // Reset
+      baked = false;
+      startTime = null;
+      currentStage = 0;
+      subtitle.classList.remove('visible');
+      breadStage.classList.remove('ready');
+      breadStage.classList.remove('slide-in');
+      breadStage.style.opacity = '0';
+      tray.classList.remove('in');
+      wolf.classList.remove('walking', 'sitting', 'fade-out');
+      banner.classList.remove('drop', 'sway', 'lift');
+      banner.style.opacity = '0';
+      setStage(0);
+      hint.textContent = 'click to bake';
+      hint.style.display = '';
+      return;
+    }
+
+    running = true;
+    hint.style.display = 'none';
+    statusText.textContent = 'INCOMING';
+
+    // 0. Banner drops first + confetti
+    banner.classList.add('drop');
+    dropConfetti(50);
+
+    // After drop finishes, start gentle sway
+    setTimeout(() => {
+      banner.classList.remove('drop');
+      banner.classList.add('sway');
+      banner.style.top = '9vh';
+      banner.style.opacity = '1';
+    }, 1200);
+
+    // 1. Wolf walks in (after banner drops, 0.6s delay)
+    setTimeout(() => {
+      wolf.classList.add('walking');
+    }, 600);
+
+    // 2. Wolf sits on arrival
+    setTimeout(() => {
+      wolf.classList.remove('walking');
+      wolf.classList.add('sitting');
+      statusText.textContent = 'READY';
+      // More confetti when wolf arrives!
+      dropConfetti(30);
+    }, 3400);
+
+    // 3. Banner lifts away + wolf fades into bread form
+    setTimeout(() => {
+      banner.classList.remove('sway');
+      banner.classList.add('lift');
+      wolf.classList.add('fade-out');
+      // Bread appears at the same time
+      breadStage.style.opacity = '1';
+      tray.classList.add('in');
+      breadStage.classList.add('slide-in');
+    }, 4100);
+
+    // 4. Start baking sequence
+    setTimeout(() => {
+      startTime = Date.now();
+      updateTimer();
+
+      stages.forEach((stage, i) => {
+        setTimeout(() => setStage(i), stage.time);
+      });
+
+      // Steam during baking
+      const bakingSteamInterval = setInterval(() => {
+        if (currentStage >= 2 && currentStage < 4 && !baked) {
+          createSteam();
+        } else if (baked) {
+          clearInterval(bakingSteamInterval);
+        }
+      }, 200);
+
+      // Done baking
+      setTimeout(() => {
+        baked = true;
+        running = false;
+        statusText.textContent = 'DONE';
+        subtitle.classList.add('visible');
+        breadStage.classList.add('ready');
+        hint.textContent = 'click to bake again';
+        hint.style.display = '';
+
+        // Continuous warm steam after done
+        const warmInterval = setInterval(() => {
+          if (!baked) {
+            clearInterval(warmInterval);
+            return;
+          }
+          createWarmSteam();
+        }, 350);
+      }, 3800);
+    }, 5000);
+  }
+
+  function createWarmSteam() {
+    const steam = document.createElement('div');
+    steam.className = 'warm-steam';
+    const rect = breadText.getBoundingClientRect();
+    const x = rect.left + Math.random() * rect.width;
+    const y = rect.top + rect.height * 0.2;
+    steam.style.left = x + 'px';
+    steam.style.top = y + 'px';
+    steam.style.setProperty('--drift', (Math.random() * 100 - 50) + 'px');
+    steamContainer.appendChild(steam);
+    setTimeout(() => steam.remove(), 4000);
+  }
+
+  document.addEventListener('click', (e) => {
+    // Ignore clicks on home button
+    if (e.target.closest('.home-btn')) return;
+    startBaking();
+  });
+</script>
+
+</body>
+</html>

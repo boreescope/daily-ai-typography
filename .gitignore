@@ -1,2 +1,5 @@
 .DS_Store
 .vscode/
+
+# Kapture screen recordings (often >100MB)
+Kapture*.gif
