@@ -26,7 +26,7 @@
       background: var(--bg);
       color: var(--fg);
       font-family: 'Space Mono', monospace;
-      overflow: hidden;
+      overflow-x: hidden;
       cursor: default;
     }
 
@@ -51,9 +51,12 @@
     /* ── Layout ── */
     .wrap {
       position: relative; z-index: 2;
-      width: 100vw; height: 100vh;
+      width: 100vw;
+      min-height: 100vh;
+      min-height: 100dvh;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
+      padding: 8vh 0 14vh;
     }
 
     /* ── Title ── */
@@ -183,18 +186,19 @@
     .input-wrap {
       position: fixed; bottom: 5vh; left: 50%;
       transform: translateX(-50%); z-index: 10; text-align: center;
+      width: 90%; max-width: 480px;
     }
     .input-label {
       font-size: 0.6rem; letter-spacing: 0.3em;
-      text-transform: uppercase; color: var(--mute); margin-bottom: 1rem;
+      text-transform: uppercase; color: var(--mute); margin-bottom: 0.8rem;
     }
     .input-field {
       background: transparent; border: none;
       border-bottom: 1px solid rgba(255,255,255,0.15);
       font-family: 'Space Mono', monospace;
-      font-size: 1.6rem; font-weight: 700;
+      font-size: 1.4rem; font-weight: 700;
       color: var(--fg); text-align: center; text-transform: uppercase;
-      padding: 0.3rem 1rem; width: 420px; max-width: 80vw;
+      padding: 0.3rem 0.5rem; width: 100%;
       outline: none; letter-spacing: 0.05em;
       transition: border-color 0.3s;
     }
@@ -205,7 +209,7 @@
     }
     .input-hint {
       font-size: 0.5rem; letter-spacing: 0.2em;
-      color: var(--mute); margin-top: 0.8rem; opacity: 0.6;
+      color: var(--mute); margin-top: 0.6rem; opacity: 0.6;
     }
 
     /* ── About link ── */
@@ -218,12 +222,58 @@
     .about-link:hover { color: var(--fg); }
 
     @media (max-width: 768px) {
-      .title-main { -webkit-text-stroke: 1px var(--red); font-size: clamp(1.6rem, 5vw, 3rem); }
-      .title-main .line2 { font-size: clamp(1.3rem, 4vw, 2.4rem); }
-      .chart-area { width: 95vw; height: 50vh; }
-      .result { top: 22%; }
-      .result .number { font-size: clamp(2.5rem, 8vw, 5rem); }
+      .wrap { padding: 6vh 0 16vh; }
+      .title-main {
+        -webkit-text-stroke: 1px var(--red);
+        font-size: clamp(1.5rem, 7vw, 2.8rem);
+      }
+      .title-main .line2 { font-size: clamp(1.2rem, 5.5vw, 2.2rem); }
+      .subtitle { font-size: 0.5rem; letter-spacing: 0.12em; margin-top: 1vh; }
+      .scatter-num { font-size: 0.45rem; }
+      .chart-area {
+        width: 95vw;
+        height: 45vh;
+        height: 45dvh;
+        margin-top: 1.5vh;
+      }
+      .result {
+        top: 38%;
+        padding: 1rem 1.2rem;
+        width: 92%;
+      }
+      .result .number {
+        font-size: clamp(2.2rem, 12vw, 4.5rem);
+        -webkit-text-stroke: 1.5px var(--red);
+      }
+      .result .label { font-size: 0.6rem; letter-spacing: 0.2em; }
+      .result .meaning-text { font-size: 0.65rem; }
+      .result .ko-label { font-size: 0.75rem; }
       .result .ko-desc { font-size: 0.62rem; }
+      .input-wrap { bottom: 3vh; }
+      .input-field { font-size: 1.1rem; }
+      .input-label { font-size: 0.5rem; margin-bottom: 0.5rem; }
+      .meta { font-size: 0.5rem; }
+      .home-btn { font-size: 0.5rem; }
+      .about-link { font-size: 0.48rem; bottom: 1.5vh; }
+    }
+
+    /* Extra small phones */
+    @media (max-width: 400px) {
+      .title-main { font-size: clamp(1.2rem, 6.5vw, 2rem); }
+      .title-main .line2 { font-size: clamp(1rem, 5vw, 1.6rem); }
+      .chart-area { height: 40vh; height: 40dvh; }
+      .input-field { font-size: 1rem; }
+      .result .number { font-size: clamp(2rem, 10vw, 3.5rem); }
+    }
+
+    /* Keyboard open on mobile — shrink fixed input */
+    @media (max-height: 500px) {
+      .wrap { padding: 4vh 0 10vh; }
+      .title-block { margin-bottom: 0; }
+      .chart-area { height: 35vh; }
+      .input-wrap { bottom: 1vh; }
+      .input-label { display: none; }
+      .input-hint { display: none; }
     }
   </style>
 </head>
