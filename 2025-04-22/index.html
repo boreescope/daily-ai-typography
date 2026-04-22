@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Numerological Analysis</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Foldit:wght@700;800;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body { opacity: 0; transition: opacity 1.2s ease-in-out; }
+    body.loaded { opacity: 1; }
+
+    :root {
+      --bg: #0a0a0a;
+      --fg: #ffffff;
+      --cyan: #6ec6ca;
+      --red: #e04030;
+      --mute: #444;
+    }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Space Mono', monospace;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    /* ── Home ── */
+    .home-btn {
+      position: fixed; top: 2.5vh; left: 2.5vw; z-index: 50;
+      text-decoration: none; color: rgba(255,255,255,0.25);
+      font-size: 0.6rem; letter-spacing: 0.15em;
+      transition: color 0.3s;
+    }
+    .home-btn:hover { color: var(--cyan); }
+
+    /* ── Meta ── */
+    .meta {
+      position: fixed; top: 2.5vh; right: 2.5vw; z-index: 50;
+      font-size: 0.58rem; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--mute); text-align: right;
+    }
+    .meta .line { display: block; margin-bottom: 0.3em; }
+    .meta .accent { color: var(--red); }
+
+    /* ── Layout ── */
+    .wrap {
+      position: relative; z-index: 2;
+      width: 100vw; height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+    }
+
+    /* ── Title ── */
+    .title-block {
+      position: relative;
+      text-align: center;
+      margin-bottom: 1vh;
+    }
+    .title-svg-wrap {
+      position: relative;
+      display: inline-block;
+    }
+
+    .title-main {
+      font-family: 'Foldit', cursive;
+      font-weight: 800;
+      font-size: clamp(2rem, 5vw, 4.5rem);
+      line-height: 0.9;
+      text-transform: uppercase;
+      letter-spacing: -0.02em;
+      color: var(--cyan);
+      -webkit-text-stroke: 2px var(--red);
+      paint-order: stroke fill;
+    }
+    .title-main .line2 {
+      font-size: clamp(1.6rem, 4vw, 3.6rem);
+      display: block;
+    }
+
+    /* ── Scattered numbers (animated, diagonal) ── */
+    .scatter-nums {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: visible;
+    }
+    .scatter-num {
+      position: absolute;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      font-weight: 400;
+      color: var(--red);
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      opacity: 0;
+      animation: scatterFade 3s ease-out infinite;
+    }
+
+    @keyframes scatterFade {
+      0% { opacity: 0.8; transform: translate(0, 0); }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)); }
+    }
+
+    .subtitle {
+      font-size: 0.6rem;
+      color: var(--mute);
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-top: 1.5vh;
+    }
+
+    /* ── Chart area ── */
+    .chart-area {
+      position: relative;
+      width: min(90vw, 900px);
+      height: min(58vh, 520px);
+      margin-top: 2vh;
+    }
+    .chart-canvas {
+      width: 100%; height: 100%;
+      /* no border */
+    }
+
+    /* ── Result overlay ── */
+    .result {
+      position: absolute;
+      top: 42%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.9);
+      text-align: center;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.6s, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 10;
+      width: 90%;
+      max-width: 400px;
+      background: rgba(10,10,10,0.85);
+      padding: 1.5rem 2rem;
+      border-radius: 4px;
+    }
+    .result.show {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    .result .number {
+      font-family: 'Foldit', cursive;
+      font-weight: 800;
+      font-size: clamp(3rem, 9vw, 8rem);
+      line-height: 0.85;
+      color: #ffffff;
+      -webkit-text-stroke: 2px var(--red);
+      paint-order: stroke fill;
+    }
+    .result .label {
+      font-size: 0.7rem; letter-spacing: 0.3em;
+      text-transform: uppercase; color: #ffffff; margin-top: 0.6rem;
+    }
+    .result .meaning-text {
+      font-size: 0.75rem; color: #cccccc;
+      margin-top: 0.4rem; letter-spacing: 0.05em;
+    }
+    .result .ko-wrap {
+      margin-top: 0.8rem;
+      border-top: 1px solid rgba(255,255,255,0.15);
+      padding-top: 0.6rem;
+    }
+    .result .ko-label {
+      font-family: sans-serif; font-weight: 600;
+      font-size: 0.85rem; color: #ffffff; margin-bottom: 0.2rem;
+    }
+    .result .ko-desc {
+      font-family: sans-serif; font-size: 0.72rem;
+      color: #cccccc; line-height: 1.5;
+      word-break: keep-all;
+    }
+
+    /* ── Input ── */
+    .input-wrap {
+      position: fixed; bottom: 5vh; left: 50%;
+      transform: translateX(-50%); z-index: 10; text-align: center;
+    }
+    .input-label {
+      font-size: 0.6rem; letter-spacing: 0.3em;
+      text-transform: uppercase; color: var(--mute); margin-bottom: 1rem;
+    }
+    .input-field {
+      background: transparent; border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+      font-family: 'Space Mono', monospace;
+      font-size: 1.6rem; font-weight: 700;
+      color: var(--fg); text-align: center; text-transform: uppercase;
+      padding: 0.3rem 1rem; width: 420px; max-width: 80vw;
+      outline: none; letter-spacing: 0.05em;
+      transition: border-color 0.3s;
+    }
+    .input-field:focus { border-color: var(--red); }
+    .input-field::placeholder {
+      color: var(--mute); font-weight: 400;
+      text-transform: none; opacity: 0.5;
+    }
+    .input-hint {
+      font-size: 0.5rem; letter-spacing: 0.2em;
+      color: var(--mute); margin-top: 0.8rem; opacity: 0.6;
+    }
+
+    /* ── About link ── */
+    .about-link {
+      position: fixed; bottom: 2.5vh; right: 2.5vw;
+      font-size: 0.55rem; color: var(--mute);
+      text-decoration: none; letter-spacing: 0.15em;
+      text-transform: uppercase; transition: color 0.3s; z-index: 50;
+    }
+    .about-link:hover { color: var(--fg); }
+
+    @media (max-width: 768px) {
+      .title-main { -webkit-text-stroke: 1px var(--red); font-size: clamp(1.6rem, 5vw, 3rem); }
+      .title-main .line2 { font-size: clamp(1.3rem, 4vw, 2.4rem); }
+      .chart-area { width: 95vw; height: 50vh; }
+      .result { top: 22%; }
+      .result .number { font-size: clamp(2.5rem, 8vw, 5rem); }
+      .result .ko-desc { font-size: 0.62rem; }
+    }
+  </style>
+</head>
+<body>
+
+<a class="home-btn" href="../index.html">HOME</a>
+<div class="meta">
+  <span class="line"><span class="accent">◆</span> NO.006</span>
+  <span class="line">26.04.22</span>
+  <span class="line">CHART IV</span>
+</div>
+
+<div class="wrap">
+  <div class="title-block" id="titleBlock">
+    <div class="title-svg-wrap">
+      <div class="title-main">
+        Numerological<span class="line2">Analysis</span>
+      </div>
+      <!-- Animated scattered numbers — generated by JS -->
+      <div class="scatter-nums" id="scatterNums"></div>
+    </div>
+    <div class="subtitle">Every letter holds a number · Every name reveals a path</div>
+  </div>
+
+  <div class="chart-area">
+    <canvas class="chart-canvas" id="chartCanvas"></canvas>
+    <div class="result" id="result">
+      <div class="number" id="resultNum">—</div>
+      <div class="label" id="resultLabel">LIFE PATH</div>
+      <div class="meaning-text" id="resultMeaning"></div>
+      <div class="ko-wrap">
+        <div class="ko-label" id="koLabel"></div>
+        <div class="ko-desc" id="koDesc"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="input-wrap">
+  <div class="input-label">Enter Your Name</div>
+  <input class="input-field" id="nameInput" type="text" placeholder="your name" maxlength="24" autocomplete="off" spellcheck="false"/>
+  <div class="input-hint">Press enter to reveal</div>
+</div>
+
+<a href="about.html" class="about-link">About Numerology →</a>
+
+<script>
+// ── Numerology ──
+const LETTER_VAL = {
+  A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,I:9,
+  J:1,K:2,L:3,M:4,N:5,O:6,P:7,Q:8,R:9,
+  S:1,T:2,U:3,V:4,W:5,X:6,Y:7,Z:8
+};
+const MEANINGS = {
+  1:{label:'The Leader',desc:'Independence, drive, beginning.',koLabel:'리더',koDesc:'독립심, 추진력, 그리고 새로운 시작의 에너지'},
+  2:{label:'The Diplomat',desc:'Harmony, sensitivity, balance.',koLabel:'중재자',koDesc:'조화롭고 섬세하며 균형 잡힌 관계의 힘'},
+  3:{label:'The Creator',desc:'Joy, expression, imagination.',koLabel:'창조자',koDesc:'기쁨과 예술적 표현, 풍부한 상상력의 발현'},
+  4:{label:'The Builder',desc:'Structure, discipline, work.',koLabel:'건축가',koDesc:'질서와 절제, 성실하게 일구어내는 실천력'},
+  5:{label:'The Seeker',desc:'Freedom, change, adventure.',koLabel:'탐구자',koDesc:'자유를 갈망하며 변화와 모험을 즐기는 정신'},
+  6:{label:'The Nurturer',desc:'Love, service, responsibility.',koLabel:'양육자',koDesc:'사랑과 헌신, 책임감으로 상대를 돌보는 마음'},
+  7:{label:'The Mystic',desc:'Wisdom, solitude, depth.',koLabel:'신비주의자',koDesc:'깊은 지혜와 고독, 진리를 추구하는 통찰력'},
+  8:{label:'The Sovereign',desc:'Power, abundance, authority.',koLabel:'통치자',koDesc:'성취와 풍요, 권위를 상징하는 강력한 에너지'},
+  9:{label:'The Sage',desc:'Compassion, endings, wholeness.',koLabel:'현자',koDesc:'자애로움과 완결, 그리고 전체성을 향한 지성'},
+};
+function reduce(n) { while(n>9) n=String(n).split('').reduce((s,d)=>s+parseInt(d),0); return n; }
+function calculate(name) {
+  const letters=name.toUpperCase().split('').filter(ch=>/[A-Z]/.test(ch));
+  if(!letters.length) return null;
+  return { sum: letters.reduce((s,ch)=>s+LETTER_VAL[ch],0), reduced: reduce(letters.reduce((s,ch)=>s+LETTER_VAL[ch],0)) };
+}
+
+// ── Scattered numbers: diagonal, fading, changing digits ──
+const scatterContainer = document.getElementById('scatterNums');
+const SCATTER_DATA = [
+  // [xPercent, yPercent, angle(deg)] — radiating diagonally from title
+  [-15, -25, -45], [10, -30, -20], [35, -28, -10], [60, -22, 15], [85, -18, 35],
+  [105, -10, 50], [110, 15, 60], [108, 40, 70], [105, 65, 80],
+  [-10, 10, -55], [-18, 35, -65], [-15, 60, -75], [-10, 85, -80],
+  [25, -35, -30], [50, -35, 0], [75, -30, 20], [95, -15, 45],
+  [-20, 50, -70], [110, 50, 65], [30, 110, 170], [60, 108, -170],
+  [0, 95, -100], [90, 95, 100], [45, -40, -5], [70, 110, 160],
+];
+
+function createScatterNums() {
+  scatterContainer.innerHTML = '';
+  SCATTER_DATA.forEach((d, i) => {
+    const el = document.createElement('span');
+    el.className = 'scatter-num';
+    el.style.left = d[0] + '%';
+    el.style.top = d[1] + '%';
+    // Diagonal movement direction
+    const rad = d[2] * Math.PI / 180;
+    const dist = 30 + Math.random() * 40;
+    el.style.setProperty('--dx', Math.cos(rad) * dist + 'px');
+    el.style.setProperty('--dy', Math.sin(rad) * dist + 'px');
+    el.style.animationDelay = (i * 0.25 + Math.random() * 0.5) + 's';
+    el.style.animationDuration = (2.5 + Math.random() * 2) + 's';
+    el.textContent = Math.floor(Math.random() * 2000);
+    scatterContainer.appendChild(el);
+  });
+}
+
+// Continuously change the numbers
+setInterval(() => {
+  scatterContainer.querySelectorAll('.scatter-num').forEach(el => {
+    const r = Math.random();
+    if (r < 0.3) el.textContent = Math.floor(Math.random() * 2000);
+    else if (r < 0.5) el.textContent = Math.floor(Math.random() * 100) + 'hPa';
+    else if (r < 0.65) el.textContent = 'H';
+    else if (r < 0.8) el.textContent = 'L';
+    else el.textContent = Math.floor(Math.random() * 200);
+  });
+}, 2000);
+
+createScatterNums();
+
+// ── A. 숫자별 고유 컬러 (수비학 에너지 매핑) ──
+// 1=빨강(리더/열정) 2=주황(외교/따뜻함) 3=노랑(창조/기쁨)
+// 4=초록(건축/안정) 5=시안(탐구/자유) 6=파랑(양육/헌신)
+// 7=보라(신비/지혜) 8=골드(통치/풍요) 9=흰색(현자/완결)
+const NUM_COLORS = {
+  1: '#ff3b30', // Red — Leader
+  2: '#ff9500', // Orange — Diplomat
+  3: '#ffcc00', // Yellow — Creator
+  4: '#34c759', // Green — Builder
+  5: '#00ddff', // Cyan — Seeker
+  6: '#007aff', // Blue — Nurturer
+  7: '#af52de', // Purple — Mystic
+  8: '#ffb800', // Gold — Sovereign
+  9: '#ffffff', // White — Sage
+};
+
+// B. 모음 vs 자음 판별
+const VOWELS = new Set(['A','E','I','O','U']);
+function isVowel(ch) { return VOWELS.has(ch.toUpperCase()); }
+
+// ── Sound Engine: Web Audio API ──
+// 숫자 1~9 → C4~D5 (도레미파솔라시도레) 펜타토닉 느낌
+let audioCtx = null;
+const NUM_FREQ = {
+  1: 261.63, // C4
+  2: 293.66, // D4
+  3: 329.63, // E4
+  4: 349.23, // F4
+  5: 392.00, // G4
+  6: 440.00, // A4
+  7: 493.88, // B4
+  8: 523.25, // C5
+  9: 587.33, // D5
+};
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playTone(numVal, delay) {
+  if (!audioCtx) return;
+  const freq = NUM_FREQ[numVal] || 440;
+  const isVow = false; // will be set per call
+
+  const now = audioCtx.currentTime + delay;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  const filter = audioCtx.createBiquadFilter();
+
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, now);
+
+  // Soft bell-like envelope
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(freq * 3, now);
+
+  gain.gain.setValueAtTime(0, now);
+  gain.gain.linearRampToValueAtTime(0.12, now + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+
+  osc.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  osc.start(now);
+  osc.stop(now + 0.9);
+}
+
+function playNameSequence(name) {
+  initAudio();
+  const letters = name.toUpperCase().split('').filter(ch => /[A-Z]/.test(ch));
+  letters.forEach((ch, i) => {
+    const val = LETTER_VAL[ch];
+    playTone(val, i * 0.1);
+  });
+}
+
+// Result chord: play the final number as a richer tone
+function playResultChord(numVal) {
+  if (!audioCtx) return;
+  const freq = NUM_FREQ[numVal] || 440;
+  const now = audioCtx.currentTime;
+
+  // Play root + fifth + octave for a chord feel
+  [freq, freq * 1.5, freq * 2].forEach((f, i) => {
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = i === 0 ? 'sine' : 'triangle';
+    osc.frequency.setValueAtTime(f, now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(i === 0 ? 0.15 : 0.06, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start(now);
+    osc.stop(now + 1.6);
+  });
+}
+
+// Fallback palette for ambient blocks
+const BLOCK_COLORS = [
+  '#0055ff','#ff3b00','#00cc66','#ff9900','#cc00ff',
+  '#00ddff','#ffee00','#ff0066','#33ff99','#ffffff',
+  '#ff6633','#3366ff','#66ff33','#ff33cc','#33ccff',
+  '#009977','#dd4400','#8833ff','#ff8800','#00ff88'
+];
+
+// ── Chart Canvas ──
+const chartCanvas = document.getElementById('chartCanvas');
+const chartCtx = chartCanvas.getContext('2d');
+let CW, CH;
+let activeBlocks = [];
+let chartTime = 0;
+
+// Grid: explicit pixel positions for V and H lines
+let gV = []; // vertical line x positions
+let gH = []; // horizontal line y positions
+
+function resizeChart() {
+  const rect = chartCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  chartCanvas.width = rect.width * dpr;
+  chartCanvas.height = rect.height * dpr;
+  // Work in CSS pixel space, scale context for sharpness
+  chartCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  CW = rect.width;
+  CH = rect.height;
+
+  // Build grid in CSS pixel coordinates
+  const cx = CW / 2, cy = CH / 2;
+  const vCount = 36, hCount = 22;
+  gV = []; gH = [];
+
+  for (let i = 0; i < vCount; i++) {
+    const t = (i / (vCount - 1)) - 0.5;
+    const s = Math.sign(t);
+    gV.push(Math.round(cx + s * Math.pow(Math.abs(t) * 2, 1.3) * 0.5 * CW));
+  }
+  for (let i = 0; i < hCount; i++) {
+    const t = (i / (hCount - 1)) - 0.5;
+    const s = Math.sign(t);
+    gH.push(Math.round(cy + s * Math.pow(Math.abs(t) * 2, 1.3) * 0.5 * CH));
+  }
+}
+
+function drawChart() {
+  chartCtx.fillStyle = '#0a0a0a';
+  chartCtx.fillRect(0, 0, CW, CH);
+  chartTime += 0.004;
+
+  const cx = CW / 2, cy = CH / 2;
+
+  // Collect all blocks to draw (active + ambient) with their resolved positions
+  const allBlocks = [];
+
+  // Resolve active blocks
+  activeBlocks.forEach((b, idx) => {
+    const elapsed = chartTime - b.startTime;
+    if (elapsed < 0) return;
+    const progress = Math.min(1, elapsed * 2.5);
+    let bx, by;
+    if (progress >= 1) { bx = b.x; by = b.y; }
+    else {
+      const ease = 1 - Math.pow(1 - progress, 3);
+      bx = cx + (b.x - cx) * ease;
+      by = cy + (b.y - cy) * ease;
+    }
+    const pulse = 0.7 + 0.25 * Math.sin(chartTime * 2.5 + idx * 1.1);
+    allBlocks.push({
+      x: Math.round(bx), y: Math.round(by),
+      w: b.w, h: b.h,
+      color: b.color,
+      alpha: pulse * progress,
+      glow: true,
+    });
+  });
+
+  // Ambient blocks
+  for (let i = 0; i < 10; i++) {
+    const vi = (i * 4 + 7) % gV.length;
+    const hi = (i * 3 + 5) % gH.length;
+    const x = gV[vi], y = gH[hi];
+    const dFC = Math.sqrt(Math.pow((x - cx) / (CW*0.5), 2) + Math.pow((y - cy) / (CH*0.5), 2));
+    if (dFC > 0.85) continue;
+    const isV = i % 2 === 0;
+    allBlocks.push({
+      x, y,
+      w: isV ? 8 : 48, h: isV ? 48 : 8,
+      color: BLOCK_COLORS[(i * 3) % BLOCK_COLORS.length],
+      alpha: (0.08 + 0.05 * Math.sin(chartTime * 1.2 + i * 1.7)) * (1 - dFC),
+      glow: false,
+    });
+  }
+
+  // ── 1. Draw lines extending from block edges ──
+  // For each block, draw white lines from its 4 edges to canvas boundary
+  allBlocks.forEach(b => {
+    if (b.alpha < 0.02) return;
+    const left = b.x - b.w / 2;
+    const right = b.x + b.w / 2;
+    const top = b.y - b.h / 2;
+    const bottom = b.y + b.h / 2;
+
+    // Line alpha: proportional to block visibility, but capped for subtlety
+    const lineAlpha = Math.min(0.35, b.alpha * 0.45);
+    chartCtx.strokeStyle = `rgba(255,255,255,${lineAlpha})`;
+    chartCtx.lineWidth = 0.5;
+
+    // Left edge → extend left to 0
+    chartCtx.beginPath(); chartCtx.moveTo(left, top); chartCtx.lineTo(0, top); chartCtx.stroke();
+    chartCtx.beginPath(); chartCtx.moveTo(left, bottom); chartCtx.lineTo(0, bottom); chartCtx.stroke();
+    // Right edge → extend right to CW
+    chartCtx.beginPath(); chartCtx.moveTo(right, top); chartCtx.lineTo(CW, top); chartCtx.stroke();
+    chartCtx.beginPath(); chartCtx.moveTo(right, bottom); chartCtx.lineTo(CW, bottom); chartCtx.stroke();
+    // Top edge → extend up to 0
+    chartCtx.beginPath(); chartCtx.moveTo(left, top); chartCtx.lineTo(left, 0); chartCtx.stroke();
+    chartCtx.beginPath(); chartCtx.moveTo(right, top); chartCtx.lineTo(right, 0); chartCtx.stroke();
+    // Bottom edge → extend down to CH
+    chartCtx.beginPath(); chartCtx.moveTo(left, bottom); chartCtx.lineTo(left, CH); chartCtx.stroke();
+    chartCtx.beginPath(); chartCtx.moveTo(right, bottom); chartCtx.lineTo(right, CH); chartCtx.stroke();
+  });
+
+  // ── 2. Radial fade mask ──
+  const maskRadius = Math.max(CW, CH) * 0.48;
+  const radGrad = chartCtx.createRadialGradient(cx, cy, maskRadius * 0.2, cx, cy, maskRadius);
+  radGrad.addColorStop(0, 'rgba(10,10,10,0)');
+  radGrad.addColorStop(0.55, 'rgba(10,10,10,0.3)');
+  radGrad.addColorStop(0.8, 'rgba(10,10,10,0.75)');
+  radGrad.addColorStop(1, 'rgba(10,10,10,1)');
+  chartCtx.fillStyle = radGrad;
+  chartCtx.fillRect(0, 0, CW, CH);
+
+  // ── 3. Draw blocks on top ──
+  allBlocks.forEach(b => {
+    if (b.alpha < 0.02) return;
+    const left = Math.round(b.x - b.w / 2);
+    const top = Math.round(b.y - b.h / 2);
+
+    chartCtx.globalAlpha = b.alpha;
+    chartCtx.fillStyle = b.color;
+    chartCtx.fillRect(left, top, b.w, b.h);
+
+    if (b.glow) {
+      chartCtx.globalAlpha = b.alpha * 0.3;
+      chartCtx.shadowColor = b.color;
+      chartCtx.shadowBlur = 18;
+      chartCtx.fillRect(left, top, b.w, b.h);
+      chartCtx.shadowBlur = 0;
+    }
+  });
+  chartCtx.globalAlpha = 1;
+
+  requestAnimationFrame(drawChart);
+}
+
+// ── Generate blocks from name ──
+// A: 숫자별 고유 컬러  B: 모음=세로(Soul), 자음=가로(Personality)  C: 순서→중심에서 바깥으로
+function generateBlocks(name) {
+  activeBlocks = [];
+  const letters = name.toUpperCase().split('').filter(ch => /[A-Z]/.test(ch));
+  if (!letters.length || !gV.length) return;
+
+  const vC = Math.floor(gV.length / 2);
+  const hC = Math.floor(gH.length / 2);
+  // Max grid index offset from center (stay within 80% of grid)
+  const maxVOff = Math.floor(gV.length * 0.4);
+  const maxHOff = Math.floor(gH.length * 0.4);
+
+  letters.forEach((ch, i) => {
+    const val = LETTER_VAL[ch];
+    const vowel = isVowel(ch);
+    const color = NUM_COLORS[val];
+
+    // C: position — first letter near center, last at edge
+    const t = letters.length === 1 ? 0.2 : i / (letters.length - 1);
+    const radius = t; // 0 (center) → 1 (edge)
+
+    // Angle from numerology value (9 sectors)
+    const angle = ((val - 1) / 9) * Math.PI * 2 - Math.PI / 2;
+
+    // Grid index offset from center
+    const vOff = Math.round(Math.cos(angle) * radius * maxVOff);
+    const hOff = Math.round(Math.sin(angle) * radius * maxHOff);
+
+    // Clamp to valid grid indices
+    const vi = Math.max(0, Math.min(gV.length - 1, vC + vOff));
+    const hi = Math.max(0, Math.min(gH.length - 1, hC + hOff));
+
+    // Snap to exact grid intersection
+    const snapX = gV[vi];
+    const snapY = gH[hi];
+
+    // B: vowel = vertical (Soul), consonant = horizontal (Personality)
+    const len = 40 + val * 10; // much bigger blocks
+    const thick = vowel ? 10 : 12;
+
+    activeBlocks.push({
+      x: snapX, y: snapY,
+      w: vowel ? thick : len,
+      h: vowel ? len : thick,
+      color,
+      startTime: chartTime + i * 0.06,
+    });
+
+    // Secondary block at neighboring intersection (same color, also bigger)
+    const vi2 = Math.max(0, Math.min(gV.length - 1, vi + (vowel ? 0 : 1)));
+    const hi2 = Math.max(0, Math.min(gH.length - 1, hi + (vowel ? 1 : 0)));
+    activeBlocks.push({
+      x: gV[vi2], y: gH[hi2],
+      w: vowel ? 6 : 20,
+      h: vowel ? 20 : 6,
+      color,
+      startTime: chartTime + i * 0.06 + 0.1,
+    });
+  });
+}
+
+// ── Result ──
+const resultEl = document.getElementById('result');
+const resultNum = document.getElementById('resultNum');
+const resultLabel = document.getElementById('resultLabel');
+const resultMeaning = document.getElementById('resultMeaning');
+const koLabel = document.getElementById('koLabel');
+const koDesc = document.getElementById('koDesc');
+
+function showResult(calc) {
+  const d = MEANINGS[calc.reduced];
+  resultNum.textContent = calc.reduced;
+  resultLabel.textContent = d.label.toUpperCase();
+  resultMeaning.textContent = d.desc;
+  koLabel.textContent = d.koLabel;
+  koDesc.textContent = d.koDesc;
+  resultEl.classList.add('show');
+}
+function hideResult() { resultEl.classList.remove('show'); }
+
+// ── Input ──
+const input = document.getElementById('nameInput');
+let typingTimer = null;
+input.addEventListener('input', () => {
+  clearTimeout(typingTimer); hideResult();
+  const name = input.value.trim();
+  if (!name.length) { activeBlocks = []; return; }
+  typingTimer = setTimeout(() => {
+    generateBlocks(name);
+    playNameSequence(name);
+  }, 150);
+});
+input.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    initAudio();
+    const name = input.value.trim();
+    if (!name.length) return;
+    const calc = calculate(name);
+    if (!calc) return;
+    generateBlocks(name);
+
+    // 1) 띵~ 코드 + 모달 등장
+    playResultChord(calc.reduced);
+    showResult(calc);
+
+    // 2) 잠시 후 전체 멜로디 한 번 더 느리게 재생
+    const letters = name.toUpperCase().split('').filter(ch => /[A-Z]/.test(ch));
+    setTimeout(() => {
+      letters.forEach((ch, i) => {
+        playTone(LETTER_VAL[ch], i * 0.22);
+      });
+    }, 800);
+  }
+});
+
+// ── Init ──
+window.addEventListener('DOMContentLoaded', () => { document.body.classList.add('loaded'); });
+window.addEventListener('resize', resizeChart);
+
+document.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', (e) => {
+    const href = link.getAttribute('href');
+    if (href && !href.startsWith('#') && link.target !== '_blank') {
+      e.preventDefault();
+      document.body.style.opacity = '0';
+      setTimeout(() => { window.location.href = href; }, 800);
+    }
+  });
+});
+
+requestAnimationFrame(() => { resizeChart(); drawChart(); });
+
+if (new URLSearchParams(location.search).get('preview') === '1') {
+  input.value = 'Numerology';
+  generateBlocks('Numerology');
+  const calc = calculate('Numerology');
+  setTimeout(() => showResult(calc), 1500);
+} else {
+  setTimeout(() => input.focus(), 300);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About Numerology</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      opacity: 0;
+      transition: opacity 1.2s ease-in-out;
+    }
+    body.loaded { opacity: 1; }
+
+    :root {
+      --bg: #0a0a0a;
+      --fg: #ffffff;
+      --cyan: #6ec6ca;
+      --red: #e04030;
+      --mute: #444;
+      --line: rgba(255,255,255,0.08);
+    }
+
+    html, body {
+      width: 100%; min-height: 100%;
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Space Mono', monospace;
+      overflow-x: hidden;
+    }
+
+    .bg-canvas {
+      position: fixed; inset: 0;
+      z-index: 0; pointer-events: none;
+    }
+
+    .home-btn {
+      position: fixed; top: 2.5vh; left: 2.5vw; z-index: 50;
+      text-decoration: none; color: rgba(255,255,255,0.25);
+      font-size: 0.6rem; letter-spacing: 0.15em;
+      transition: color 0.3s; text-transform: uppercase;
+    }
+    .home-btn:hover { color: var(--cyan); }
+
+    .container {
+      position: relative; z-index: 2;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 14vh 6vw 10vh;
+    }
+
+    .eyebrow {
+      font-size: 0.65rem;
+      color: var(--red);
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      margin-bottom: 2vh;
+    }
+
+    h1 {
+      font-weight: 700;
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      line-height: 0.88;
+      margin-bottom: 6vh;
+      text-transform: uppercase;
+      letter-spacing: -0.05em;
+      /* Typhoon-style dot fill */
+      background:
+        radial-gradient(circle, var(--cyan) 1px, transparent 1px);
+      background-size: 4px 4px;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      -webkit-text-stroke: 2px var(--red);
+    }
+
+    .intro {
+      font-size: 1rem;
+      color: var(--fg);
+      margin-bottom: 8vh;
+      line-height: 1.7;
+      max-width: 680px;
+      border-left: 2px solid var(--red);
+      padding-left: 1.8rem;
+      opacity: 0.9;
+    }
+
+    section { margin-bottom: 10vh; }
+
+    h2 {
+      font-size: 0.72rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin-bottom: 4vh;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      padding-bottom: 1rem;
+    }
+
+    .grid-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 3.5rem;
+    }
+
+    .item h3 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      color: var(--fg);
+      text-transform: uppercase;
+    }
+    .item p {
+      font-size: 0.82rem;
+      line-height: 1.8;
+      color: var(--mute);
+    }
+    .item .ko {
+      display: block;
+      font-family: sans-serif;
+      font-size: 0.82rem;
+      margin-top: 0.8rem;
+      color: var(--fg);
+      opacity: 0.85;
+    }
+
+    /* Number markers */
+    .num-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .num-card {
+      padding: 1.5rem;
+      border: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.015);
+      transition: border-color 0.3s;
+    }
+    .num-card:hover {
+      border-color: rgba(110,198,202,0.3);
+    }
+    .num-card .num {
+      font-size: 1.8rem;
+      font-weight: 700;
+      background:
+        radial-gradient(circle, var(--cyan) 1px, transparent 1px);
+      background-size: 3px 3px;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      -webkit-text-stroke: 1.2px var(--red);
+      margin-bottom: 0.6rem;
+    }
+    .num-card .en {
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--mute);
+      margin-bottom: 0.5rem;
+    }
+    .num-card .desc {
+      font-family: sans-serif;
+      font-size: 0.78rem;
+      color: var(--fg);
+      opacity: 0.8;
+      line-height: 1.4;
+    }
+
+    .back-btn {
+      display: inline-block;
+      margin-top: 4vh;
+      font-size: 0.6rem;
+      color: var(--fg);
+      text-decoration: none;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      border: 1px solid var(--red);
+      padding: 1rem 2rem;
+      transition: all 0.3s;
+      background: transparent;
+    }
+    .back-btn:hover {
+      background: var(--red);
+      box-shadow: 0 0 20px rgba(224,64,48,0.3);
+    }
+
+    .footer {
+      margin-top: 8vh;
+      font-size: 0.5rem;
+      color: #333;
+      letter-spacing: 0.1em;
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 600px) {
+      .container { padding: 10vh 7vw; }
+      h1 { -webkit-text-stroke: 1.2px var(--red); }
+      .num-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<a class="home-btn" href="index.html">← Analysis</a>
+
+<canvas class="bg-canvas" id="bgCanvas"></canvas>
+
+<div class="container">
+  <div class="eyebrow">◆ Documentation / 01</div>
+  <h1>Numero<br>logical<br>Matrix.</h1>
+
+  <div class="intro">
+    넘버로지컬 매트릭스는 이름과 날짜 속에 숨겨진 고유의 진동수를 데이터로 시각화합니다. 우리는 이를 우주의 기하학적 좌표계로 해석합니다.
+  </div>
+
+  <section>
+    <h2>Core Architecture</h2>
+    <div class="grid-content">
+      <div class="item">
+        <h3>Pythagorean Grid</h3>
+        <p>현대 수비학의 기초인 피타고라스 체계는 1부터 9까지의 숫자가 각각 고유한 물리적 파동을 가지고 있다고 정의합니다.</p>
+        <span class="ko">모든 알파벳은 고유의 좌표값으로 치환되며, 이는 매트릭스 위에서 고유한 패턴을 형성합니다.</span>
+      </div>
+      <div class="item">
+        <h3>Data Visualization</h3>
+        <p>각 숫자는 개인의 성격, 잠재력, 그리고 삶의 궤적을 설명하는 변수입니다.</p>
+        <span class="ko">이 시스템은 입력된 텍스트 데이터를 분석하여 핵심 진동수를 추출하고, 이를 실시간 그리드와 컬러 블록으로 출력합니다.</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>The 9 Status Markers</h2>
+    <div class="num-grid">
+      <div class="num-card"><div class="num">1</div><div class="en">Leader</div><div class="desc">독립심과 개척 정신의 에너지<br>신뢰, 추진력, 자기 주도적 시작</div></div>
+      <div class="num-card"><div class="num">2</div><div class="en">Diplomat</div><div class="desc">조화와 섬세한 관계의 데이터<br>협력, 직관, 감성적 균형</div></div>
+      <div class="num-card"><div class="num">3</div><div class="en">Creator</div><div class="desc">창의적 에너지와 자기 표현<br>상상력, 의사소통, 낙천적 연결</div></div>
+      <div class="num-card"><div class="num">4</div><div class="en">Builder</div><div class="desc">구조적 안정과 실천의 지표<br>질서, 절제, 정직한 성취</div></div>
+      <div class="num-card"><div class="num">5</div><div class="en">Seeker</div><div class="desc">자유와 유동적 데이터 변화<br>모험, 적응력, 다재다능한 진동</div></div>
+      <div class="num-card"><div class="num">6</div><div class="en">Nurturer</div><div class="desc">조화로운 책임과 헌신의 영역<br>사랑, 서비스, 안정적 공동체</div></div>
+      <div class="num-card"><div class="num">7</div><div class="en">Mystic</div><div class="desc">깊은 분석과 내면의 좌표<br>지혜, 고독, 진리 탐구의 깊이</div></div>
+      <div class="num-card"><div class="num">8</div><div class="en">Sovereign</div><div class="desc">물적인 성취와 권위의 축<br>풍요, 조직력, 결과 중심적 힘</div></div>
+      <div class="num-card"><div class="num">9</div><div class="en">Sage</div><div class="desc">완결된 자애로움과 인류애<br>관용, 인도주의, 전체적 통합</div></div>
+    </div>
+  </section>
+
+  <a href="index.html" class="back-btn">← Return to Analysis</a>
+
+  <div class="footer">
+    SYSTEM_LOG: MATRIX_UPDATE_SUCCESSFUL // 2026.04.22
+  </div>
+</div>
+
+<script>
+// ── Background Canvas (same Ref 2 style — blocks snapped to grid) ──
+const canvas = document.getElementById('bgCanvas');
+const ctx = canvas.getContext('2d');
+let W, H, time = 0;
+let vLines = [], hLines = [];
+let blockDefs = [];
+
+const COLORS = [
+  '#0055ff','#ff3b00','#00cc66','#ff9900','#cc00ff',
+  '#00ddff','#ffee00','#ff0066','#33ff99','#ffffff'
+];
+
+function buildGridLines(total, size, center) {
+  const lines = [];
+  for (let i = 0; i < total; i++) {
+    const t = (i / (total - 1)) - 0.5;
+    const sign = Math.sign(t);
+    const curved = sign * Math.pow(Math.abs(t) * 2, 1.4) * 0.5;
+    const pos = center + curved * size;
+    const distFromCenter = Math.abs(t) * 2;
+    lines.push({ pos, alpha: 0.02 + (1 - distFromCenter) * 0.05 });
+  }
+  return lines;
+}
+
+function resize() {
+  W = canvas.width = window.innerWidth;
+  H = canvas.height = window.innerHeight;
+  vLines = buildGridLines(35, W, W / 2);
+  hLines = buildGridLines(25, H, H / 2);
+  // Snap blocks to intersections
+  blockDefs = [];
+  for (let i = 0; i < 18; i++) {
+    const hash = Math.sin(i * 127.1 + 42) * 43758.5453;
+    const frac = hash - Math.floor(hash);
+    const hash2 = Math.sin(i * 269.5 + 42) * 43758.5453;
+    const frac2 = hash2 - Math.floor(hash2);
+    const vi = Math.floor(frac * vLines.length) % vLines.length;
+    const hi = Math.floor(frac2 * hLines.length) % hLines.length;
+    const isVert = i % 3 !== 0;
+    blockDefs.push({
+      x: vLines[vi].pos, y: hLines[hi].pos,
+      w: isVert ? 3 : (5 + frac * 12),
+      h: isVert ? (6 + frac2 * 18) : 3,
+      color: COLORS[i % COLORS.length],
+      phase: i * 1.7,
+    });
+  }
+}
+
+function draw() {
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, H);
+  time += 0.002;
+
+  // Grid lines
+  vLines.forEach(l => {
+    ctx.strokeStyle = `rgba(255,255,255,${l.alpha})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(l.pos, 0); ctx.lineTo(l.pos, H); ctx.stroke();
+  });
+  hLines.forEach(l => {
+    ctx.strokeStyle = `rgba(255,255,255,${l.alpha})`;
+    ctx.lineWidth = 0.5;
+    ctx.beginPath(); ctx.moveTo(0, l.pos); ctx.lineTo(W, l.pos); ctx.stroke();
+  });
+
+  // Blocks snapped to intersections
+  blockDefs.forEach(b => {
+    ctx.globalAlpha = 0.08 + 0.05 * Math.sin(time + b.phase);
+    ctx.fillStyle = b.color;
+    ctx.fillRect(b.x - b.w / 2, b.y - b.h / 2, b.w, b.h);
+  });
+  ctx.globalAlpha = 1;
+
+  requestAnimationFrame(draw);
+}
+
+window.addEventListener('resize', resize);
+window.addEventListener('DOMContentLoaded', () => {
+  document.body.classList.add('loaded');
+});
+
+// Page exit transition
+document.querySelectorAll('a').forEach(link => {
+  link.addEventListener('click', (e) => {
+    const href = link.getAttribute('href');
+    if (href && !href.startsWith('#') && link.target !== '_blank') {
+      e.preventDefault();
+      document.body.style.opacity = '0';
+      setTimeout(() => { window.location.href = href; }, 800);
+    }
+  });
+});
+
+resize();
+draw();
+</script>
+
+</body>
+</html>
