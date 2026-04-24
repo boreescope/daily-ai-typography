@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>기업의 진정성 있는 친환경 활동, 무조건 '돈' 된다</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+And+White+Picture&family=Nanum+Pen+Script&family=Noto+Sans+KR:wght@300;400;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%; height: 100%;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    .scene {
+      position: fixed;
+      inset: 0;
+      transition: opacity 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95),
+                  transform 1.4s cubic-bezier(0.45, 0.05, 0.55, 0.95);
+    }
+    .scene.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ══════════════════════════════════════
+       SCENE 1 — Lush gradient + calligraphy
+       ══════════════════════════════════════ */
+    #scene1 { overflow: hidden; background: #c8e6b0; }
+
+    .grad-canvas {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+    }
+
+    /* Fine grain texture */
+    .grain {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      opacity: 0.35;
+    }
+    .grain canvas { width: 100%; height: 100%; }
+
+    /* S-curve text */
+    .s-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .s-svg {
+      width: 100%;
+      height: 100%;
+      overflow: visible;
+    }
+
+    .s-letter {
+      font-family: 'Black And White Picture', cursive;
+      font-size: 62px;
+      fill: rgba(255, 255, 255, 0.92);
+      cursor: default;
+      filter: drop-shadow(0 2px 12px rgba(0,60,20,0.25));
+    }
+
+    /* Leaf particles */
+    .leaf {
+      position: absolute;
+      pointer-events: none;
+      z-index: 4;
+      animation: leafDrift 4.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+    }
+    @keyframes leafDrift {
+      0% { opacity: 0.85; transform: translate(0, 0) rotate(0deg) scale(1); }
+      15% { transform: translate(-15px, 50px) rotate(40deg) scale(0.95); }
+      30% { opacity: 0.75; transform: translate(-35px, 110px) rotate(95deg) scale(0.85); }
+      45% { transform: translate(-25px, 170px) rotate(160deg) scale(0.75); }
+      60% { opacity: 0.55; transform: translate(-50px, 230px) rotate(230deg) scale(0.6); }
+      80% { transform: translate(-40px, 310px) rotate(310deg) scale(0.4); }
+      100% { opacity: 0; transform: translate(-60px, 400px) rotate(380deg) scale(0.2); }
+    }
+
+    /* Arrow */
+    .arrow-down {
+      position: absolute;
+      bottom: 4vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      cursor: pointer;
+      opacity: 0.55;
+      transition: opacity 0.4s, transform 0.4s;
+      animation: arrowBob 3s ease-in-out infinite;
+    }
+    .arrow-down:hover { opacity: 0.95; }
+    @keyframes arrowBob {
+      0%, 100% { transform: translateX(-50%) translateY(0); }
+      50% { transform: translateX(-50%) translateY(10px); }
+    }
+
+    /* ══════════════════════════════════════
+       SCENE 2 — Stacked coin discs (S-shape)
+       ══════════════════════════════════════ */
+    #scene2 { background: #111008; overflow: hidden; }
+    #scene2.hidden { transform: translateY(20px); }
+
+    .disc-canvas { position: absolute; inset: 0; z-index: 1; }
+
+    .coin-hint {
+      position: fixed; bottom: 4vh; left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem; color: rgba(212,168,67,0.35);
+      letter-spacing: 0.2em; z-index: 20;
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:0.35} 50%{opacity:0.7} }
+
+    .arrow-up {
+      position: absolute; top: 4vh; left: 50%;
+      transform: translateX(-50%); z-index: 10;
+      cursor: pointer; opacity: 0.7;
+      transition: opacity 0.4s, transform 0.4s;
+      animation: arrowBobUp 2.5s ease-in-out infinite;
+    }
+    .arrow-up:hover { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+    @keyframes arrowBobUp { 0%,100%{transform:translateX(-50%) translateY(0)} 50%{transform:translateX(-50%) translateY(-6px)} }
+
+    /* Home */
+    .home-btn {
+      position: fixed; top: 2.5vh; left: 2.5vw; z-index: 50;
+      text-decoration: none;
+      font-family: 'Space Mono', monospace; font-size: 0.6rem;
+      letter-spacing: 0.12em; transition: color 0.3s;
+    }
+    .home-btn.light { color: rgba(255,255,255,0.3); }
+    .home-btn.light:hover { color: rgba(255,255,255,0.7); }
+    .home-btn.dark { color: rgba(212,168,67,0.3); }
+    .home-btn.dark:hover { color: rgba(212,168,67,0.7); }
+  </style>
+</head>
+<body>
+
+<a class="home-btn light" id="homeBtn" href="../index.html">HOME</a>
+
+<!-- ═══ SCENE 1 ═══ -->
+<div class="scene" id="scene1">
+  <canvas class="grad-canvas" id="gradCanvas"></canvas>
+  <div class="grain"><canvas id="grainCanvas"></canvas></div>
+
+  <div class="s-wrap">
+    <svg class="s-svg" id="sSvg" viewBox="0 0 1000 1000">
+      <defs>
+        <path id="sPath" d="M 100,150 C 450,80 800,250 750,420 C 700,590 200,480 180,650 C 160,820 550,900 900,850" fill="none"/>
+      </defs>
+    </svg>
+  </div>
+
+  <div class="arrow-down" id="arrowDown">
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+      <circle cx="22" cy="22" r="21" stroke="white" stroke-width="0.8" opacity="0.5"/>
+      <path d="M15 19 L22 26 L29 19" stroke="white" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.7"/>
+    </svg>
+  </div>
+</div>
+
+<!-- ═══ SCENE 2 ═══ -->
+<div class="scene hidden" id="scene2">
+  <canvas class="disc-canvas" id="discCanvas"></canvas>
+
+  <div class="coin-hint">click to add coins</div>
+
+  <div class="arrow-up" id="arrowUp">
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+      <circle cx="22" cy="22" r="21" stroke="#d4a843" stroke-width="1.2" opacity="0.7"/>
+      <path d="M14 24 L22 16 L30 24" stroke="#d4a843" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</div>
+
+<script>
+// ── Scenes ──
+const scene1 = document.getElementById('scene1');
+const scene2 = document.getElementById('scene2');
+const homeBtn = document.getElementById('homeBtn');
+
+function goScene(n) {
+  if (n === 1) { scene1.classList.remove('hidden'); scene2.classList.add('hidden'); homeBtn.className = 'home-btn light'; }
+  else { scene2.classList.remove('hidden'); scene1.classList.add('hidden'); homeBtn.className = 'home-btn dark'; }
+}
+document.getElementById('arrowDown').addEventListener('click', () => goScene(2));
+document.getElementById('arrowUp').addEventListener('click', () => goScene(1));
+
+// ══════════════════════════════════════
+// SCENE 1 — Lush organic gradient
+// ══════════════════════════════════════
+const gc = document.getElementById('gradCanvas');
+const gx = gc.getContext('2d');
+let W, H, mx = 0.5, my = 0.5, t = 0;
+
+const blobs = [
+  { x: 0.25, y: 0.2, r: 0.7, sx: 1.0, sy: 0.8, c: [45, 190, 60] },
+  { x: 0.75, y: 0.7, r: 0.65, sx: 0.7, sy: 1.1, c: [30, 170, 220] },
+  { x: 0.5, y: 0.45, r: 0.55, sx: 0.9, sy: 0.9, c: [100, 210, 90] },
+  { x: 0.15, y: 0.75, r: 0.5, sx: 1.1, sy: 0.7, c: [50, 200, 180] },
+  { x: 0.85, y: 0.25, r: 0.45, sx: 0.8, sy: 1.0, c: [80, 220, 140] },
+  { x: 0.4, y: 0.9, r: 0.4, sx: 1.0, sy: 0.8, c: [20, 150, 200] },
+];
+
+function resizeG() { W = gc.width = innerWidth; H = gc.height = innerHeight; }
+
+function drawGrad() {
+  t += 0.005;
+
+  // Base fill — warm off-white
+  gx.fillStyle = '#eef5e4';
+  gx.fillRect(0, 0, W, H);
+
+  blobs.forEach((b, i) => {
+    const phase = t + i * 1.3;
+    const bx = (b.x + Math.sin(phase) * 0.18 + Math.cos(phase * 0.6) * 0.08 + (mx - 0.5) * 0.12) * W;
+    const by = (b.y + Math.cos(phase * 0.8) * 0.15 + Math.sin(phase * 0.5) * 0.06 + (my - 0.5) * 0.08) * H;
+    const rx = b.r * b.sx * Math.min(W, H) * (1 + Math.sin(phase * 0.4) * 0.1);
+    const ry = b.r * b.sy * Math.min(W, H) * (1 + Math.cos(phase * 0.3) * 0.1);
+
+    // Elliptical gradient via transform
+    gx.save();
+    gx.translate(bx, by);
+    gx.scale(1, ry / rx);
+    const grad = gx.createRadialGradient(0, 0, 0, 0, 0, rx);
+    grad.addColorStop(0, `rgba(${b.c[0]}, ${b.c[1]}, ${b.c[2]}, 0.85)`);
+    grad.addColorStop(0.3, `rgba(${b.c[0]}, ${b.c[1]}, ${b.c[2]}, 0.55)`);
+    grad.addColorStop(0.6, `rgba(${b.c[0]}, ${b.c[1]}, ${b.c[2]}, 0.2)`);
+    grad.addColorStop(1, `rgba(${b.c[0]}, ${b.c[1]}, ${b.c[2]}, 0)`);
+    gx.fillStyle = grad;
+    gx.fillRect(-rx, -rx, rx * 2, rx * 2);
+    gx.restore();
+  });
+
+  requestAnimationFrame(drawGrad);
+}
+
+scene1.addEventListener('mousemove', e => { mx = e.clientX / W; my = e.clientY / H; });
+
+// ── Grain ──
+const grainC = document.getElementById('grainCanvas');
+const grainX = grainC.getContext('2d');
+function genGrain() {
+  grainC.width = 512; grainC.height = 512;
+  const img = grainX.createImageData(512, 512);
+  for (let i = 0; i < img.data.length; i += 4) {
+    const v = Math.random() * 255;
+    img.data[i] = img.data[i+1] = img.data[i+2] = v;
+    img.data[i+3] = 40;
+  }
+  grainX.putImageData(img, 0, 0);
+}
+
+// ── S-curve letters ──
+const TEXT = '기업의 진정성 있는 친환경 활동';
+const sSvg = document.getElementById('sSvg');
+const sPath = document.getElementById('sPath');
+let sWave = 0;
+
+function buildLetters() {
+  // Clear old
+  sSvg.querySelectorAll('.s-letter').forEach(el => el.remove());
+
+  const totalLen = sPath.getTotalLength();
+  const spacing = totalLen / (TEXT.length + 1);
+
+  TEXT.split('').forEach((ch, i) => {
+    const offset = spacing * (i + 1);
+    const pt = sPath.getPointAtLength(offset);
+
+    const el = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    el.setAttribute('x', pt.x);
+    el.setAttribute('y', pt.y);
+    el.setAttribute('text-anchor', 'middle');
+    el.setAttribute('dominant-baseline', 'central');
+    el.classList.add('s-letter');
+    el.textContent = ch;
+
+    // Individual float
+    const dur = 3.5 + Math.random() * 2.5;
+    const delay = Math.random() * 3;
+    el.style.animation = `sFloat ${dur}s ease-in-out ${delay}s infinite`;
+
+    el.addEventListener('mouseenter', () => {
+      const rect = sSvg.getBoundingClientRect();
+      const scale = rect.width / 1000;
+      spawnLeaves(rect.left + pt.x * scale, rect.top + pt.y * scale, 5);
+    });
+
+    sSvg.appendChild(el);
+  });
+}
+
+function animateSCurve() {
+  sWave += 0.006;
+  const s1 = Math.sin(sWave) * 25;
+  const s2 = Math.cos(sWave * 0.7) * 20;
+  const s3 = Math.sin(sWave * 1.3) * 15;
+
+  const d = `M ${100 + s2},${150 + s1}
+    C ${450 - s1},${80 + s2} ${800 + s3},${250 - s1} ${750 - s2},${420 + s3}
+    C ${700 + s1},${590 - s3} ${200 - s2},${480 + s1} ${180 + s3},${650 - s2}
+    C ${160 - s1},${820 + s2} ${550 + s3},${900 - s1} ${900 - s2},${850 + s3}`;
+  sPath.setAttribute('d', d);
+
+  const totalLen = sPath.getTotalLength();
+  const spacing = totalLen / (TEXT.length + 1);
+  sSvg.querySelectorAll('.s-letter').forEach((el, i) => {
+    const pt = sPath.getPointAtLength(spacing * (i + 1));
+    el.setAttribute('x', pt.x);
+    el.setAttribute('y', pt.y);
+  });
+
+  requestAnimationFrame(animateSCurve);
+}
+
+// Leaf SVG shapes
+function spawnLeaves(x, y, count) {
+  for (let i = 0; i < count; i++) {
+    const leaf = document.createElement('div');
+    leaf.className = 'leaf';
+    leaf.style.left = (x + (Math.random() - 0.5) * 16) + 'px';
+    leaf.style.top = (y + (Math.random() - 0.5) * 8) + 'px';
+    leaf.style.setProperty('--dx', (Math.random() * 100 - 50) + 'px');
+    leaf.style.setProperty('--rot', (Math.random() * 540 - 270) + 'deg');
+
+    const size = 24 + Math.random() * 24;
+    const hue = 90 + Math.random() * 50;
+    leaf.innerHTML = `<svg width="${size}" height="${size}" viewBox="0 0 20 20"><path d="M10 0 C15 5 18 12 10 20 C2 12 5 5 10 0Z" fill="hsla(${hue}, 65%, 45%, 0.8)"/></svg>`;
+    document.body.appendChild(leaf);
+    setTimeout(() => leaf.remove(), 5000);
+  }
+}
+
+// ── Wind ASMR (Web Audio white noise + filter) ──
+let windCtx = null, windNode = null, windGain = null;
+function startWind() {
+  if (windCtx) return;
+  windCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Create looping noise buffer
+  const sr = windCtx.sampleRate;
+  const len = sr * 4;
+  const buf = windCtx.createBuffer(2, len, sr);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = buf.getChannelData(ch);
+    for (let i = 0; i < len; i++) {
+      d[i] = (Math.random() * 2 - 1);
+    }
+  }
+
+  windNode = windCtx.createBufferSource();
+  windNode.buffer = buf;
+  windNode.loop = true;
+
+  // Bandpass for wind character
+  const bp = windCtx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 600;
+  bp.Q.value = 0.4;
+
+  // Low-pass for softness
+  const lp = windCtx.createBiquadFilter();
+  lp.type = 'lowpass';
+  lp.frequency.value = 1800;
+
+  // Slow LFO on filter freq for breathing wind
+  const lfo = windCtx.createOscillator();
+  const lfoGain = windCtx.createGain();
+  lfo.type = 'sine';
+  lfo.frequency.value = 0.15;
+  lfoGain.gain.value = 300;
+  lfo.connect(lfoGain).connect(bp.frequency);
+  lfo.start();
+
+  windGain = windCtx.createGain();
+  windGain.gain.value = 0;
+
+  windNode.connect(bp).connect(lp).connect(windGain).connect(windCtx.destination);
+  windNode.start();
+}
+
+function setWindVolume(vol) {
+  if (!windGain) return;
+  windGain.gain.linearRampToValueAtTime(vol, windCtx.currentTime + 0.5);
+}
+
+// Auto-falling leaves across the screen
+function autoLeaves() {
+  if (scene1.classList.contains('hidden')) {
+    setWindVolume(0);
+    requestAnimationFrame(autoLeaves);
+    return;
+  }
+  // Start wind on first visible frame
+  if (!windCtx) {
+    // Wind starts on first user interaction (click arrow)
+  } else {
+    setWindVolume(0.06);
+  }
+  if (Math.random() < 0.12) {
+    const x = Math.random() * W;
+    const y = -20 + Math.random() * H * 0.2;
+    spawnLeaves(x, y, 1);
+  }
+  requestAnimationFrame(autoLeaves);
+}
+autoLeaves();
+
+// Start wind audio — try immediately, fallback to any interaction
+startWind();
+if (windCtx && windCtx.state === 'suspended') {
+  windCtx.resume().catch(() => {});
+}
+['mousemove', 'touchstart', 'scroll', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, function resumeWind() {
+    if (windCtx && windCtx.state === 'suspended') windCtx.resume();
+    if (windGain) setWindVolume(0.06);
+    document.removeEventListener(evt, resumeWind);
+  }, { once: true });
+});
+
+// Float keyframes
+const floatStyle = document.createElement('style');
+floatStyle.textContent = `@keyframes sFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }`;
+document.head.appendChild(floatStyle);
+
+// ══════════════════════════════════════
+// SCENE 2 — Stacked 3D coin discs
+// ══════════════════════════════════════
+const dc = document.getElementById('discCanvas');
+const dx = dc.getContext('2d');
+let dW, dH;
+let dTime = 0;
+
+function resizeD() { dW = dc.width = innerWidth; dH = dc.height = innerHeight; }
+
+// Text cycle
+const DISC_TEXTS = ['무조건', "'돈'", '된다'];
+
+// Active discs that have been "dropped"
+const activeDiscs = [];
+let discDropTimer = null;
+let totalDiscsDropped = 0;
+
+function getDiscTarget(index) {
+  const cx = dW / 2;
+  const baseRx = Math.min(dW * 0.28, 240);
+  const count = 14;
+  const totalH = dH * 0.82;
+  const bottomY = dH * 0.92;
+  const i = index % count;
+  const progress = i / (count - 1);
+
+  // Bottom to top: i=0 is bottom, i=count-1 is top
+  const seed = Math.sin(i * 73.17) * 43758.5453;
+  const jitter = (seed - Math.floor(seed) - 0.5) * baseRx * 0.2;
+  const y = bottomY - progress * totalH;
+  // Top discs bigger (progress=1 is top)
+  const scale = 0.55 + progress * 0.5;
+  const rx = baseRx * scale;
+  const ry = rx * 0.26;
+  // Tighter stacking
+  const thickness = 8 + progress * 8;
+
+  return { cx: cx + jitter, cy: y, rx, ry, thickness, scale };
+}
+
+// ── Metal clink sound (Web Audio — realistic coin) ──
+let coinAudioCtx = null;
+function playMetalClink() {
+  if (!coinAudioCtx) coinAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  const ctx = coinAudioCtx;
+  const now = ctx.currentTime;
+
+  // 1. Sharp metallic attack — two detuned sine tones
+  const freqBase = 3000 + Math.random() * 2000;
+  [freqBase, freqBase * 1.47].forEach(freq => {
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 0.4, now + 0.15);
+    g.gain.setValueAtTime(0.08, now);
+    g.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+    osc.connect(g).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.15);
+  });
+
+  // 2. Mid body ring
+  const osc2 = ctx.createOscillator();
+  const g2 = ctx.createGain();
+  osc2.type = 'square';
+  osc2.frequency.setValueAtTime(1200 + Math.random() * 600, now);
+  osc2.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+  g2.gain.setValueAtTime(0.04, now);
+  g2.gain.exponentialRampToValueAtTime(0.0001, now + 0.1);
+  const bp = ctx.createBiquadFilter();
+  bp.type = 'bandpass';
+  bp.frequency.value = 4000;
+  bp.Q.value = 5;
+  osc2.connect(bp).connect(g2).connect(ctx.destination);
+  osc2.start(now);
+  osc2.stop(now + 0.1);
+
+  // 3. Noise burst — metallic texture
+  const bufLen = ctx.sampleRate * 0.06;
+  const buf = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+  const d = buf.getChannelData(0);
+  for (let i = 0; i < bufLen; i++) d[i] = (Math.random() * 2 - 1);
+  const noise = ctx.createBufferSource();
+  noise.buffer = buf;
+  const nGain = ctx.createGain();
+  nGain.gain.setValueAtTime(0.07, now);
+  nGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+  const hpf = ctx.createBiquadFilter();
+  hpf.type = 'highpass';
+  hpf.frequency.value = 6000;
+  const bpf = ctx.createBiquadFilter();
+  bpf.type = 'bandpass';
+  bpf.frequency.value = 8000 + Math.random() * 4000;
+  bpf.Q.value = 3;
+  noise.connect(hpf).connect(bpf).connect(nGain).connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.06);
+}
+
+class Disc {
+  constructor(index) {
+    this.index = index;
+    this.text = DISC_TEXTS[index % DISC_TEXTS.length];
+    const target = getDiscTarget(index);
+    this.tx = target.cx;
+    this.ty = target.cy;
+    this.rx = target.rx;
+    this.ry = target.ry;
+    this.thickness = target.thickness;
+    this.scale = target.scale;
+
+    // Start above the target position
+    this.x = this.tx + (Math.random() - 0.5) * 30;
+    this.y = this.ty - 250 - Math.random() * 100;
+    this.vy = 0;
+    this.landed = false;
+    this.landBounce = 0;
+    this.opacity = 1;
+  }
+
+  update() {
+    if (this.landed) {
+      // Settle bounce
+      this.landBounce *= 0.88;
+      this.x += (this.tx - this.x) * 0.1;
+      return;
+    }
+
+    // Gravity toward target
+    this.vy += 0.6;
+    this.y += this.vy;
+
+    // Horizontal drift toward target
+    this.x += (this.tx - this.x) * 0.05;
+
+    if (this.y >= this.ty) {
+      this.y = this.ty;
+      this.landed = true;
+      this.landBounce = -this.vy * 0.25;
+      this.vy = 0;
+      playMetalClink();
+    }
+  }
+
+  draw(ctx, time) {
+    const wobble = this.landed ? Math.sin(time * 0.8 + this.ty * 0.005) * 2 : 0;
+    const bounceY = this.landed ? this.landBounce : 0;
+    const x = this.x + wobble;
+    const y = this.y + bounceY;
+    const { rx, ry, thickness, scale } = this;
+
+    // Shadow
+    ctx.save();
+    ctx.globalAlpha = 0.1 * this.opacity;
+    ctx.beginPath();
+    ctx.ellipse(x, y + thickness + 12, rx * 1.05, ry * 0.55, 0, 0, Math.PI * 2);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = this.opacity;
+
+    // Side
+    const sideGrad = ctx.createLinearGradient(x - rx, y, x + rx, y);
+    sideGrad.addColorStop(0, '#7a5a15');
+    sideGrad.addColorStop(0.3, '#a07828');
+    sideGrad.addColorStop(0.7, '#8a6518');
+    sideGrad.addColorStop(1, '#6a4a10');
+
+    ctx.beginPath();
+    ctx.ellipse(x, y + thickness, rx, ry, 0, 0, Math.PI);
+    ctx.lineTo(x - rx, y);
+    ctx.ellipse(x, y, rx, ry, 0, Math.PI, 0, true);
+    ctx.closePath();
+    ctx.fillStyle = sideGrad;
+    ctx.fill();
+
+    // Top face
+    const faceGrad = ctx.createRadialGradient(x - rx * 0.2, y - ry * 0.3, 0, x, y, rx);
+    faceGrad.addColorStop(0, '#ffe88a');
+    faceGrad.addColorStop(0.3, '#d4a843');
+    faceGrad.addColorStop(0.7, '#c49530');
+    faceGrad.addColorStop(1, '#a07828');
+
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fillStyle = faceGrad;
+    ctx.fill();
+
+    // Inner ring
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx * 0.82, ry * 0.82, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(160, 120, 40, 0.35)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
+    // Ridged edge
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx * 0.95, ry * 0.95, 0, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(100, 74, 16, 0.25)';
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([3, 4]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Highlight
+    ctx.globalAlpha = 0.12 * this.opacity;
+    ctx.beginPath();
+    ctx.ellipse(x - rx * 0.15, y - ry * 0.2, rx * 0.45, ry * 0.35, -0.3, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+
+    // Text — BLACK
+    ctx.globalAlpha = this.opacity;
+    ctx.font = `bold ${Math.round(20 * scale)}px 'Black And White Picture', 'Noto Sans KR', sans-serif`;
+    ctx.fillStyle = 'rgba(20, 15, 5, 0.85)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(this.text, x, y - ry * 0.05);
+
+    ctx.restore();
+  }
+}
+
+function startDiscDrop() {
+  totalDiscsDropped = 0;
+  activeDiscs.length = 0;
+
+  // Drop 14 discs one by one
+  let i = 0;
+  discDropTimer = setInterval(() => {
+    if (i >= 14) {
+      clearInterval(discDropTimer);
+      return;
+    }
+    activeDiscs.push(new Disc(i));
+    totalDiscsDropped = i + 1;
+    i++;
+  }, 180);
+}
+
+function animateDiscs() {
+  dTime += 0.016;
+  dx.clearRect(0, 0, dW, dH);
+
+  // Background glow
+  const bgGlow = dx.createRadialGradient(dW / 2, dH / 2, 0, dW / 2, dH / 2, dH * 0.6);
+  bgGlow.addColorStop(0, 'rgba(50, 38, 12, 0.25)');
+  bgGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  dx.fillStyle = bgGlow;
+  dx.fillRect(0, 0, dW, dH);
+
+  // Update & draw (bottom first for overlap)
+  activeDiscs.forEach(d => d.update());
+  // Sort by y so lower discs draw first
+  const sorted = [...activeDiscs].sort((a, b) => {
+    const ay = a.landed ? a.ty : a.y;
+    const by = b.landed ? b.ty : b.y;
+    return ay - by;
+  });
+  sorted.forEach(d => d.draw(dx, dTime));
+
+  requestAnimationFrame(animateDiscs);
+}
+
+// Click to add more discs
+scene2.addEventListener('click', e => {
+  if (e.target.closest('.arrow-up') || e.target.closest('.home-btn')) return;
+  const newDisc = new Disc(totalDiscsDropped % 14);
+  newDisc.x = e.clientX;
+  activeDiscs.push(newDisc);
+  totalDiscsDropped++;
+});
+
+// Start drop sequence on scene enter
+let initDrop2 = false;
+const obs2 = new MutationObserver(() => {
+  if (!scene2.classList.contains('hidden') && !initDrop2) {
+    initDrop2 = true;
+    setTimeout(startDiscDrop, 300);
+  }
+});
+obs2.observe(scene2, { attributes: true, attributeFilter: ['class'] });
+
+// ── Init ──
+resizeG(); resizeD(); genGrain(); buildLetters();
+drawGrad(); animateSCurve(); animateDiscs();
+window.addEventListener('resize', () => { resizeG(); resizeD(); });
+
+if (new URLSearchParams(location.search).get('preview') === '1') {
+  // scene 1 gradient is already showing
+}
+</script>
+
+</body>
+</html>
