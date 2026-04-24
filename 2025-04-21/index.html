@@ -876,6 +876,20 @@
     if (e.target.closest('.home-btn')) return;
     startBaking();
   });
+
+  // Preview mode for thumbnail: skip animation, show final state
+  if (new URLSearchParams(location.search).get('preview') === '1') {
+    document.body.style.cursor = 'default';
+    hint.style.display = 'none';
+    tray.classList.add('in');
+    breadStage.style.opacity = '1';
+    breadStage.classList.add('slide-in', 'ready');
+    breadText.className = 'bread-text golden';
+    subtitle.classList.add('visible');
+    statusText.textContent = 'DONE';
+    // Warm steam loop
+    setInterval(createWarmSteam, 400);
+  }
 </script>
 
 </body>
