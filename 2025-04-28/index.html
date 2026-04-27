@@ -372,6 +372,31 @@
             }
         }
 
+        /* 썸네일 모드용 강화된 애니메이션 */
+        .preview-mode .big-flower .petal {
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .preview-mode .block.wave {
+            animation: wavePreview 0.5s ease-out;
+        }
+        
+        @keyframes wavePreview {
+            0% { transform: translate(0, 0); }
+            50% { transform: translate(-6px, -12px); }
+            100% { transform: translate(0, 0); }
+        }
+        
+        .preview-mode .block.burst-highlight {
+            animation: burstPreview 0.3s ease-out;
+        }
+        
+        @keyframes burstPreview {
+            0% { transform: translate(0, 0) scale(1); }
+            50% { transform: translate(-10px, -10px) scale(1.15); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
         @keyframes sway {
             0%, 100% { transform: scale(1) rotate(-2deg); }
             50% { transform: scale(1.03) rotate(2deg); }
@@ -965,17 +990,17 @@
 
         // ───────────────────────────── 자동 데모 모드 (썸네일용) ─────────────────────────────
         function startAutoDemo() {
-            let demoInterval;
-            let waveInterval;
+            console.log('Auto demo started!'); // 디버그용
             
             // 랜덤 꽃 생성
             function createRandomFlower() {
                 const row = Math.floor(Math.random() * ROWS);
                 const col = Math.floor(Math.random() * COLS);
+                console.log('Creating flower at:', row, col); // 디버그용
                 createBigFlower(row, col);
                 
-                // 30% 확률로 물결 효과
-                if (Math.random() < 0.3) {
+                // 50% 확률로 물결 효과
+                if (Math.random() < 0.5) {
                     createWaveEffect(row, col, 2 + Math.floor(Math.random() * 3));
                 }
             }
@@ -985,15 +1010,15 @@
                 const centerRow = Math.floor(ROWS / 2);
                 const centerCol = Math.floor(COLS / 2);
                 
-                for (let i = 0; i < 3; i++) {
+                for (let i = 0; i < 5; i++) {
                     setTimeout(() => {
-                        const offsetRow = centerRow + (Math.random() - 0.5) * 8;
-                        const offsetCol = centerCol + (Math.random() - 0.5) * 8;
+                        const offsetRow = centerRow + (Math.random() - 0.5) * 6;
+                        const offsetCol = centerCol + (Math.random() - 0.5) * 6;
                         const clampedRow = Math.max(0, Math.min(ROWS - 1, Math.floor(offsetRow)));
                         const clampedCol = Math.max(0, Math.min(COLS - 1, Math.floor(offsetCol)));
                         
-                        createWaveEffect(clampedRow, clampedCol, 3);
-                    }, i * 400);
+                        createWaveEffect(clampedRow, clampedCol, 4);
+                    }, i * 200);
                 }
             }
             
@@ -1001,58 +1026,66 @@
             function createBurstEffect() {
                 const centerRow = Math.floor(ROWS / 2);
                 const centerCol = Math.floor(COLS / 2);
-                performMultipleInteractions(centerRow, centerCol, getBlockAt(centerRow, centerCol), 8);
+                const centerBlock = getBlockAt(centerRow, centerCol);
+                if (centerBlock) {
+                    performMultipleInteractions(centerRow, centerCol, centerBlock, 12);
+                }
             }
             
-            // 데모 시퀀스
-            const demoSequence = [
-                () => createRandomFlower(),
-                () => createRandomFlower(),
-                () => createContinuousWaves(),
-                () => createRandomFlower(),
-                () => createBurstEffect(),
-                () => createRandomFlower(),
-                () => createContinuousWaves(),
-            ];
-            
-            let sequenceIndex = 0;
-            
-            // 즉시 시작
+            // 즉시 시작 - 더 강력한 초기 효과
             setTimeout(() => {
                 createBurstEffect();
-            }, 500);
+                createContinuousWaves();
+            }, 300);
             
-            // 정기적 실행
-            demoInterval = setInterval(() => {
-                demoSequence[sequenceIndex % demoSequence.length]();
-                sequenceIndex++;
-            }, 1800);
+            // 연속 꽃 생성
+            const flowerInterval = setInterval(() => {
+                createRandomFlower();
+            }, 800);
+            
+            // 주기적 버스트
+            const burstInterval = setInterval(() => {
+                createBurstEffect();
+            }, 3000);
             
             // 연속 물결
-            waveInterval = setInterval(() => {
+            const waveInterval = setInterval(() => {
                 createContinuousWaves();
-            }, 4000);
+            }, 2500);
             
             return () => {
-                clearInterval(demoInterval);
+                clearInterval(flowerInterval);
+                clearInterval(burstInterval);
                 clearInterval(waveInterval);
             };
         }
         
-        // URL 파라미터 체크
+        // URL 파라미터 체크 및 즉시 실행
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('preview') === '1') {
-            // 썸네일 모드 - 자동 데모 시작
-            document.addEventListener('DOMContentLoaded', () => {
-                setTimeout(startAutoDemo, 1000);
-            });
+            console.log('Preview mode detected!'); // 디버그용
             
             // 썸네일용 스타일 조정
+            document.body.classList.add('preview-mode');
             document.body.style.overflow = 'hidden';
-            document.querySelector('.instruction').style.display = 'none';
-            document.querySelector('.bloom-counter').style.display = 'none';
-            document.querySelector('.home-btn').style.display = 'none';
-            document.querySelector('.credit').style.display = 'none';
+            
+            // UI 요소들 숨기기 (안전하게)
+            setTimeout(() => {
+                const instruction = document.querySelector('.instruction');
+                const counter = document.querySelector('.bloom-counter');
+                const homeBtn = document.querySelector('.home-btn');
+                const credit = document.querySelector('.credit');
+                
+                if (instruction) instruction.style.display = 'none';
+                if (counter) counter.style.display = 'none';
+                if (homeBtn) homeBtn.style.display = 'none';
+                if (credit) credit.style.display = 'none';
+            }, 100);
+            
+            // 즉시 데모 시작
+            setTimeout(() => {
+                startAutoDemo();
+            }, 200);
         }
     </script>
 </body>
