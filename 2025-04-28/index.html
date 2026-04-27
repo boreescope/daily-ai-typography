@@ -962,6 +962,98 @@
                 block.style.transition = 'transform 0.5s ease-out';
             });
         });
+
+        // ───────────────────────────── 자동 데모 모드 (썸네일용) ─────────────────────────────
+        function startAutoDemo() {
+            let demoInterval;
+            let waveInterval;
+            
+            // 랜덤 꽃 생성
+            function createRandomFlower() {
+                const row = Math.floor(Math.random() * ROWS);
+                const col = Math.floor(Math.random() * COLS);
+                createBigFlower(row, col);
+                
+                // 30% 확률로 물결 효과
+                if (Math.random() < 0.3) {
+                    createWaveEffect(row, col, 2 + Math.floor(Math.random() * 3));
+                }
+            }
+            
+            // 연속 물결 효과
+            function createContinuousWaves() {
+                const centerRow = Math.floor(ROWS / 2);
+                const centerCol = Math.floor(COLS / 2);
+                
+                for (let i = 0; i < 3; i++) {
+                    setTimeout(() => {
+                        const offsetRow = centerRow + (Math.random() - 0.5) * 8;
+                        const offsetCol = centerCol + (Math.random() - 0.5) * 8;
+                        const clampedRow = Math.max(0, Math.min(ROWS - 1, Math.floor(offsetRow)));
+                        const clampedCol = Math.max(0, Math.min(COLS - 1, Math.floor(offsetCol)));
+                        
+                        createWaveEffect(clampedRow, clampedCol, 3);
+                    }, i * 400);
+                }
+            }
+            
+            // 버스트 효과 시뮬레이션
+            function createBurstEffect() {
+                const centerRow = Math.floor(ROWS / 2);
+                const centerCol = Math.floor(COLS / 2);
+                performMultipleInteractions(centerRow, centerCol, getBlockAt(centerRow, centerCol), 8);
+            }
+            
+            // 데모 시퀀스
+            const demoSequence = [
+                () => createRandomFlower(),
+                () => createRandomFlower(),
+                () => createContinuousWaves(),
+                () => createRandomFlower(),
+                () => createBurstEffect(),
+                () => createRandomFlower(),
+                () => createContinuousWaves(),
+            ];
+            
+            let sequenceIndex = 0;
+            
+            // 즉시 시작
+            setTimeout(() => {
+                createBurstEffect();
+            }, 500);
+            
+            // 정기적 실행
+            demoInterval = setInterval(() => {
+                demoSequence[sequenceIndex % demoSequence.length]();
+                sequenceIndex++;
+            }, 1800);
+            
+            // 연속 물결
+            waveInterval = setInterval(() => {
+                createContinuousWaves();
+            }, 4000);
+            
+            return () => {
+                clearInterval(demoInterval);
+                clearInterval(waveInterval);
+            };
+        }
+        
+        // URL 파라미터 체크
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('preview') === '1') {
+            // 썸네일 모드 - 자동 데모 시작
+            document.addEventListener('DOMContentLoaded', () => {
+                setTimeout(startAutoDemo, 1000);
+            });
+            
+            // 썸네일용 스타일 조정
+            document.body.style.overflow = 'hidden';
+            document.querySelector('.instruction').style.display = 'none';
+            document.querySelector('.bloom-counter').style.display = 'none';
+            document.querySelector('.home-btn').style.display = 'none';
+            document.querySelector('.credit').style.display = 'none';
+        }
     </script>
 </body>
 </html>
