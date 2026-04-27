@@ -838,13 +838,25 @@
             const flowerWidth = (cellSize * cols) + (gap * (cols - 1));
             const flowerHeight = (cellSize * rows) + (gap * (rows - 1));
 
+            // 경계 체크 - 꽃이 화면을 벗어나지 않도록
+            const maxStartRow = ROWS - rows;
+            const maxStartCol = COLS - cols;
+            const adjustedRow = Math.max(0, Math.min(maxStartRow, startRow));
+            const adjustedCol = Math.max(0, Math.min(maxStartCol, startCol));
+            
+            // 조정된 위치의 블록 가져오기
+            const adjustedBlock = getBlockAt(adjustedRow, adjustedCol);
+            if (!adjustedBlock) return;
+            
+            const adjustedBlockRect = adjustedBlock.getBoundingClientRect();
+
             // 꽃 컨테이너 생성
             const flower = document.createElement('div');
             flower.className = 'big-flower';
             flower.style.width = `${flowerWidth}px`;
             flower.style.height = `${flowerHeight}px`;
-            flower.style.left = `${blockRect.left - stageRect.left}px`;
-            flower.style.top = `${blockRect.top - stageRect.top}px`;
+            flower.style.left = `${adjustedBlockRect.left - stageRect.left}px`;
+            flower.style.top = `${adjustedBlockRect.top - stageRect.top}px`;
             flower.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
             flower.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
@@ -911,20 +923,27 @@
             });
         });
 
-        // 연속 인터랙션 함수
+        // 연속 인터랙션 함수 (더 정돈된 패턴)
         function performMultipleInteractions(row, col, block, count) {
+            // 중심점 기준으로 더 규칙적인 패턴
+            const centerRow = row;
+            const centerCol = col;
+            
             for (let i = 0; i < count; i++) {
                 setTimeout(() => {
-                    // 랜덤한 주변 위치에 꽃 생성
-                    const offsetRow = row + (Math.random() - 0.5) * 6;
-                    const offsetCol = col + (Math.random() - 0.5) * 6;
-                    const clampedRow = Math.max(0, Math.min(ROWS - 1, Math.floor(offsetRow)));
-                    const clampedCol = Math.max(0, Math.min(COLS - 1, Math.floor(offsetCol)));
+                    // 원형 패턴으로 꽃 배치
+                    const angle = (i / count) * Math.PI * 2;
+                    const radius = 2 + (i % 3);
+                    const offsetRow = centerRow + Math.cos(angle) * radius;
+                    const offsetCol = centerCol + Math.sin(angle) * radius;
+                    
+                    const clampedRow = Math.max(0, Math.min(ROWS - 7, Math.floor(offsetRow))); // 꽃 크기 고려한 마진
+                    const clampedCol = Math.max(0, Math.min(COLS - 7, Math.floor(offsetCol)));
                     
                     createBigFlower(clampedRow, clampedCol);
                     
                     // 다양한 반지름의 물결 효과
-                    const waveRadius = 2 + Math.floor(Math.random() * 4);
+                    const waveRadius = 2 + Math.floor(i / 3);
                     createWaveEffect(clampedRow, clampedCol, waveRadius);
                     
                     // 간헐적으로 연쇄 반응
@@ -941,7 +960,7 @@
                         }, 400);
                     }
                     
-                }, i * 150); // 150ms 간격으로 실행
+                }, i * 120); // 더 빠른 간격
             }
         }
 
@@ -992,10 +1011,15 @@
         function startAutoDemo() {
             console.log('Auto demo started!'); // 디버그용
             
-            // 랜덤 꽃 생성
+            // 랜덤 꽃 생성 (경계 안전 범위에서)
             function createRandomFlower() {
-                const row = Math.floor(Math.random() * ROWS);
-                const col = Math.floor(Math.random() * COLS);
+                // 큰 꽃들이 화면을 벗어나지 않도록 안전 마진 적용
+                const margin = 7; // 최대 꽃 크기 고려
+                const safeRows = Math.max(1, ROWS - margin);
+                const safeCols = Math.max(1, COLS - margin);
+                
+                const row = Math.floor(Math.random() * safeRows);
+                const col = Math.floor(Math.random() * safeCols);
                 console.log('Creating flower at:', row, col); // 디버그용
                 createBigFlower(row, col);
                 
@@ -1005,30 +1029,42 @@
                 }
             }
             
-            // 연속 물결 효과
+            // 연속 물결 효과 (더 정돈된 패턴)
             function createContinuousWaves() {
                 const centerRow = Math.floor(ROWS / 2);
                 const centerCol = Math.floor(COLS / 2);
                 
-                for (let i = 0; i < 5; i++) {
+                // 더 규칙적인 패턴으로 물결 생성
+                const positions = [
+                    [centerRow, centerCol],
+                    [centerRow - 2, centerCol - 2],
+                    [centerRow + 2, centerCol + 2],
+                    [centerRow - 2, centerCol + 2],
+                    [centerRow + 2, centerCol - 2]
+                ];
+                
+                positions.forEach((pos, i) => {
                     setTimeout(() => {
-                        const offsetRow = centerRow + (Math.random() - 0.5) * 6;
-                        const offsetCol = centerCol + (Math.random() - 0.5) * 6;
-                        const clampedRow = Math.max(0, Math.min(ROWS - 1, Math.floor(offsetRow)));
-                        const clampedCol = Math.max(0, Math.min(COLS - 1, Math.floor(offsetCol)));
-                        
-                        createWaveEffect(clampedRow, clampedCol, 4);
-                    }, i * 200);
-                }
+                        const [r, c] = pos;
+                        const clampedRow = Math.max(0, Math.min(ROWS - 1, r));
+                        const clampedCol = Math.max(0, Math.min(COLS - 1, c));
+                        createWaveEffect(clampedRow, clampedCol, 3);
+                    }, i * 150);
+                });
             }
             
-            // 버스트 효과 시뮬레이션
+            // 버스트 효과 시뮬레이션 (더 안전한 범위)
             function createBurstEffect() {
                 const centerRow = Math.floor(ROWS / 2);
                 const centerCol = Math.floor(COLS / 2);
-                const centerBlock = getBlockAt(centerRow, centerCol);
+                
+                // 화면 중앙 안전 범위에서만 버스트
+                const safeRow = Math.max(3, Math.min(ROWS - 10, centerRow));
+                const safeCol = Math.max(3, Math.min(COLS - 10, centerCol));
+                
+                const centerBlock = getBlockAt(safeRow, safeCol);
                 if (centerBlock) {
-                    performMultipleInteractions(centerRow, centerCol, centerBlock, 12);
+                    performMultipleInteractions(safeRow, safeCol, centerBlock, 10);
                 }
             }
             
