@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마음의 심폐소생</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg: #d8d8d8;
+            --cell: 68px;
+            --gap: 2px;
+        }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+        }
+
+        body {
+            background: var(--bg);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', 'Inter', sans-serif;
+            position: relative;
+        }
+
+        /* paper grain */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                radial-gradient(circle at 20% 15%, rgba(255,255,255,0.08) 0%, transparent 45%),
+                radial-gradient(circle at 80% 85%, rgba(0,0,0,0.06) 0%, transparent 45%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+            opacity: 0.35;
+            mix-blend-mode: multiply;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .home-btn {
+            position: fixed;
+            top: 28px;
+            left: 28px;
+            color: rgba(0, 0, 0, 0.35);
+            text-decoration: none;
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            transition: color 0.3s ease;
+            z-index: 100;
+        }
+        .home-btn:hover { color: rgba(0, 0, 0, 0.75); }
+
+        .credit {
+            position: fixed;
+            top: 28px;
+            right: 28px;
+            color: rgba(0, 0, 0, 0.45);
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            line-height: 1.6;
+            text-align: right;
+            z-index: 100;
+        }
+        .credit b {
+            display: block;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            margin-bottom: 4px;
+            color: rgba(0,0,0,0.65);
+        }
+
+        .stage {
+            position: relative;
+            z-index: 3;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .canvas {
+            display: grid;
+            grid-template-columns: repeat(var(--cols), var(--cell));
+            grid-auto-rows: var(--cell);
+            gap: var(--gap);
+            perspective: 1000px;
+            transform-style: preserve-3d;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .block {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.25s ease;
+        }
+
+        /* 블록 윗면 */
+        .block-top {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #e8e8e8;
+            border: 1px solid rgba(0,0,0,0.06);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+        }
+
+        /* 블록 오른쪽 면 */
+        .block-right {
+            position: absolute;
+            width: var(--depth);
+            height: 100%;
+            right: calc(-1 * var(--depth));
+            top: var(--depth);
+            background: linear-gradient(to bottom, #b8b8b8 0%, #a0a0a0 50%, #888888 100%);
+            transform: skewY(-45deg);
+            transform-origin: top left;
+            border-right: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* 블록 아래 면 */
+        .block-bottom {
+            position: absolute;
+            width: 100%;
+            height: var(--depth);
+            left: var(--depth);
+            bottom: calc(-1 * var(--depth));
+            background: linear-gradient(to right, #c0c0c0 0%, #a8a8a8 50%, #909090 100%);
+            transform: skewX(-45deg);
+            transform-origin: top left;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* 높이별 깊이 - 더 다양하고 깊게 */
+        .block.h1 { --depth: 8px; }
+        .block.h2 { --depth: 16px; }
+        .block.h3 { --depth: 24px; }
+        .block.h4 { --depth: 32px; }
+        .block.h5 { --depth: 40px; }
+        .block.h6 { --depth: 48px; }
+
+        /* 호버 시 위로 올라감 */
+        .block:hover {
+            transform: translate(-6px, -6px);
+        }
+        .block:hover .block-top {
+            background: #f0f0f0;
+            box-shadow: 
+                inset 0 1px 0 rgba(255,255,255,0.4),
+                0 8px 16px rgba(0,0,0,0.12);
+        }
+        .block:hover .block-right {
+            background: linear-gradient(to bottom, #c8c8c8 0%, #b0b0b0 50%, #989898 100%);
+        }
+        .block:hover .block-bottom {
+            background: linear-gradient(to right, #d0d0d0 0%, #b8b8b8 50%, #a0a0a0 100%);
+        }
+
+        /* 클릭 시 눌림 */
+        .block:active {
+            transform: translate(3px, 3px);
+        }
+        .block:active .block-right,
+        .block:active .block-bottom {
+            opacity: 0.6;
+        }
+
+        .jamo {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+        }
+
+        .jamo line,
+        .jamo rect,
+        .jamo circle {
+            stroke: #1a1a1a;
+            stroke-width: 6;
+            fill: none;
+            stroke-linecap: square;
+            stroke-linejoin: miter;
+        }
+
+        /* 큰 꽃 - 여러 블록에 걸쳐 표시 */
+        .big-flower {
+            position: absolute;
+            pointer-events: none;
+            z-index: 10;
+            display: grid;
+            gap: 4px;
+        }
+
+        .big-flower .petal {
+            transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            transform: scale(0);
+            opacity: 0;
+            border-radius: 2px;
+        }
+
+        .big-flower.active .petal {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        /* 꽃잎 색상 */
+        .big-flower .petal.r { background: #e63232; }
+        .big-flower .petal.rc { background: #e63232; border-radius: 50%; }
+        .big-flower .petal.g { background: #1a6b4a; }
+        .big-flower .petal.gc { background: #1a6b4a; border-radius: 50%; }
+        .big-flower .petal.o { background: #ff8c42; }
+        .big-flower .petal.oc { background: #ff8c42; border-radius: 50%; }
+        .big-flower .petal.p { background: #8e44ad; }
+        .big-flower .petal.pc { background: #8e44ad; border-radius: 50%; }
+        .big-flower .petal.b { background: #2980b9; }
+        .big-flower .petal.bc { background: #2980b9; border-radius: 50%; }
+        .big-flower .petal.k { background: #2c3e50; }
+        .big-flower .petal.kc { background: #2c3e50; border-radius: 50%; }
+        .big-flower .petal.y { background: #f1c40f; }
+        .big-flower .petal.yc { background: #f1c40f; border-radius: 50%; }
+        .big-flower .petal.w { background: #ecf0f1; border: 1px solid #bdc3c7; }
+        .big-flower .petal.wc { background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 50%; }
+        
+        /* 라인 패턴들 */
+        .big-flower .petal.hline { 
+            background: linear-gradient(90deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%);
+            border-radius: 0;
+        }
+        .big-flower .petal.vline { 
+            background: linear-gradient(0deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%);
+            border-radius: 0;
+        }
+        .big-flower .petal.cross {
+            background: 
+                linear-gradient(90deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%),
+                linear-gradient(0deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%);
+            border-radius: 0;
+        }
+        .big-flower .petal.dline1 {
+            background: linear-gradient(45deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%);
+            border-radius: 0;
+        }
+        .big-flower .petal.dline2 {
+            background: linear-gradient(-45deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%);
+            border-radius: 0;
+        }
+        .big-flower .petal.xcross {
+            background: 
+                linear-gradient(45deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%),
+                linear-gradient(-45deg, transparent 40%, currentColor 40%, currentColor 60%, transparent 60%);
+            border-radius: 0;
+        }
+        .big-flower .petal.allcross {
+            background: 
+                linear-gradient(90deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
+                linear-gradient(0deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
+                linear-gradient(45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%),
+                linear-gradient(-45deg, transparent 45%, currentColor 45%, currentColor 55%, transparent 55%);
+            border-radius: 0;
+        }
+        
+        /* 테두리만 있는 패턴 */
+        .big-flower .petal.border {
+            background: transparent;
+            border: 2px solid currentColor;
+            border-radius: 0;
+        }
+        .big-flower .petal.borderc {
+            background: transparent;
+            border: 2px solid currentColor;
+            border-radius: 50%;
+        }
+
+        /* 물결 효과 */
+        .block.wave {
+            animation: wave 0.6s ease-out;
+        }
+
+        @keyframes wave {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-3px, -8px); }
+            50% { transform: translate(-2px, -4px); }
+            75% { transform: translate(-1px, -2px); }
+            100% { transform: translate(0, 0); }
+        }
+
+        /* 연쇄 반응 효과 */
+        .block.chain-reaction {
+            animation: chainReaction 0.8s ease-out;
+        }
+
+        @keyframes chainReaction {
+            0% { transform: translate(0, 0) scale(1); }
+            30% { transform: translate(-4px, -6px) scale(1.05); }
+            60% { transform: translate(-2px, -3px) scale(1.02); }
+            100% { transform: translate(0, 0) scale(1); }
+        }
+
+        .block.chain-reaction .block-top {
+            animation: chainGlow 0.8s ease-out;
+        }
+
+        @keyframes chainGlow {
+            0% { background: #e8e8e8; }
+            30% { background: #f8f8f8; box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 0 20px rgba(255,255,255,0.3); }
+            100% { background: #e8e8e8; }
+        }
+
+        /* 버스트 하이라이트 효과 */
+        .block.burst-highlight {
+            animation: burstHighlight 0.4s ease-out;
+        }
+
+        @keyframes burstHighlight {
+            0% { 
+                transform: translate(0, 0) scale(1); 
+            }
+            50% { 
+                transform: translate(-8px, -8px) scale(1.1); 
+            }
+            100% { 
+                transform: translate(0, 0) scale(1); 
+            }
+        }
+
+        .block.burst-highlight .block-top {
+            animation: burstGlow 0.4s ease-out;
+        }
+
+        @keyframes burstGlow {
+            0% { 
+                background: #e8e8e8; 
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+            }
+            50% { 
+                background: #ffffff; 
+                box-shadow: 
+                    inset 0 1px 0 rgba(255,255,255,0.8),
+                    0 0 30px rgba(255,255,255,0.6),
+                    0 0 60px rgba(255,255,255,0.3);
+            }
+            100% { 
+                background: #e8e8e8; 
+                box-shadow: inset 0 1px 0 rgba(255,255,255,0.2);
+            }
+        }
+
+        @keyframes sway {
+            0%, 100% { transform: scale(1) rotate(-2deg); }
+            50% { transform: scale(1.03) rotate(2deg); }
+        }
+
+        .instruction {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(0, 0, 0, 0.45);
+            font-size: 0.72rem;
+            letter-spacing: 0.25em;
+            z-index: 100;
+        }
+
+        .bloom-counter {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            color: rgba(0, 0, 0, 0.45);
+            font-size: 0.72rem;
+            letter-spacing: 0.08em;
+            z-index: 100;
+        }
+        .bloom-counter span { font-weight: 700; color: rgba(0,0,0,0.7); }
+
+        @media (max-width: 900px) {
+            :root { --cell: 44px; --gap: 1px; }
+        }
+        @media (max-width: 640px) {
+            :root { --cell: 32px; --gap: 1px; }
+        }
+    </style>
+</head>
+<body>
+    <a class="home-btn" href="../index.html">HOME</a>
+    <div class="credit">
+        <b>마음의 심폐소생</b>
+        Typographic Garden<br>
+        2026
+    </div>
+
+    <div class="stage">
+        <div class="canvas" id="canvas"></div>
+    </div>
+
+    <p class="instruction">CLICK TO BLOOM • DOUBLE-CLICK FOR BURST • MOVE TO RIPPLE</p>
+    <p class="bloom-counter"><span id="count">0</span> flowers</p>
+
+    <script>
+        // ───────────────────────────── jamo strokes (100×100 viewBox) ─────────────────────────────
+        const jamo = {
+            'ㅁ': '<rect x="22" y="22" width="56" height="56"/>',
+            'ㅇ': '<circle cx="50" cy="50" r="26"/>',
+            'ㅅ': '<line x1="50" y1="22" x2="22" y2="78"/><line x1="50" y1="22" x2="78" y2="78"/>',
+            'ㅍ': '<line x1="18" y1="26" x2="82" y2="26"/><line x1="18" y1="74" x2="82" y2="74"/><line x1="38" y1="26" x2="38" y2="74"/><line x1="62" y1="26" x2="62" y2="74"/>',
+            'ㅏ': '<line x1="35" y1="18" x2="35" y2="82"/><line x1="35" y1="50" x2="82" y2="50"/>',
+            'ㅓ': '<line x1="65" y1="18" x2="65" y2="82"/><line x1="18" y1="50" x2="65" y2="50"/>',
+            'ㅡ': '<line x1="14" y1="50" x2="86" y2="50"/>',
+            'ㅣ': '<line x1="50" y1="14" x2="50" y2="86"/>',
+            'ㅖ': '<line x1="22" y1="18" x2="22" y2="82"/><line x1="22" y1="40" x2="56" y2="40"/><line x1="22" y1="60" x2="56" y2="60"/><line x1="76" y1="18" x2="76" y2="82"/>',
+            'ㅕ': '<line x1="65" y1="18" x2="65" y2="82"/><line x1="18" y1="35" x2="65" y2="35"/><line x1="18" y1="65" x2="65" y2="65"/>',
+            'ㅗ': '<line x1="50" y1="26" x2="50" y2="62"/><line x1="14" y1="62" x2="86" y2="62"/>',
+            'ㅐ': '<line x1="22" y1="18" x2="22" y2="82"/><line x1="22" y1="50" x2="56" y2="50"/><line x1="76" y1="18" x2="76" y2="82"/>',
+        };
+
+        // ───────────────────────────── grid layout ─────────────────────────────
+        // 화면 크기에 맞춰 동적으로 그리드 크기 계산
+        function calculateGridSize() {
+            const cellSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'));
+            const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+            const cols = Math.ceil(window.innerWidth / (cellSize + gap)) + 2; // 여유분 추가
+            const rows = Math.ceil(window.innerHeight / (cellSize + gap)) + 2;
+            return { cols, rows };
+        }
+
+        const { cols: COLS, rows: ROWS } = calculateGridSize();
+
+        const placements = [
+            [2, 2, 'ㅁ', 'h3'], [2, 3, 'ㅏ', 'h2'],
+            [2, 5, 'ㅇ', 'h2'], [3, 5, 'ㅡ', 'h4'], [4, 5, 'ㅁ', 'h2'],
+            [2, 7, 'ㅇ', 'h3'], [3, 7, 'ㅡ', 'h2'], [3, 8, 'ㅣ', 'h3'],
+            [6, 2, 'ㅅ', 'h3'], [6, 3, 'ㅣ', 'h2'], [7, 2, 'ㅁ', 'h4'],
+            [6, 5, 'ㅍ', 'h3'], [6, 6, 'ㅕ', 'h2'], [6, 7, 'ㅣ', 'h3'],
+            [6, 9, 'ㅅ', 'h3'], [7, 9, 'ㅗ', 'h2'],
+            [6, 11, 'ㅅ', 'h2'], [6, 12, 'ㅐ', 'h4'], [7, 11, 'ㅇ', 'h3'],
+        ];
+
+        // ───────────────────────────── 큰 꽃 패턴들 ─────────────────────────────
+        const flowerPatterns = [
+            // 1. 단순 십자 (3x3)
+            {
+                size: 3,
+                pattern: [
+                    ['', 'pc', ''],
+                    ['pc', 'p', 'pc'],
+                    ['', 'pc', '']
+                ]
+            },
+            
+            // 2. 복잡한 별 (5x5)
+            {
+                size: 5,
+                pattern: [
+                    ['', '', 'oc', '', ''],
+                    ['', 'o', 'oc', 'o', ''],
+                    ['oc', 'oc', 'o', 'oc', 'oc'],
+                    ['', 'o', 'oc', 'o', ''],
+                    ['', '', 'oc', '', '']
+                ]
+            },
+            
+            // 3. 다이아몬드 격자 (5x5)
+            {
+                size: 5,
+                pattern: [
+                    ['', '', 'kc', '', ''],
+                    ['', 'border', 'k', 'border', ''],
+                    ['kc', 'k', 'kc', 'k', 'kc'],
+                    ['', 'border', 'k', 'border', ''],
+                    ['', '', 'kc', '', '']
+                ]
+            },
+            
+            // 4. 방사형 라인 (5x5)
+            {
+                size: 5,
+                pattern: [
+                    ['dline1', 'vline', 'vline', 'vline', 'dline2'],
+                    ['hline', 'allcross', 'cross', 'allcross', 'hline'],
+                    ['hline', 'cross', 'rc', 'cross', 'hline'],
+                    ['hline', 'allcross', 'cross', 'allcross', 'hline'],
+                    ['dline2', 'vline', 'vline', 'vline', 'dline1']
+                ]
+            },
+            
+            // 5. 꽃잎 클러스터 (4x4)
+            {
+                size: 4,
+                pattern: [
+                    ['gc', 'g', 'g', 'gc'],
+                    ['g', 'gc', 'gc', 'g'],
+                    ['g', 'gc', 'gc', 'g'],
+                    ['gc', 'g', 'g', 'gc']
+                ]
+            },
+            
+            // 6. 십자 라인 패턴 (6x3)
+            {
+                size: [6, 3],
+                pattern: [
+                    ['hline', 'hline', 'cross', 'cross', 'hline', 'hline'],
+                    ['', 'bc', 'b', 'b', 'bc', ''],
+                    ['', '', 'bc', 'bc', '', '']
+                ]
+            },
+            
+            // 7. 복잡한 만다라 (7x7)
+            {
+                size: 7,
+                pattern: [
+                    ['', '', '', 'yc', '', '', ''],
+                    ['', 'border', 'y', 'y', 'y', 'border', ''],
+                    ['', 'y', 'yc', 'y', 'yc', 'y', ''],
+                    ['yc', 'y', 'y', 'yc', 'y', 'y', 'yc'],
+                    ['', 'y', 'yc', 'y', 'yc', 'y', ''],
+                    ['', 'border', 'y', 'y', 'y', 'border', ''],
+                    ['', '', '', 'yc', '', '', '']
+                ]
+            },
+            
+            // 8. 격자 십자 (5x5)
+            {
+                size: 5,
+                pattern: [
+                    ['border', '', 'cross', '', 'border'],
+                    ['', 'pc', 'p', 'pc', ''],
+                    ['cross', 'p', 'pc', 'p', 'cross'],
+                    ['', 'pc', 'p', 'pc', ''],
+                    ['border', '', 'cross', '', 'border']
+                ]
+            },
+            
+            // 9. 원형 패턴 (5x5)
+            {
+                size: 5,
+                pattern: [
+                    ['', 'wc', 'w', 'wc', ''],
+                    ['wc', 'w', 'wc', 'w', 'wc'],
+                    ['w', 'wc', 'w', 'wc', 'w'],
+                    ['wc', 'w', 'wc', 'w', 'wc'],
+                    ['', 'wc', 'w', 'wc', '']
+                ]
+            },
+            
+            // 10. X 패턴 (5x5)
+            {
+                size: 5,
+                pattern: [
+                    ['rc', '', '', '', 'rc'],
+                    ['', 'xcross', 'r', 'xcross', ''],
+                    ['', 'r', 'rc', 'r', ''],
+                    ['', 'xcross', 'r', 'xcross', ''],
+                    ['rc', '', '', '', 'rc']
+                ]
+            },
+            
+            // 11. 작은 클러스터들 (3x3)
+            {
+                size: 3,
+                pattern: [
+                    ['oc', '', 'oc'],
+                    ['', 'o', ''],
+                    ['oc', '', 'oc']
+                ]
+            },
+            
+            // 12. 라인 아트 (4x6)
+            {
+                size: [4, 6],
+                pattern: [
+                    ['vline', 'cross', 'cross', 'vline'],
+                    ['hline', 'bc', 'bc', 'hline'],
+                    ['hline', 'b', 'b', 'hline'],
+                    ['hline', 'bc', 'bc', 'hline'],
+                    ['hline', 'b', 'b', 'hline'],
+                    ['vline', 'cross', 'cross', 'vline']
+                ]
+            },
+            
+            // 13. 다층 십자 (6x6)
+            {
+                size: 6,
+                pattern: [
+                    ['', '', 'border', 'border', '', ''],
+                    ['', 'gc', 'g', 'g', 'gc', ''],
+                    ['border', 'g', 'gc', 'gc', 'g', 'border'],
+                    ['border', 'g', 'gc', 'gc', 'g', 'border'],
+                    ['', 'gc', 'g', 'g', 'gc', ''],
+                    ['', '', 'border', 'border', '', '']
+                ]
+            },
+            
+            // 14. 방사형 원 (4x4)
+            {
+                size: 4,
+                pattern: [
+                    ['borderc', 'vline', 'vline', 'borderc'],
+                    ['hline', 'pc', 'pc', 'hline'],
+                    ['hline', 'pc', 'pc', 'hline'],
+                    ['borderc', 'vline', 'vline', 'borderc']
+                ]
+            },
+            
+            // 15. 복합 패턴 (5x3)
+            {
+                size: [5, 3],
+                pattern: [
+                    ['kc', 'k', 'cross', 'k', 'kc'],
+                    ['k', 'kc', 'k', 'kc', 'k'],
+                    ['kc', 'k', 'cross', 'k', 'kc']
+                ]
+            }
+        ];
+
+        // ───────────────────────────── build grid ─────────────────────────────
+        const canvas = document.getElementById('canvas');
+        canvas.style.setProperty('--cols', COLS);
+
+        // 화면 크기에 맞춰 그리드 위치 조정
+        canvas.style.transform = `translate(-${Math.floor(COLS * 0.1) * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')))}px, -${Math.floor(ROWS * 0.1) * (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell')) + parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap')))}px)`;
+
+        const placed = new Map();
+        for (const [r, c, j, h] of placements) {
+            if (r < ROWS && c < COLS) { // 화면 크기 내에서만 배치
+                placed.set(`${r},${c}`, { jamo: j, height: h });
+            }
+        }
+
+        function hash(r, c) {
+            const x = Math.sin(r * 374.123 + c * 91.7) * 43758.5453;
+            return x - Math.floor(x);
+        }
+
+        function fillerHeight(r, c) {
+            const v = hash(r, c);
+            // 더 다양한 높이 분포로 빈 공간 최소화
+            if (v < 0.15) return 'h1';
+            if (v < 0.35) return 'h2';
+            if (v < 0.55) return 'h3';
+            if (v < 0.75) return 'h4';
+            if (v < 0.92) return 'h5';
+            return 'h6';
+        }
+
+        const blocks = [];
+        for (let r = 0; r < ROWS; r++) {
+            for (let c = 0; c < COLS; c++) {
+                const block = document.createElement('div');
+                const key = `${r},${c}`;
+                const p = placed.get(key);
+                const height = p ? p.height : fillerHeight(r, c);
+
+                block.className = `block ${height}`;
+
+                // 3D 블록 구조 생성
+                const top = document.createElement('div');
+                top.className = 'block-top';
+
+                const right = document.createElement('div');
+                right.className = 'block-right';
+
+                const bottom = document.createElement('div');
+                bottom.className = 'block-bottom';
+
+                block.appendChild(top);
+                block.appendChild(right);
+                block.appendChild(bottom);
+
+                if (p) {
+                    block.classList.add('has-jamo');
+                    const svg = document.createElement('div');
+                    svg.innerHTML = `<svg class="jamo" viewBox="0 0 100 100">${jamo[p.jamo] || ''}</svg>`;
+                    top.appendChild(svg.firstChild);
+                } else {
+                    // 빈 블록에도 미묘한 텍스처 추가
+                    const texture = document.createElement('div');
+                    texture.style.cssText = `
+                        position: absolute;
+                        inset: 0;
+                        background: radial-gradient(circle at ${30 + hash(r, c) * 40}% ${30 + hash(c, r) * 40}%, 
+                            rgba(255,255,255,0.1) 0%, transparent 60%);
+                        pointer-events: none;
+                    `;
+                    top.appendChild(texture);
+                }
+
+                block.dataset.row = r;
+                block.dataset.col = c;
+                canvas.appendChild(block);
+                blocks.push(block);
+            }
+        }
+
+        // ───────────────────────────── 꽃 생성 시스템 ─────────────────────────────
+        const $count = document.getElementById('count');
+        let flowerCount = 0;
+        const flowers = [];
+
+        function getBlockAt(row, col) {
+            if (row < 0 || row >= ROWS || col < 0 || col >= COLS) return null;
+            return blocks[row * COLS + col];
+        }
+
+        // 물결 효과 함수
+        function createWaveEffect(centerRow, centerCol, maxRadius = 4) {
+            const waves = [];
+            for (let radius = 1; radius <= maxRadius; radius++) {
+                const delay = radius * 100; // 100ms씩 지연
+                setTimeout(() => {
+                    for (let dr = -radius; dr <= radius; dr++) {
+                        for (let dc = -radius; dc <= radius; dc++) {
+                            const distance = Math.abs(dr) + Math.abs(dc);
+                            if (distance === radius) {
+                                const block = getBlockAt(centerRow + dr, centerCol + dc);
+                                if (block && !block.classList.contains('wave')) {
+                                    block.classList.add('wave');
+                                    setTimeout(() => {
+                                        block.classList.remove('wave');
+                                    }, 600);
+                                }
+                            }
+                        }
+                    }
+                }, delay);
+            }
+        }
+
+        // 같은 자모 연쇄 반응
+        function createChainReaction(clickedBlock) {
+            const hasJamo = clickedBlock.classList.contains('has-jamo');
+            if (!hasJamo) return;
+
+            const clickedRow = parseInt(clickedBlock.dataset.row);
+            const clickedCol = parseInt(clickedBlock.dataset.col);
+            const clickedKey = `${clickedRow},${clickedCol}`;
+            const clickedJamo = placed.get(clickedKey)?.jamo;
+
+            if (!clickedJamo) return;
+
+            // 같은 자모를 가진 모든 블록 찾기
+            const sameJamoBlocks = [];
+            for (const [key, data] of placed.entries()) {
+                if (data.jamo === clickedJamo) {
+                    const [r, c] = key.split(',').map(Number);
+                    const block = getBlockAt(r, c);
+                    if (block && block !== clickedBlock) {
+                        sameJamoBlocks.push({ block, row: r, col: c });
+                    }
+                }
+            }
+
+            // 거리순으로 정렬
+            sameJamoBlocks.sort((a, b) => {
+                const distA = Math.abs(a.row - clickedRow) + Math.abs(a.col - clickedCol);
+                const distB = Math.abs(b.row - clickedRow) + Math.abs(b.col - clickedCol);
+                return distA - distB;
+            });
+
+            // 순차적으로 연쇄 반응
+            sameJamoBlocks.forEach((item, index) => {
+                setTimeout(() => {
+                    item.block.classList.add('chain-reaction');
+                    setTimeout(() => {
+                        item.block.classList.remove('chain-reaction');
+                    }, 800);
+                }, index * 200);
+            });
+        }
+
+        function createBigFlower(startRow, startCol) {
+            const flowerType = flowerPatterns[Math.floor(Math.random() * flowerPatterns.length)];
+            const stage = document.querySelector('.stage');
+            const canvasRect = canvas.getBoundingClientRect();
+            const stageRect = stage.getBoundingClientRect();
+
+            // 시작 블록 위치 계산
+            const startBlock = getBlockAt(startRow, startCol);
+            if (!startBlock) return;
+
+            const blockRect = startBlock.getBoundingClientRect();
+            const cellSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'));
+            const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+
+            // 꽃 크기 계산
+            const flowerSize = Array.isArray(flowerType.size) ? flowerType.size : [flowerType.size, flowerType.size];
+            const [cols, rows] = flowerSize;
+            const flowerWidth = (cellSize * cols) + (gap * (cols - 1));
+            const flowerHeight = (cellSize * rows) + (gap * (rows - 1));
+
+            // 꽃 컨테이너 생성
+            const flower = document.createElement('div');
+            flower.className = 'big-flower';
+            flower.style.width = `${flowerWidth}px`;
+            flower.style.height = `${flowerHeight}px`;
+            flower.style.left = `${blockRect.left - stageRect.left}px`;
+            flower.style.top = `${blockRect.top - stageRect.top}px`;
+            flower.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            flower.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+
+            // 패턴에 따라 꽃잎 생성
+            flowerType.pattern.forEach((row, r) => {
+                row.forEach((type, c) => {
+                    const petal = document.createElement('div');
+                    petal.className = `petal ${type}`;
+                    if (type.includes('cross') || type.includes('line') || type.includes('border')) {
+                        const colors = ['#e63232', '#1a6b4a', '#ff8c42', '#8e44ad', '#2980b9', '#2c3e50'];
+                        petal.style.color = colors[Math.floor(Math.random() * colors.length)];
+                    }
+                    // 중심에서 퍼지는 딜레이
+                    const centerR = (rows - 1) / 2;
+                    const centerC = (cols - 1) / 2;
+                    const dist = Math.sqrt(Math.pow(r - centerR, 2) + Math.pow(c - centerC, 2));
+                    petal.style.transitionDelay = `${dist * 0.1}s`;
+                    flower.appendChild(petal);
+                });
+            });
+
+            stage.appendChild(flower);
+            flowers.push(flower);
+
+            // 애니메이션 시작
+            requestAnimationFrame(() => {
+                flower.classList.add('active');
+            });
+
+            flowerCount++;
+            $count.textContent = flowerCount;
+        }
+
+        // 모든 블록 클릭 가능하게
+        blocks.forEach(block => {
+            block.style.cursor = 'pointer';
+            
+            let clickCount = 0;
+            let clickTimer = null;
+            
+            block.addEventListener('click', (e) => {
+                clickCount++;
+                
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                }
+                
+                clickTimer = setTimeout(() => {
+                    const row = parseInt(block.dataset.row);
+                    const col = parseInt(block.dataset.col);
+                    
+                    if (clickCount === 1) {
+                        // 단일 클릭
+                        createBigFlower(row, col);
+                        createWaveEffect(row, col);
+                        createChainReaction(block);
+                    } else if (clickCount >= 2) {
+                        // 더블클릭 이상 - 10번 연속 실행
+                        performMultipleInteractions(row, col, block, 10);
+                    }
+                    
+                    clickCount = 0;
+                }, 300); // 300ms 내에 클릭이 없으면 실행
+            });
+        });
+
+        // 연속 인터랙션 함수
+        function performMultipleInteractions(row, col, block, count) {
+            for (let i = 0; i < count; i++) {
+                setTimeout(() => {
+                    // 랜덤한 주변 위치에 꽃 생성
+                    const offsetRow = row + (Math.random() - 0.5) * 6;
+                    const offsetCol = col + (Math.random() - 0.5) * 6;
+                    const clampedRow = Math.max(0, Math.min(ROWS - 1, Math.floor(offsetRow)));
+                    const clampedCol = Math.max(0, Math.min(COLS - 1, Math.floor(offsetCol)));
+                    
+                    createBigFlower(clampedRow, clampedCol);
+                    
+                    // 다양한 반지름의 물결 효과
+                    const waveRadius = 2 + Math.floor(Math.random() * 4);
+                    createWaveEffect(clampedRow, clampedCol, waveRadius);
+                    
+                    // 간헐적으로 연쇄 반응
+                    if (Math.random() < 0.3) {
+                        createChainReaction(block);
+                    }
+                    
+                    // 추가 시각 효과 - 블록 강조
+                    const targetBlock = getBlockAt(clampedRow, clampedCol);
+                    if (targetBlock) {
+                        targetBlock.classList.add('burst-highlight');
+                        setTimeout(() => {
+                            targetBlock.classList.remove('burst-highlight');
+                        }, 400);
+                    }
+                    
+                }, i * 150); // 150ms 간격으로 실행
+            }
+        }
+
+        // 마우스 따라다니는 proximity 효과
+        let proximityTimeout;
+        canvas.addEventListener('mousemove', (e) => {
+            clearTimeout(proximityTimeout);
+            proximityTimeout = setTimeout(() => {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                const cellSize = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--cell'));
+                const gap = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--gap'));
+
+                blocks.forEach(block => {
+                    const blockRect = block.getBoundingClientRect();
+                    const canvasRect = canvas.getBoundingClientRect();
+                    const blockCenterX = blockRect.left - canvasRect.left + blockRect.width / 2;
+                    const blockCenterY = blockRect.top - canvasRect.top + blockRect.height / 2;
+                    
+                    const distance = Math.sqrt(
+                        Math.pow(mouseX - blockCenterX, 2) + 
+                        Math.pow(mouseY - blockCenterY, 2)
+                    );
+                    
+                    const maxDistance = cellSize * 3;
+                    if (distance < maxDistance) {
+                        const intensity = 1 - (distance / maxDistance);
+                        const lift = intensity * 4;
+                        block.style.transform = `translate(-${lift}px, -${lift}px)`;
+                        block.style.transition = 'transform 0.2s ease-out';
+                    } else {
+                        block.style.transform = '';
+                        block.style.transition = 'transform 0.3s ease-out';
+                    }
+                });
+            }, 16); // 60fps throttle
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            blocks.forEach(block => {
+                block.style.transform = '';
+                block.style.transition = 'transform 0.5s ease-out';
+            });
+        });
+    </script>
+</body>
+</html>
