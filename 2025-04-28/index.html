@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Flight Patterns</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #0a0a0a;
+            color: #d0d0d0;
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Courier New', monospace;
+            font-weight: 200;
+            overflow: hidden;
+        }
+        .canvas-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        #svg-layer {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            opacity: 0.85;
+            filter: drop-shadow(0 0 25px rgba(168, 230, 207, 0.25));
+        }
+        #svg-layer svg {
+            max-width: 95vw;
+            max-height: 90vh;
+            display: block;
+        }
+        #trail-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+        #interaction-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 3;
+        }
+        body.mode-3d #interaction-canvas {
+            cursor: grab;
+        }
+        body.mode-3d.dragging #interaction-canvas {
+            cursor: grabbing;
+        }
+        .info-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 100;
+            background: rgba(10, 10, 10, 0.92);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333333;
+            font-size: 12px;
+            font-weight: 200;
+            backdrop-filter: blur(10px);
+        }
+        .info-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .info-panel h1 {
+            font-size: 14px;
+            color: #A8E6CF;
+            font-weight: 300;
+        }
+        .btn-mini {
+            background: rgba(168, 230, 207, 0.08);
+            border: 1px solid rgba(168, 230, 207, 0.3);
+            color: #A8E6CF;
+            padding: 2px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 9px;
+            font-weight: 200;
+            transition: all 0.2s ease;
+            letter-spacing: 0.5px;
+        }
+        .btn-mini:hover {
+            background: rgba(168, 230, 207, 0.2);
+            border-color: #A8E6CF;
+        }
+        .info-panel p {
+            color: #999999;
+            font-size: 10px;
+            font-weight: 200;
+        }
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+        .btn {
+            background: rgba(168, 230, 207, 0.08);
+            border: 1px solid rgba(168, 230, 207, 0.4);
+            color: #A8E6CF;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 11px;
+            font-weight: 200;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+        .btn:hover { 
+            background: rgba(168, 230, 207, 0.18); 
+            border-color: #A8E6CF;
+        }
+        .btn.active { 
+            background: rgba(168, 230, 207, 0.25); 
+            border-color: #A8E6CF;
+            font-weight: 300;
+        }
+        .credit {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            color: #666666;
+            font-size: 10px;
+            font-weight: 200;
+            text-align: right;
+        }
+    </style>
+</head>
+<body>
+    <div class="canvas-container">
+        <div id="svg-layer"></div>
+        <canvas id="trail-canvas"></canvas>
+        <canvas id="interaction-canvas"></canvas>
+    </div>
+
+    <div class="info-panel">
+        <div class="info-panel-header">
+            <h1>Data Flight Patterns</h1>
+            <button class="btn-mini" id="clearCurrentMode" title="현재 모드 클리어">CLEAR</button>
+        </div>
+        <p id="info-text">마우스를 움직여 데이터 흐름 생성</p>
+        <p id="info-text2">클릭하면 웨이포인트 + 파티클 발사</p>
+        <p id="info-text3">SVG 경로를 따라 파티클이 흐름</p>
+    </div>
+
+    <div class="controls">
+        <button class="btn active" id="modeFlow">Flow</button>
+        <button class="btn" id="modePulse">Pulse</button>
+        <button class="btn" id="modeGlow">Glow</button>
+        <button class="btn" id="mode3D">3D</button>
+        <button class="btn" onclick="exportPNG()">Export</button>
+    </div>
+
+    <div class="credit">
+        <div>Inspired by Aaron Koblin</div>
+        <div>Daily Vibe Coding • 2026.04.28</div>
+    </div>
+
+    <script>
+// 캔버스 설정
+const trailCanvas = document.getElementById('trail-canvas');
+const interCanvas = document.getElementById('interaction-canvas');
+const trailCtx = trailCanvas.getContext('2d');
+const interCtx = interCanvas.getContext('2d');
+
+let W, H;
+function resize() {
+    W = trailCanvas.width = interCanvas.width = window.innerWidth;
+    H = trailCanvas.height = interCanvas.height = window.innerHeight;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// SVG 경로 데이터
+let svgPaths = [];
+let svgBounds = { x: 0, y: 0, w: 0, h: 0, scale: 1 };
+let mode = 'flow';
+
+// 파티클
+const particles = [];
+const flowParticles = [];
+
+// 색상 팔레트 (더 부드럽고 조화로운 색상)
+const palette = ['#A8E6CF', '#88D8C0', '#FFD3A5', '#FD9853', '#C7CEEA', '#B4A7D6'];
+
+// 마우스 트래킹 데이터
+let mouseTrail = [];
+const maxTrailLength = 150;
+let totalDistance = 0;
+let lastMousePos = null;
+let startTime = Date.now();
+
+// 웨이포인트 시스템
+const waypoints = [];
+let waypointThreshold = 100;
+let distanceSinceLastWaypoint = 0;
+
+// SVG 로드 및 경로 추출
+async function loadSVG() {
+    const res = await fetch('my-trails.svg');
+    const text = await res.text();
+
+    const container = document.getElementById('svg-layer');
+    container.innerHTML = text;
+
+    const svg = container.querySelector('svg');
+    if (!svg) return;
+
+    // SVG 위치 계산
+    setTimeout(() => {
+        const rect = svg.getBoundingClientRect();
+        svgBounds = {
+            x: rect.left,
+            y: rect.top,
+            w: rect.width,
+            h: rect.height,
+            scale: rect.width / 1317
+        };
+        extractPaths(svg);
+        initFlowParticles();
+    }, 100);
+}
+
+function extractPaths(svg) {
+    svgPaths = [];
+
+    // path 요소에서 d 속성 파싱
+    const paths = svg.querySelectorAll('path');
+
+    paths.forEach((pathEl, idx) => {
+        const d = pathEl.getAttribute('d');
+        const stroke = pathEl.getAttribute('stroke') || '#B2FF4F';
+
+        if (d) {
+            const points = parsePath(d);
+            if (points.length > 3) {
+                svgPaths.push({
+                    points: points,
+                    color: stroke,
+                    length: calculatePathLength(points)
+                });
+            }
+        }
+    });
+
+    console.log(`Extracted ${svgPaths.length} paths`);
+}
+
+function parsePath(d) {
+    const points = [];
+    const commands = d.match(/[MLCQZ][^MLCQZ]*/gi) || [];
+
+    let currentX = 0, currentY = 0;
+
+    commands.forEach(cmd => {
+        const type = cmd[0].toUpperCase();
+        const nums = cmd.slice(1).trim().split(/[\s,]+/).map(parseFloat).filter(n => !isNaN(n));
+
+        if (type === 'M' && nums.length >= 2) {
+            currentX = nums[0];
+            currentY = nums[1];
+            points.push({ x: currentX, y: currentY });
+        } else if (type === 'L' && nums.length >= 2) {
+            currentX = nums[0];
+            currentY = nums[1];
+            points.push({ x: currentX, y: currentY });
+        } else if (type === 'C' && nums.length >= 6) {
+            // 베지어 곡선 샘플링
+            for (let t = 0.25; t <= 1; t += 0.25) {
+                const x = bezier(currentX, nums[0], nums[2], nums[4], t);
+                const y = bezier(currentY, nums[1], nums[3], nums[5], t);
+                points.push({ x, y });
+            }
+            currentX = nums[4];
+            currentY = nums[5];
+        }
+    });
+
+    return points;
+}
+
+function bezier(p0, p1, p2, p3, t) {
+    const mt = 1 - t;
+    return mt*mt*mt*p0 + 3*mt*mt*t*p1 + 3*mt*t*t*p2 + t*t*t*p3;
+}
+
+function calculatePathLength(points) {
+    let len = 0;
+    for (let i = 1; i < points.length; i++) {
+        len += Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
+    }
+    return len;
+}
+
+// Flow 파티클 (SVG 경로를 따라 흐름)
+class FlowParticle {
+    constructor(path) {
+        this.path = path;
+        this.t = Math.random();
+        this.speed = 0.003 + Math.random() * 0.004;
+        this.size = 2 + Math.random() * 3;
+        this.trail = [];
+        this.maxTrail = 15 + Math.floor(Math.random() * 20);
+    }
+
+    update() {
+        this.t += this.speed;
+        if (this.t > 1) this.t = 0;
+
+        const pos = this.getPosition();
+        this.trail.push({ ...pos });
+        if (this.trail.length > this.maxTrail) this.trail.shift();
+    }
+
+    getPosition() {
+        const idx = Math.floor(this.t * (this.path.points.length - 1));
+        const nextIdx = Math.min(idx + 1, this.path.points.length - 1);
+        const localT = (this.t * (this.path.points.length - 1)) % 1;
+
+        const p1 = this.path.points[idx];
+        const p2 = this.path.points[nextIdx];
+
+        return {
+            x: svgBounds.x + (p1.x + (p2.x - p1.x) * localT) * svgBounds.scale,
+            y: svgBounds.y + (p1.y + (p2.y - p1.y) * localT) * svgBounds.scale
+        };
+    }
+
+    draw(ctx) {
+        if (this.trail.length < 2) return;
+
+        // 트레일 그리기
+        ctx.beginPath();
+        ctx.moveTo(this.trail[0].x, this.trail[0].y);
+        for (let i = 1; i < this.trail.length; i++) {
+            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+        }
+
+        const gradient = ctx.createLinearGradient(
+            this.trail[0].x, this.trail[0].y,
+            this.trail[this.trail.length-1].x, this.trail[this.trail.length-1].y
+        );
+        gradient.addColorStop(0, 'transparent');
+        gradient.addColorStop(1, this.path.color);
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = this.size * 0.8;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+
+        // 헤드 글로우
+        const head = this.trail[this.trail.length - 1];
+        ctx.beginPath();
+        ctx.arc(head.x, head.y, this.size, 0, Math.PI * 2);
+        ctx.fillStyle = this.path.color;
+        ctx.shadowColor = this.path.color;
+        ctx.shadowBlur = 10;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+    }
+}
+
+function initFlowParticles() {
+    flowParticles.length = 0;
+    svgPaths.forEach(path => {
+        const count = Math.max(2, Math.floor(path.points.length / 8));
+        for (let i = 0; i < count; i++) {
+            flowParticles.push(new FlowParticle(path));
+        }
+    });
+}
+
+// 마우스 인터랙션 파티클
+class MouseParticle {
+    constructor(x, y, targetPath) {
+        this.x = x;
+        this.y = y;
+        this.targetPath = targetPath;
+        this.t = 0;
+        this.speed = 0.02 + Math.random() * 0.02;
+        this.color = targetPath ? targetPath.color : palette[Math.floor(Math.random() * palette.length)];
+        this.size = 3 + Math.random() * 2;
+        this.trail = [{ x, y }];
+        this.maxTrail = 30;
+        this.startX = x;
+        this.startY = y;
+    }
+
+    update() {
+        this.t += this.speed;
+
+        if (this.targetPath && this.t < 1) {
+            // 경로의 가장 가까운 점으로 이동
+            const targetIdx = Math.floor(this.t * (this.targetPath.points.length - 1));
+            const target = this.targetPath.points[targetIdx];
+            const tx = svgBounds.x + target.x * svgBounds.scale;
+            const ty = svgBounds.y + target.y * svgBounds.scale;
+
+            this.x += (tx - this.x) * 0.1;
+            this.y += (ty - this.y) * 0.1;
+        }
+
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > this.maxTrail) this.trail.shift();
+
+        return this.t < 1.5;
+    }
+
+    draw(ctx) {
+        if (this.trail.length < 2) return;
+
+        ctx.beginPath();
+        ctx.moveTo(this.trail[0].x, this.trail[0].y);
+        for (let i = 1; i < this.trail.length; i++) {
+            ctx.lineTo(this.trail[i].x, this.trail[i].y);
+        }
+
+        ctx.strokeStyle = this.color;
+        ctx.lineWidth = this.size * 0.6;
+        ctx.lineCap = 'round';
+        ctx.globalAlpha = 1 - this.t * 0.6;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
+}
+
+// Pulse 효과 (얇고 촘촘하게 — 진동파처럼)
+let pulseTime = 0;
+function drawPulse() {
+    pulseTime += 0.02;
+
+    svgPaths.forEach((path, idx) => {
+        if (path.points.length < 2) return;
+
+        // 경로를 따라 여러 개의 펄스가 동시에 흐르도록
+        const pulseCount = 3;
+        for (let pi = 0; pi < pulseCount; pi++) {
+            const offset = pi / pulseCount;
+            const pulseT = ((pulseTime + idx * 0.15 + offset) % 1);
+            const pointIdx = Math.floor(pulseT * (path.points.length - 1));
+            const p = path.points[pointIdx];
+
+            const x = svgBounds.x + p.x * svgBounds.scale;
+            const y = svgBounds.y + p.y * svgBounds.scale;
+
+            // 얇고 촘촘한 링 (여러 개)
+            for (let r = 0; r < 6; r++) {
+                const radius = 2 + r * 2.5;
+                const alpha = 0.35 - r * 0.05;
+
+                trailCtx.beginPath();
+                trailCtx.arc(x, y, radius, 0, Math.PI * 2);
+                trailCtx.strokeStyle = '#A8E6CF';
+                trailCtx.lineWidth = 0.6;
+                trailCtx.globalAlpha = alpha;
+                trailCtx.stroke();
+            }
+
+            // 얇은 중심점
+            trailCtx.beginPath();
+            trailCtx.arc(x, y, 1.2, 0, Math.PI * 2);
+            trailCtx.fillStyle = '#e8f5e9';
+            trailCtx.globalAlpha = 0.9;
+            trailCtx.fill();
+        }
+        trailCtx.globalAlpha = 1;
+    });
+}
+
+// Glow 효과 (3D 반사광 — 빛이 경로를 따라 흐르는 하이라이트)
+let glowPhase = 0;
+function drawGlow() {
+    glowPhase += 0.008;
+
+    svgPaths.forEach((path, idx) => {
+        if (path.points.length < 2) return;
+
+        // Layer 1: 베이스 라인 (얇고 어두운 금속 라인)
+        trailCtx.beginPath();
+        trailCtx.moveTo(
+            svgBounds.x + path.points[0].x * svgBounds.scale,
+            svgBounds.y + path.points[0].y * svgBounds.scale
+        );
+        for (let i = 1; i < path.points.length; i++) {
+            trailCtx.lineTo(
+                svgBounds.x + path.points[i].x * svgBounds.scale,
+                svgBounds.y + path.points[i].y * svgBounds.scale
+            );
+        }
+        trailCtx.strokeStyle = 'rgba(60, 80, 75, 0.4)';
+        trailCtx.lineWidth = 3;
+        trailCtx.lineCap = 'round';
+        trailCtx.stroke();
+
+        // Layer 2: 흐르는 반사광 하이라이트 (경로를 따라 움직이는 빛)
+        const highlightT = (glowPhase + idx * 0.2) % 1;
+        const highlightWidth = 0.2; // 하이라이트가 차지하는 경로 비율
+
+        for (let i = 0; i < path.points.length - 1; i++) {
+            const t = i / (path.points.length - 1);
+            // 하이라이트 중심에서의 거리 (0~1, 링 형태)
+            let d = Math.abs(t - highlightT);
+            d = Math.min(d, 1 - d); // 순환 거리
+            
+            if (d < highlightWidth) {
+                const intensity = 1 - (d / highlightWidth);
+                const p1 = path.points[i];
+                const p2 = path.points[i + 1];
+                const x1 = svgBounds.x + p1.x * svgBounds.scale;
+                const y1 = svgBounds.y + p1.y * svgBounds.scale;
+                const x2 = svgBounds.x + p2.x * svgBounds.scale;
+                const y2 = svgBounds.y + p2.y * svgBounds.scale;
+
+                // 강한 화이트 하이라이트 (코어)
+                trailCtx.beginPath();
+                trailCtx.moveTo(x1, y1);
+                trailCtx.lineTo(x2, y2);
+                trailCtx.strokeStyle = `rgba(255, 255, 255, ${intensity * 0.95})`;
+                trailCtx.lineWidth = 1 + intensity * 1.5;
+                trailCtx.lineCap = 'round';
+                trailCtx.shadowColor = '#A8E6CF';
+                trailCtx.shadowBlur = 20 * intensity;
+                trailCtx.stroke();
+
+                // 보조 글로우 (민트색)
+                trailCtx.strokeStyle = `rgba(168, 230, 207, ${intensity * 0.6})`;
+                trailCtx.lineWidth = 4 + intensity * 4;
+                trailCtx.shadowBlur = 30 * intensity;
+                trailCtx.stroke();
+            }
+        }
+        trailCtx.shadowBlur = 0;
+
+        // Layer 3: 두 번째 반사광 (오프셋, 더 약하게 — 다중 광원 효과)
+        const highlight2T = (glowPhase * 0.7 + idx * 0.2 + 0.5) % 1;
+        for (let i = 0; i < path.points.length - 1; i++) {
+            const t = i / (path.points.length - 1);
+            let d = Math.abs(t - highlight2T);
+            d = Math.min(d, 1 - d);
+            
+            if (d < highlightWidth * 0.6) {
+                const intensity = 1 - (d / (highlightWidth * 0.6));
+                const p1 = path.points[i];
+                const p2 = path.points[i + 1];
+                const x1 = svgBounds.x + p1.x * svgBounds.scale;
+                const y1 = svgBounds.y + p1.y * svgBounds.scale;
+                const x2 = svgBounds.x + p2.x * svgBounds.scale;
+                const y2 = svgBounds.y + p2.y * svgBounds.scale;
+
+                trailCtx.beginPath();
+                trailCtx.moveTo(x1, y1);
+                trailCtx.lineTo(x2, y2);
+                trailCtx.strokeStyle = `rgba(220, 240, 230, ${intensity * 0.5})`;
+                trailCtx.lineWidth = 0.8 + intensity;
+                trailCtx.lineCap = 'round';
+                trailCtx.shadowColor = '#A8E6CF';
+                trailCtx.shadowBlur = 15 * intensity;
+                trailCtx.stroke();
+            }
+        }
+        trailCtx.shadowBlur = 0;
+    });
+}
+
+// 3D 효과 (데이터 도시 — 경로 위에 파티클 기둥 + 회전 카메라)
+let camera3D = {
+    angle: 0,      // Y축 회전
+    tilt: 0.45,    // X축 기울기 (위에서 내려다보는 각도)
+    zoom: 1,
+    autoRotate: true,
+    manualAngle: 0
+};
+let particles3D = []; // 각 경로 위의 파티클 기둥
+let particles3DInit = false;
+
+function init3DParticles() {
+    particles3D = [];
+    svgPaths.forEach((path, pathIdx) => {
+        // 경로를 따라 샘플링된 지점마다 파티클 기둥 생성
+        const step = Math.max(1, Math.floor(path.points.length / 40));
+        for (let i = 0; i < path.points.length; i += step) {
+            const p = path.points[i];
+            // 경로 내 위치에 따라 높이 결정 (중앙이 더 높음)
+            const t = i / path.points.length;
+            const heightFactor = Math.sin(t * Math.PI) * 0.7 + 0.3;
+            // 각 포인트마다 랜덤한 높이의 파티클 개수
+            const particleCount = 8 + Math.floor(Math.random() * 25 * heightFactor);
+            const maxHeight = 80 + Math.random() * 180 * heightFactor;
+            
+            const column = {
+                baseX: p.x,
+                baseY: p.y,
+                pathIdx: pathIdx,
+                particles: []
+            };
+            
+            for (let j = 0; j < particleCount; j++) {
+                const heightT = j / particleCount;
+                column.particles.push({
+                    offsetX: (Math.random() - 0.5) * 8,
+                    offsetZ: (Math.random() - 0.5) * 8,
+                    height: heightT * maxHeight,
+                    size: 1 + Math.random() * 1.5,
+                    // 높이에 따라 노랑→주황→빨강 그라데이션
+                    colorT: heightT,
+                    twinkle: Math.random() * Math.PI * 2
+                });
+            }
+            particles3D.push(column);
+        }
+    });
+    particles3DInit = true;
+}
+
+function project3D(x, y, z) {
+    // SVG 로컬 좌표를 중심 기준으로
+    const cx = 1317 / 2;
+    const cy = 400; // SVG 중심
+    const localX = (x - cx);
+    const localY = (y - cy);
+    
+    // Y축 회전
+    const cosA = Math.cos(camera3D.angle);
+    const sinA = Math.sin(camera3D.angle);
+    const rotX = localX * cosA - (-z) * sinA;
+    const rotZ = localX * sinA + (-z) * cosA;
+    
+    // X축 기울기 (바닥을 아래로 기울이기)
+    const cosT = Math.cos(camera3D.tilt);
+    const sinT = Math.sin(camera3D.tilt);
+    const tiltY = localY * cosT - rotZ * sinT;
+    const tiltZ = localY * sinT + rotZ * cosT;
+    
+    // 원근 투영
+    const perspective = 800;
+    const depth = tiltZ + 600;
+    const scale = perspective / depth;
+    
+    return {
+        x: W / 2 + rotX * scale * camera3D.zoom,
+        y: H / 2 + tiltY * scale * camera3D.zoom,
+        depth: depth,
+        scale: scale
+    };
+}
+
+// 높이에 따른 색상 (데이터 도시 룩: 바닥=파랑/화이트, 중간=빨강/주황, 위=노랑)
+function getHeightColor(heightT, alpha) {
+    if (heightT < 0.2) {
+        // 바닥: 화이트/블루 그리드
+        const t = heightT / 0.2;
+        const r = Math.floor(200 + t * 20);
+        const g = Math.floor(200 + t * 30);
+        const b = Math.floor(255);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } else if (heightT < 0.5) {
+        // 중간: 빨강/주황
+        const t = (heightT - 0.2) / 0.3;
+        const r = 255;
+        const g = Math.floor(60 + t * 80);
+        const b = Math.floor(80 - t * 80);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    } else {
+        // 위: 주황→노랑
+        const t = (heightT - 0.5) / 0.5;
+        const r = 255;
+        const g = Math.floor(140 + t * 115);
+        const b = Math.floor(0 + t * 50);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+}
+
+function draw3D() {
+    if (!particles3DInit) init3DParticles();
+    
+    // 자동 회전
+    if (camera3D.autoRotate) {
+        camera3D.angle += 0.004;
+    } else {
+        camera3D.angle = camera3D.manualAngle;
+    }
+    
+    // 배경 (완전 블랙)
+    trailCtx.fillStyle = '#000';
+    trailCtx.fillRect(0, 0, W, H);
+    
+    // 1. 바닥 그리드/경로 먼저 그리기 (SVG 경로를 바닥에 투영)
+    svgPaths.forEach((path, idx) => {
+        if (path.points.length < 2) return;
+        
+        trailCtx.beginPath();
+        for (let i = 0; i < path.points.length; i++) {
+            const p = path.points[i];
+            const proj = project3D(p.x, p.y, 0);
+            if (i === 0) {
+                trailCtx.moveTo(proj.x, proj.y);
+            } else {
+                trailCtx.lineTo(proj.x, proj.y);
+            }
+        }
+        
+        // 그라데이션 바닥 라인 (청록/블루/화이트)
+        trailCtx.strokeStyle = 'rgba(180, 200, 255, 0.4)';
+        trailCtx.lineWidth = 1.2;
+        trailCtx.lineCap = 'round';
+        trailCtx.stroke();
+        
+        // 블러 효과로 발광
+        trailCtx.strokeStyle = 'rgba(100, 140, 255, 0.2)';
+        trailCtx.lineWidth = 3;
+        trailCtx.shadowColor = '#4a90e2';
+        trailCtx.shadowBlur = 8;
+        trailCtx.stroke();
+        trailCtx.shadowBlur = 0;
+    });
+    
+    // 2. 모든 파티클을 depth 기준으로 정렬해서 그리기 (painter's algorithm)
+    const allParticles = [];
+    const time = Date.now() * 0.001;
+    
+    particles3D.forEach(column => {
+        column.particles.forEach(p => {
+            const proj = project3D(
+                column.baseX + p.offsetX,
+                column.baseY + p.offsetZ,
+                p.height
+            );
+            allParticles.push({
+                proj: proj,
+                colorT: p.colorT,
+                size: p.size,
+                twinkle: Math.sin(time * 2 + p.twinkle) * 0.3 + 0.7
+            });
+        });
+    });
+    
+    // 뒤쪽부터 그리기
+    allParticles.sort((a, b) => b.proj.depth - a.proj.depth);
+    
+    allParticles.forEach(p => {
+        if (p.proj.depth < 100) return;
+        const alpha = Math.min(1, p.proj.scale * 2) * p.twinkle;
+        const renderSize = p.size * Math.min(2, p.proj.scale);
+        
+        trailCtx.beginPath();
+        trailCtx.arc(p.proj.x, p.proj.y, renderSize, 0, Math.PI * 2);
+        trailCtx.fillStyle = getHeightColor(p.colorT, alpha * 0.9);
+        trailCtx.shadowColor = getHeightColor(p.colorT, 1);
+        trailCtx.shadowBlur = renderSize * 2;
+        trailCtx.fill();
+    });
+    trailCtx.shadowBlur = 0;
+}
+function findNearestPath(x, y) {
+    let nearest = null;
+    let minDist = Infinity;
+
+    svgPaths.forEach(path => {
+        path.points.forEach(p => {
+            const px = svgBounds.x + p.x * svgBounds.scale;
+            const py = svgBounds.y + p.y * svgBounds.scale;
+            const dist = Math.hypot(x - px, y - py);
+            if (dist < minDist) {
+                minDist = dist;
+                nearest = path;
+            }
+        });
+    });
+
+    return minDist < 200 ? nearest : null;
+}
+
+// 마우스 트레일 포인트 클래스
+class TrailPoint {
+    constructor(x, y, time) {
+        this.x = x;
+        this.y = y;
+        this.time = time;
+        this.hue = (time * 0.05) % 360;
+    }
+}
+
+// 마우스 이벤트
+let lastMouse = { x: 0, y: 0 };
+let isDragging3D = false;
+let dragStart3D = { x: 0, y: 0, angle: 0, tilt: 0 };
+
+interCanvas.addEventListener('mousedown', (e) => {
+    if (mode === '3d') {
+        isDragging3D = true;
+        camera3D.autoRotate = false;
+        dragStart3D = {
+            x: e.clientX,
+            y: e.clientY,
+            angle: camera3D.angle,
+            tilt: camera3D.tilt
+        };
+    }
+});
+
+interCanvas.addEventListener('mouseup', () => {
+    isDragging3D = false;
+});
+
+interCanvas.addEventListener('dblclick', (e) => {
+    if (mode === '3d') {
+        // 더블클릭으로 자동 회전 토글
+        camera3D.autoRotate = !camera3D.autoRotate;
+    }
+});
+
+interCanvas.addEventListener('mousemove', (e) => {
+    // 3D 드래그 회전 (감도 3배 증가)
+    if (mode === '3d' && isDragging3D) {
+        const dx = e.clientX - dragStart3D.x;
+        const dy = e.clientY - dragStart3D.y;
+        camera3D.angle = dragStart3D.angle + dx * 0.025;
+        camera3D.tilt = Math.max(0.05, Math.min(1.2, dragStart3D.tilt + dy * 0.015));
+        camera3D.manualAngle = camera3D.angle;
+        return;
+    }
+    
+    const x = e.clientX;
+    const y = e.clientY;
+    const now = Date.now();
+
+    // 거리 계산
+    if (lastMousePos) {
+        const dx = x - lastMousePos.x;
+        const dy = y - lastMousePos.y;
+        const dist = Math.hypot(dx, dy);
+        totalDistance += dist;
+        distanceSinceLastWaypoint += dist;
+
+        // 웨이포인트 생성
+        if (distanceSinceLastWaypoint >= waypointThreshold) {
+            waypoints.push({ x, y, id: waypoints.length + 1, time: now });
+            distanceSinceLastWaypoint = 0;
+        }
+    }
+
+    // 트레일 포인트 추가
+    mouseTrail.push(new TrailPoint(x, y, now - startTime));
+    if (mouseTrail.length > maxTrailLength) mouseTrail.shift();
+
+    lastMousePos = { x, y };
+
+    // SVG 경로 파티클 (기존 기능)
+    const speed = Math.hypot(x - lastMouse.x, y - lastMouse.y);
+    if (speed > 5) {
+        const nearPath = findNearestPath(x, y);
+        if (nearPath && Math.random() < 0.3) {
+            particles.push(new MouseParticle(x, y, nearPath));
+        }
+    }
+    lastMouse = { x, y };
+});
+
+interCanvas.addEventListener('click', (e) => {
+    const nearPath = findNearestPath(e.clientX, e.clientY);
+    for (let i = 0; i < 5; i++) {
+        particles.push(new MouseParticle(
+            e.clientX + (Math.random() - 0.5) * 20,
+            e.clientY + (Math.random() - 0.5) * 20,
+            nearPath
+        ));
+    }
+    // 클릭 시 웨이포인트 강제 생성
+    waypoints.push({ x: e.clientX, y: e.clientY, id: waypoints.length + 1, time: Date.now(), clicked: true });
+});
+
+// 마우스 트레일 그리기
+function drawMouseTrail() {
+    if (mouseTrail.length < 2) return;
+
+    // 트레일 라인 (시간에 따른 색상 변화)
+    for (let i = 1; i < mouseTrail.length; i++) {
+        const p1 = mouseTrail[i - 1];
+        const p2 = mouseTrail[i];
+        const alpha = i / mouseTrail.length;
+
+        trailCtx.beginPath();
+        trailCtx.moveTo(p1.x, p1.y);
+        trailCtx.lineTo(p2.x, p2.y);
+        trailCtx.strokeStyle = `hsla(${p2.hue}, 70%, 60%, ${alpha * 0.6})`;
+        trailCtx.lineWidth = 2 + alpha * 2;
+        trailCtx.lineCap = 'round';
+        trailCtx.stroke();
+    }
+}
+
+// 웨이포인트 그리기
+function drawWaypoints() {
+    waypoints.forEach((wp, idx) => {
+        const age = (Date.now() - wp.time) / 1000;
+        const alpha = Math.max(0.2, 1 - age * 0.05);
+
+        // 웨이포인트 원
+        interCtx.beginPath();
+        interCtx.arc(wp.x, wp.y, wp.clicked ? 12 : 8, 0, Math.PI * 2);
+        interCtx.fillStyle = wp.clicked ? `rgba(255, 180, 120, ${alpha})` : `rgba(168, 230, 207, ${alpha})`;
+        interCtx.fill();
+
+        // 번호 표시 (가독성 개선)
+        interCtx.fillStyle = `rgba(10, 10, 10, ${alpha * 0.95})`;
+        interCtx.font = '10px SF Mono, Monaco, Courier New';
+        interCtx.fontWeight = '200';
+        interCtx.textAlign = 'center';
+        interCtx.textBaseline = 'middle';
+        interCtx.fillText(wp.id, wp.x, wp.y);
+
+        // 연결선
+        if (idx > 0) {
+            const prev = waypoints[idx - 1];
+            interCtx.beginPath();
+            interCtx.moveTo(prev.x, prev.y);
+            interCtx.lineTo(wp.x, wp.y);
+            interCtx.strokeStyle = `rgba(168, 230, 207, ${alpha * 0.25})`;
+            interCtx.lineWidth = 1;
+            interCtx.setLineDash([4, 4]);
+            interCtx.stroke();
+            interCtx.setLineDash([]);
+        }
+    });
+}
+
+// 통계 표시 (폰트 개선)
+function drawStats() {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    const mins = Math.floor(elapsed / 60);
+    const secs = elapsed % 60;
+
+    interCtx.fillStyle = 'rgba(10, 10, 10, 0.88)';
+    interCtx.fillRect(W - 180, 20, 160, 90);
+    interCtx.strokeStyle = '#333333';
+    interCtx.strokeRect(W - 180, 20, 160, 90);
+
+    interCtx.fillStyle = '#A8E6CF';
+    interCtx.font = '11px SF Mono, Monaco, Courier New';
+    interCtx.fontWeight = '200';
+    interCtx.textAlign = 'left';
+    interCtx.fillText(`Distance: ${Math.floor(totalDistance)}px`, W - 170, 40);
+    interCtx.fillText(`Waypoints: ${waypoints.length}`, W - 170, 58);
+    interCtx.fillText(`Trail pts: ${mouseTrail.length}`, W - 170, 76);
+    interCtx.fillText(`Time: ${mins}:${secs.toString().padStart(2, '0')}`, W - 170, 94);
+}
+
+// 메인 루프
+function animate() {
+    // 모드별 페이드 클리어 (pulse/glow는 잔상 최소화)
+    if (mode === '3d') {
+        // 3D 모드는 매 프레임 전체 클리어 (draw3D 내부에서 처리)
+    } else if (mode === 'pulse' || mode === 'glow') {
+        trailCtx.fillStyle = 'rgba(10, 10, 10, 0.25)';
+        trailCtx.fillRect(0, 0, W, H);
+    } else {
+        trailCtx.fillStyle = 'rgba(10, 10, 10, 0.06)';
+        trailCtx.fillRect(0, 0, W, H);
+    }
+
+    interCtx.clearRect(0, 0, W, H);
+
+    // 3D 모드가 아닐 때만 마우스 트레일 그리기
+    if (mode !== '3d') {
+        drawMouseTrail();
+    }
+
+    // 모드별 렌더링
+    if (mode === 'flow') {
+        flowParticles.forEach(p => {
+            p.update();
+            p.draw(trailCtx);
+        });
+    } else if (mode === 'pulse') {
+        drawPulse();
+    } else if (mode === 'glow') {
+        drawGlow();
+    } else if (mode === '3d') {
+        draw3D();
+    }
+
+    // 마우스 파티클 (3D 모드에서는 스킵)
+    if (mode !== '3d') {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            if (!particles[i].update()) {
+                particles.splice(i, 1);
+            } else {
+                particles[i].draw(interCtx);
+            }
+        }
+
+        // 웨이포인트
+        drawWaypoints();
+    }
+
+    // 통계는 항상 표시
+    drawStats();
+
+    requestAnimationFrame(animate);
+}
+
+// Clear 기능 (완전한 초기화)
+function clearAll() {
+    // 모든 데이터 초기화
+    mouseTrail.length = 0;
+    waypoints.length = 0;
+    particles.length = 0;
+    flowParticles.length = 0;
+    totalDistance = 0;
+    distanceSinceLastWaypoint = 0;
+    lastMousePos = null;
+    startTime = Date.now();
+    pulseTime = 0;
+    glowPhase = 0;
+    
+    // 캔버스 완전 클리어
+    trailCtx.fillStyle = '#0a0a0a';
+    trailCtx.fillRect(0, 0, W, H);
+    interCtx.clearRect(0, 0, W, H);
+    
+    // 모드별 재초기화
+    if (mode === 'flow') {
+        initFlowParticles();
+    } else if (mode === '3d') {
+        // 3D 파티클 재생성 (새로운 랜덤 높이/위치)
+        particles3DInit = false;
+        init3DParticles();
+    }
+}
+
+// 모드 전환
+function updateInfoText() {
+    const t1 = document.getElementById('info-text');
+    const t2 = document.getElementById('info-text2');
+    const t3 = document.getElementById('info-text3');
+    if (mode === '3d') {
+        t1.textContent = '드래그하여 시점 회전';
+        t2.textContent = '더블클릭: 자동 회전 토글';
+        t3.textContent = '경로 위에 데이터 도시가 솟아남';
+    } else {
+        t1.textContent = '마우스를 움직여 데이터 흐름 생성';
+        t2.textContent = '클릭하면 웨이포인트 + 파티클 발사';
+        t3.textContent = 'SVG 경로를 따라 파티클이 흐름';
+    }
+}
+
+document.getElementById('modeFlow').addEventListener('click', () => {
+    mode = 'flow';
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('modeFlow').classList.add('active');
+    document.getElementById('svg-layer').style.display = 'block';
+    updateInfoText();
+    document.body.classList.remove('mode-3d');
+});
+document.getElementById('modePulse').addEventListener('click', () => {
+    mode = 'pulse';
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('modePulse').classList.add('active');
+    document.getElementById('svg-layer').style.display = 'block';
+    updateInfoText();
+    document.body.classList.remove('mode-3d');
+});
+document.getElementById('modeGlow').addEventListener('click', () => {
+    mode = 'glow';
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('modeGlow').classList.add('active');
+    document.getElementById('svg-layer').style.display = 'block';
+    updateInfoText();
+    document.body.classList.remove('mode-3d');
+});
+document.getElementById('mode3D').addEventListener('click', () => {
+    mode = '3d';
+    document.querySelectorAll('.btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('mode3D').classList.add('active');
+    // 3D 모드에서는 원본 SVG 숨김 (3D로 렌더링)
+    document.getElementById('svg-layer').style.display = 'none';
+    if (!particles3DInit) init3DParticles();
+    updateInfoText();
+    document.body.classList.add('mode-3d');
+});
+
+// Clear 버튼 이벤트 (현재 모드만 초기화)
+document.getElementById('clearCurrentMode').addEventListener('click', clearAll);
+
+// PNG 내보내기
+function exportPNG() {
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = W;
+    exportCanvas.height = H;
+    const ctx = exportCanvas.getContext('2d');
+
+    ctx.fillStyle = '#0a0a0a';
+    ctx.fillRect(0, 0, W, H);
+
+    // SVG를 이미지로
+    const svg = document.querySelector('#svg-layer svg');
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.onload = () => {
+        ctx.globalAlpha = 0.85;
+        ctx.drawImage(img, svgBounds.x, svgBounds.y, svgBounds.w, svgBounds.h);
+        ctx.globalAlpha = 1;
+        ctx.drawImage(trailCanvas, 0, 0);
+        ctx.drawImage(interCanvas, 0, 0);
+
+        const link = document.createElement('a');
+        link.download = `data-flow-${Date.now()}.png`;
+        link.href = exportCanvas.toDataURL('image/png');
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+    img.src = url;
+}
+
+// 시작
+loadSVG().then(() => {
+    animate();
+});
+    </script>
+</body>
+</html>
