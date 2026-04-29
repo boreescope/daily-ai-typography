@@ -1,0 +1,1270 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Three Tenses, One Frame — Jobs / Cook / Ternus</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;700;900&family=Noto+Sans+KR:wght@300;400;700&family=JetBrains+Mono:wght@400;500;700&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #050505;
+      --fg: #fafaf8;
+      --mute: rgba(255, 255, 255, 0.4);
+    }
+
+    html, body {
+      background: var(--bg);
+      color: var(--fg);
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: 'Inter', -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    #typeCanvas {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: block;
+    }
+
+    /* ─── Header (Korean copy) ─── */
+    .header {
+      position: fixed;
+      top: 4vh;
+      left: 4vw;
+      right: 4vw;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      z-index: 30;
+      pointer-events: none;
+    }
+
+    .header .ko {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-weight: 300;
+      font-size: 2.6rem;
+      letter-spacing: -0.01em;
+      color: rgba(255, 255, 255, 0.55);
+      max-width: 60vw;
+      line-height: 1.3;
+    }
+
+    .header .ko b {
+      font-weight: 700;
+      color: #fff;
+      transition: opacity 0.6s ease, color 0.6s ease;
+    }
+    .header .ko b.dim { opacity: 0.22; font-weight: 300; }
+
+    .header > div:last-child {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+
+    .home-btn {
+      pointer-events: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.8);
+      text-decoration: none;
+      padding: 0.6em 1.1em;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 3px;
+      transition: all 0.25s ease;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(6px);
+      display: inline-block;
+      margin-bottom: 1em;
+      white-space: nowrap;
+    }
+    .home-btn:hover {
+      color: rgba(255, 255, 255, 1);
+      border-color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .header .meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--mute);
+      text-align: right;
+      line-height: 1.8;
+    }
+
+    /* ─── Bottom-left figure ─── */
+    .figure {
+      position: fixed;
+      bottom: 5vh;
+      left: 4vw;
+      z-index: 30;
+      pointer-events: none;
+      max-width: 32vw;
+    }
+
+    .figure .name {
+      font-family: 'Inter', sans-serif;
+      font-weight: 900;
+      font-size: clamp(2.2rem, 4.4vw, 4.5rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--fg);
+    }
+
+    .figure .role {
+      margin-top: 0.7em;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.55);
+      line-height: 1.5;
+      max-width: 24em;
+    }
+
+    .figure .year {
+      margin-top: 1em;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.25em;
+      font-weight: 500;
+      color: var(--mute);
+    }
+
+    /* ─── Bottom-right ─── */
+    .controls {
+      position: fixed;
+      bottom: 5vh;
+      right: 4vw;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 1em;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--mute);
+    }
+
+    .scene-dots {
+      display: flex;
+      gap: 0.5em;
+    }
+
+    .dot {
+      width: 36px;
+      height: 2px;
+      background: rgba(255, 255, 255, 0.18);
+      cursor: pointer;
+      pointer-events: auto;
+      position: relative;
+    }
+
+    .hint { opacity: 0.5; }
+
+    /* ─── Footer source ─── */
+    .footer-src {
+      position: fixed;
+      bottom: 1.5vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 30;
+      pointer-events: none;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.22);
+      white-space: nowrap;
+    }
+
+    @media (max-width: 700px) {
+      .header { flex-direction: column; gap: 0.6em; }
+      .header .meta { text-align: left; }
+      .header .ko { max-width: 100%; }
+      .figure { max-width: 90vw; bottom: 18vh; }
+      .controls { bottom: 8vh; }
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="typeCanvas"></canvas>
+
+  <div class="header">
+    <div class="ko">
+      <b id="ko-1">잡스는 꿈꿨고</b>,
+      <b id="ko-2">쿡은 벌었으며</b>,
+      <b id="ko-3">터너스는 만든다</b>.
+    </div>
+    <div>
+      <a href="../" class="home-btn" title="전체 목록으로">← HOME</a>
+      <div class="meta">
+        Three Tenses<br>One Frame
+      </div>
+    </div>
+  </div>
+
+  <div class="figure">
+    <div class="name" id="figName">Jobs</div>
+    <div class="role" id="figRole">What to build. Created the categories from nothing.</div>
+    <div class="year" id="figYear">1976 — 2011</div>
+  </div>
+
+  <div class="controls">
+    <div class="scene-dots">
+      <div class="dot" data-i="0"></div>
+      <div class="dot" data-i="1"></div>
+      <div class="dot" data-i="2"></div>
+    </div>
+    <div class="hint">Click · Space · ← →</div>
+  </div>
+
+  <div class="footer-src">eyesmag.com / 2026.04.25 · № 011 · 26.04.29</div>
+
+  <script>
+    // ════════════════════════════════════════════
+    //  Canvas setup
+    // ════════════════════════════════════════════
+    const canvas = document.getElementById('typeCanvas');
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+
+    let cssW = 0, cssH = 0;
+
+    function setupCanvas() {
+      cssW = Math.min(window.innerWidth * 0.92, 2200);
+      cssH = Math.min(window.innerHeight * 0.55, 600);
+      canvas.style.width = cssW + 'px';
+      canvas.style.height = cssH + 'px';
+      canvas.width = cssW * dpr;
+      canvas.height = cssH * dpr;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+    }
+
+    // ════════════════════════════════════════════
+    //  Get pixel positions for a word
+    // ════════════════════════════════════════════
+    function rasterizeWord(word, weight) {
+      const tmp = document.createElement('canvas');
+      tmp.width = cssW;
+      tmp.height = cssH;
+      const tctx = tmp.getContext('2d');
+
+      let fontSize = cssH * 0.95;
+      tctx.font = `${weight} ${fontSize}px Inter, sans-serif`;
+      const m = tctx.measureText(word);
+      const maxW = cssW * 0.94;
+      if (m.width > maxW) fontSize = fontSize * (maxW / m.width);
+
+      tctx.font = `${weight} ${fontSize}px Inter, sans-serif`;
+      tctx.fillStyle = '#fff';
+      tctx.textAlign = 'center';
+      tctx.textBaseline = 'middle';
+      tctx.fillText(word, cssW / 2, cssH / 2);
+
+      const data = tctx.getImageData(0, 0, cssW, cssH);
+      const pixels = [];
+      const step = Math.max(3, Math.floor(cssH / 180));
+      for (let y = 0; y < cssH; y += step) {
+        for (let x = 0; x < cssW; x += step) {
+          const idx = (y * cssW + x) * 4;
+          if (data.data[idx + 3] > 128) pixels.push({ x, y });
+        }
+      }
+      return { pixels, fontSize };
+    }
+
+    // ════════════════════════════════════════════
+    //  3D 투영 헬퍼 (모든 씬에서 공용)
+    // ════════════════════════════════════════════
+    function project3D(x, y, z, camera) {
+      // 원점: 캔버스 중앙
+      const cx = cssW / 2;
+      const cy = cssH / 2;
+      const px = x - cx;
+      const py = y - cy;
+      const pz = z || 0;
+
+      // Y축 회전
+      const cosA = Math.cos(camera.yaw);
+      const sinA = Math.sin(camera.yaw);
+      const rx = px * cosA + pz * sinA;
+      const rz = -px * sinA + pz * cosA;
+
+      // X축 기울기 (pitch)
+      const cosT = Math.cos(camera.pitch);
+      const sinT = Math.sin(camera.pitch);
+      const ty = py * cosT - rz * sinT;
+      const tz = py * sinT + rz * cosT;
+
+      // 원근 투영
+      const depth = tz + camera.distance;
+      const scale = camera.focal / Math.max(1, depth);
+
+      return {
+        x: cx + rx * scale,
+        y: cy + ty * scale,
+        depth: depth,
+        scale: scale
+      };
+    }
+
+    // ════════════════════════════════════════════
+    //  Scene definitions — each with unique motion
+    // ════════════════════════════════════════════
+    const SCENES = [
+      {
+        id: 'jobs',
+        word: 'dreamed.',
+        name: 'Jobs',
+        role: 'What to build. Created the categories from nothing.',
+        year: '1976 — 2011',
+        ko: 1,
+        weight: 200,
+        color: [245, 237, 224],
+        buildMs: 2000,
+        holdMs: 3200,
+        dissolveMs: 1100,
+      },
+      {
+        id: 'cook',
+        word: 'earned.',
+        name: 'Cook',
+        role: '$350B → $4T market cap.  $108B → $416B revenue. Scaled the empire.',
+        year: '2011 — 2026',
+        ko: 2,
+        weight: 500,
+        color: [250, 250, 248],
+        buildMs: 2200,
+        holdMs: 3500,
+        dissolveMs: 1100,
+      },
+      {
+        id: 'ternus',
+        word: 'builds.',
+        name: 'Ternus',
+        role: 'How to integrate. On-device AI. Apple Silicon. New form factors.',
+        year: '2026 —',
+        ko: 3,
+        weight: 900,
+        color: [232, 244, 255],
+        buildMs: 1800,
+        holdMs: 3500,
+        dissolveMs: 1300,
+      },
+    ];
+
+    // ════════════════════════════════════════════
+    //  Per-scene data preparation
+    // ════════════════════════════════════════════
+    let sceneData = null;
+
+    function prepScene(scene) {
+      const { pixels, fontSize } = rasterizeWord(scene.word, scene.weight);
+      const pixelSize = Math.max(1.8, fontSize / 95);
+
+      if (scene.id === 'jobs') {
+        // ═══ 과감한 버전: 손으로 연필 스케치하듯 획이 그어지는 드로잉 ═══
+        // 픽셀을 글자의 "stroke path"로 근사 — 비슷한 y의 픽셀들을 x순으로 연결
+        // 그리고 연필 획처럼 약간 흔들리는 베지어로 그림
+
+        // 스캔라인별로 묶기
+        const rows = new Map();
+        pixels.forEach(p => {
+          const rk = Math.floor(p.y / 3) * 3;
+          if (!rows.has(rk)) rows.set(rk, []);
+          rows.get(rk).push(p);
+        });
+
+        // 각 row를 x기준 정렬 + 인접한 픽셀끼리 끊어서 "획(stroke)" 만들기
+        const strokes = [];
+        [...rows.entries()].sort((a, b) => a[0] - b[0]).forEach(([y, arr]) => {
+          arr.sort((a, b) => a.x - b.x);
+          let currentStroke = [];
+          arr.forEach(p => {
+            if (currentStroke.length === 0 || p.x - currentStroke[currentStroke.length - 1].x < 8) {
+              currentStroke.push(p);
+            } else {
+              if (currentStroke.length > 1) strokes.push(currentStroke);
+              currentStroke = [p];
+            }
+          });
+          if (currentStroke.length > 1) strokes.push(currentStroke);
+        });
+
+        // 각 stroke에 순차 등장 순서, 연필 흔들림 속성
+        const totalLen = strokes.reduce((s, str) => s + str.length, 0);
+        let cumLen = 0;
+        strokes.forEach((str, idx) => {
+          str.startSeq = cumLen / totalLen;
+          cumLen += str.length;
+          str.endSeq = cumLen / totalLen;
+          str.jitter = str.map(() => ({
+            x: (Math.random() - 0.5) * 1.5,
+            y: (Math.random() - 0.5) * 1.5
+          }));
+        });
+
+        return { type: 'jobs', strokes, pixelSize };
+      }
+
+      if (scene.id === 'cook') {
+        // ═══ 과감한 버전: 블룸버그 터미널 / 주가 차트 ═══
+        // 픽셀을 셀로 변환, 각 셀이 "티커 라인"이 됨
+        const COOK_TOKENS = [
+          { t: '$350B', c: 'red' },
+          { t: '$4T',   c: 'green' },
+          { t: '$108B', c: 'red' },
+          { t: '$416B', c: 'green' },
+          { t: '▲',     c: 'green' },
+          { t: '▼',     c: 'red' },
+          { t: 'AAPL',  c: 'white' },
+          { t: '+384%', c: 'green' },
+          { t: '+285%', c: 'green' },
+          { t: '$3T',   c: 'green' },
+        ];
+        // 단순 문자들도 포함
+        const DIGITS = '0123456789.$%'.split('');
+
+        const cellW = Math.max(11, fontSize * 0.045);
+        const cellH = Math.max(15, fontSize * 0.065);
+        const cellMap = new Map();
+        pixels.forEach(p => {
+          const cx = Math.floor(p.x / cellW);
+          const cy = Math.floor(p.y / cellH);
+          const key = `${cx},${cy}`;
+          if (!cellMap.has(key)) {
+            cellMap.set(key, {
+              x: cx * cellW,
+              y: cy * cellH,
+              gridX: cx,
+              gridY: cy,
+            });
+          }
+        });
+        const cells = [...cellMap.values()];
+
+        // 행별로 그룹핑해서 "티커 라인" 만들기
+        const rows = new Map();
+        cells.forEach(c => {
+          if (!rows.has(c.gridY)) rows.set(c.gridY, []);
+          rows.get(c.gridY).push(c);
+        });
+
+        // 각 행을 정렬하고 토큰 배치
+        const tickerLines = [];
+        [...rows.entries()].sort((a, b) => a[0] - b[0]).forEach(([rowY, rowCells]) => {
+          rowCells.sort((a, b) => a.x - b.x);
+          // 이 행에 어떤 토큰/값이 들어갈지 랜덤 결정
+          const tokens = [];
+          let xPos = 0;
+          while (xPos < rowCells.length) {
+            // 30% 확률로 의미있는 토큰, 70%는 숫자 변화
+            if (Math.random() < 0.3) {
+              const tk = COOK_TOKENS[Math.floor(Math.random() * COOK_TOKENS.length)];
+              tokens.push({ type: 'token', text: tk.t, color: tk.c, cells: rowCells.slice(xPos, xPos + tk.t.length) });
+              xPos += tk.t.length;
+            } else {
+              tokens.push({
+                type: 'digit',
+                char: DIGITS[Math.floor(Math.random() * DIGITS.length)],
+                changePhase: Math.random() * Math.PI * 2,
+                cells: [rowCells[xPos]],
+                color: Math.random() < 0.5 ? 'green' : 'white'
+              });
+              xPos += 1;
+            }
+          }
+          tickerLines.push({ y: rowY, cells: rowCells, tokens });
+        });
+
+        // 행별 등장 순서
+        tickerLines.forEach((tl, i) => {
+          tl.seq = i / tickerLines.length;
+        });
+
+        return { type: 'cook', tickerLines, cellW, cellH, lastSwap: 0, cellsAll: cells };
+      }
+
+      if (scene.id === 'ternus') {
+        // ═══ 아이캔디 3D: 크리스털 타워 도시 ═══
+        const GRID = Math.max(8, Math.floor(fontSize * 0.032));
+        const nodeMap = new Map();
+        pixels.forEach(p => {
+          const gx = Math.floor(p.x / GRID) * GRID;
+          const gy = Math.floor(p.y / GRID) * GRID;
+          const key = `${gx},${gy}`;
+          if (!nodeMap.has(key)) {
+            nodeMap.set(key, { x: gx, y: gy });
+          }
+        });
+        const nodes = [...nodeMap.values()];
+
+        nodes.forEach((n, i) => {
+          n.id = i;
+          n.seq = Math.random();
+          n.pulse = Math.random() * Math.PI * 2;
+          n.conns = [];
+          // 각 기둥의 높이 (랜덤 + 위치 기반)
+          n.height = 30 + Math.random() * 90;
+          // 기둥 타입: tall(높은 타워) / short(낮은) / pad(납작한 글로우 패드)
+          const r = Math.random();
+          n.kind = r < 0.12 ? 'pad' : (r < 0.4 ? 'tall' : 'short');
+          if (n.kind === 'tall') n.height = 80 + Math.random() * 100;
+          if (n.kind === 'short') n.height = 20 + Math.random() * 40;
+          if (n.kind === 'pad') n.height = 6;
+          // 타워 폭
+          n.width = GRID * (0.35 + Math.random() * 0.2);
+          // 발광 위상
+          n.emit = Math.random() * Math.PI * 2;
+        });
+
+        const gridLookup = new Map();
+        nodes.forEach(n => gridLookup.set(`${n.x},${n.y}`, n));
+        nodes.forEach(n => {
+          for (let d = 1; d <= 4; d++) {
+            const next = gridLookup.get(`${n.x + GRID * d},${n.y}`);
+            if (next) { n.conns.push({ to: next.id, dir: 'h' }); break; }
+          }
+          for (let d = 1; d <= 4; d++) {
+            const next = gridLookup.get(`${n.x},${n.y + GRID * d}`);
+            if (next) { n.conns.push({ to: next.id, dir: 'v' }); break; }
+          }
+        });
+
+        return { type: 'ternus', nodes, GRID, pixelSize };
+      }
+    }
+
+    // ════════════════════════════════════════════
+    //  Drawing per scene type
+    // ════════════════════════════════════════════
+    function drawJobs(progress, phase, scene, data, t) {
+      const time = t * 0.001;
+      const INK = 'rgba(245, 237, 224,';
+      const INK_SHADOW = 'rgba(180, 160, 120,';
+      const PAPER_GRID = 'rgba(245, 237, 224, 0.04)';
+
+      // ─── 3D 카메라: 천천히 회전하며 살짝 기울어짐 ───
+      const camera = {
+        yaw: Math.sin(time * 0.15) * 0.18 + 0.1,
+        pitch: 0.18 + Math.sin(time * 0.1) * 0.04,
+        distance: 800,
+        focal: 700
+      };
+
+      // 종이 평면 깊이 (글자 베이스)
+      const PAPER_Z = 0;
+      const INK_Z = 8; // 잉크가 종이 위로 살짝 떠있음
+      const SHADOW_Z = -2;
+
+      // 종이 평면과 노트 라인 제거 — 글자만 3D로 떠있음
+
+      // ─── 드로잉 획을 두 번 그림: 그림자(종이 위) + 실제 획(떠있는) ───
+      data.strokes.forEach((stroke, sIdx) => {
+        let strokeAlpha = 0;
+        let revealEnd = 1;
+
+        if (phase === 'building') {
+          if (progress < stroke.startSeq) return;
+          if (progress >= stroke.endSeq) {
+            strokeAlpha = 1;
+            revealEnd = 1;
+          } else {
+            strokeAlpha = 0.95;
+            revealEnd = (progress - stroke.startSeq) / (stroke.endSeq - stroke.startSeq);
+          }
+        } else if (phase === 'holding') {
+          strokeAlpha = 0.92;
+          revealEnd = 1;
+        } else {
+          const offT = Math.max(0, Math.min(1, (progress - (1 - stroke.endSeq) * 0.4) / 0.4));
+          strokeAlpha = (1 - offT) * 0.9;
+          revealEnd = 1;
+          if (strokeAlpha < 0.01) return;
+        }
+
+        if (strokeAlpha < 0.01) return;
+
+        const drawCount = Math.ceil(stroke.length * revealEnd);
+        if (drawCount < 2) return;
+
+        // 디졸브 시 종이에서 떠오름 (Z 상승)
+        const liftZ = phase === 'dissolving'
+          ? Math.max(0, Math.min(1, (progress - (1 - stroke.endSeq) * 0.4) / 0.4)) * 80
+          : 0;
+        const driftY = liftZ * 0.3;
+
+        const strokeWidth = 2.2 + Math.sin(sIdx * 0.7) * 0.4;
+
+        // ─── 1단계: 종이 위 그림자 (PAPER_Z) ───
+        ctx.beginPath();
+        for (let i = 0; i < drawCount; i++) {
+          const p = stroke[i];
+          const jx = stroke.jitter[i].x;
+          const jy = stroke.jitter[i].y;
+          // 그림자는 잉크 위치를 paper plane에 투영 (살짝 오프셋)
+          const sp = project3D(p.x + jx + 3, p.y + jy + 3, SHADOW_Z, camera);
+          if (i === 0) ctx.moveTo(sp.x, sp.y);
+          else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.strokeStyle = `rgba(0, 0, 0, ${strokeAlpha * 0.35})`;
+        ctx.lineWidth = strokeWidth * 1.2;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // ─── 2단계: 번짐 ───
+        ctx.beginPath();
+        for (let i = 0; i < drawCount; i++) {
+          const p = stroke[i];
+          const jx = stroke.jitter[i].x;
+          const jy = stroke.jitter[i].y;
+          const sp = project3D(p.x + jx, p.y + jy - driftY, INK_Z + liftZ, camera);
+          if (i === 0) ctx.moveTo(sp.x, sp.y);
+          else ctx.lineTo(sp.x, sp.y);
+        }
+        ctx.strokeStyle = `${INK_SHADOW} ${strokeAlpha * 0.3})`;
+        ctx.lineWidth = strokeWidth * 2.2;
+        ctx.stroke();
+
+        // ─── 3단계: 본 획 (잉크) ───
+        ctx.strokeStyle = `${INK} ${strokeAlpha * 0.95})`;
+        ctx.lineWidth = strokeWidth;
+        ctx.stroke();
+
+        // ─── 4단계: 하이라이트 ───
+        if (strokeAlpha > 0.7 && drawCount > 5) {
+          ctx.strokeStyle = `rgba(255, 250, 235, ${strokeAlpha * 0.35})`;
+          ctx.lineWidth = strokeWidth * 0.4;
+          ctx.stroke();
+        }
+      });
+
+      // ─── 펜촉 (3D 공간에 떠있음) ───
+      if (phase === 'building') {
+        const currentStroke = data.strokes.find(s => progress >= s.startSeq && progress < s.endSeq);
+        if (currentStroke) {
+          const localT = (progress - currentStroke.startSeq) / (currentStroke.endSeq - currentStroke.startSeq);
+          const idx = Math.floor(currentStroke.length * localT);
+          if (currentStroke[idx]) {
+            const p = currentStroke[idx];
+            const jx = currentStroke.jitter[idx].x;
+            const jy = currentStroke.jitter[idx].y;
+            const penPos = project3D(p.x + jx, p.y + jy, INK_Z + 20, camera);
+
+            ctx.fillStyle = 'rgba(255, 245, 220, 0.35)';
+            ctx.beginPath();
+            ctx.arc(penPos.x, penPos.y, 10, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = 'rgba(255, 250, 235, 0.95)';
+            ctx.beginPath();
+            ctx.arc(penPos.x, penPos.y, 3.5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+      }
+    }
+
+    function drawCook(progress, phase, scene, data, t) {
+      const { tickerLines, cellW, cellH, cellsAll } = data;
+      const time = t * 0.001;
+
+      const GREEN = 'rgba(80, 220, 140,';
+      const RED = 'rgba(255, 95, 95,';
+      const WHITE = 'rgba(245, 245, 248,';
+      const DIM = 'rgba(120, 140, 135,';
+      const GRID_LINE = 'rgba(80, 220, 140, 0.06)';
+
+      // 디지털 모노 서체 (더 터미널·CRT 느낌)
+      const DIGITAL_FONT = "'Share Tech Mono', 'VT323', 'JetBrains Mono', monospace";
+
+      // ─── 배경 그리드 (터미널 스크린) ───
+      if (phase === 'holding' || (phase === 'building' && progress > 0.2)) {
+        ctx.strokeStyle = GRID_LINE;
+        ctx.lineWidth = 0.5;
+        for (let y = 0; y < cssH; y += cellH) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(cssW, y);
+          ctx.stroke();
+        }
+      }
+
+      // ─── 배경에 미니 주가 차트 실루엣 (글자 영역 뒤) ───
+      if ((phase === 'holding' || phase === 'building') && cellsAll.length > 0) {
+        const minY = Math.min(...cellsAll.map(c => c.y));
+        const maxY = Math.max(...cellsAll.map(c => c.y));
+        const minX = Math.min(...cellsAll.map(c => c.x));
+        const maxX = Math.max(...cellsAll.map(c => c.x));
+        const chartAlpha = phase === 'holding' ? 0.15 : Math.min(0.15, progress * 0.3);
+
+        ctx.strokeStyle = `${GREEN} ${chartAlpha})`;
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        const chartW = maxX - minX;
+        const chartH = (maxY - minY);
+        const points = 40;
+        for (let i = 0; i <= points; i++) {
+          const cx = minX + (i / points) * chartW;
+          const baseline = maxY;
+          const riseT = i / points;
+          const noise = Math.sin(i * 0.7 + time * 0.3) * 6;
+          const cy = baseline - Math.pow(riseT, 1.6) * chartH - noise;
+          if (i === 0) ctx.moveTo(cx, cy);
+          else ctx.lineTo(cx, cy);
+        }
+        ctx.stroke();
+
+        ctx.fillStyle = `${GREEN} ${chartAlpha * 0.3})`;
+        ctx.lineTo(maxX, maxY);
+        ctx.lineTo(minX, maxY);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // ─── 실시간 숫자 갱신 (티커 효과) ───
+      const shouldSwap = t - data.lastSwap > 120;
+      if (shouldSwap) {
+        const DIGITS = '0123456789.$%'.split('');
+        tickerLines.forEach(tl => {
+          tl.tokens.forEach(tok => {
+            if (tok.type === 'digit' && Math.random() < 0.3) {
+              tok.char = DIGITS[Math.floor(Math.random() * DIGITS.length)];
+              tok.flashT = t;
+              tok.color = Math.random() < 0.55 ? 'green' : (Math.random() < 0.5 ? 'red' : 'white');
+            }
+          });
+        });
+        data.lastSwap = t;
+      }
+
+      // ─── 티커 라인 렌더링 (평면) ───
+      ctx.font = `400 ${cellH * 0.95}px ${DIGITAL_FONT}`;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+
+      tickerLines.forEach(tl => {
+        let lineAlpha = 0;
+        if (phase === 'building') {
+          const localT = Math.max(0, Math.min(1, (progress - tl.seq * 0.6) / 0.3));
+          lineAlpha = localT * 0.95;
+        } else if (phase === 'holding') {
+          lineAlpha = 0.95;
+        } else {
+          const offT = Math.max(0, Math.min(1, (progress - (1 - tl.seq) * 0.2) / 0.4));
+          lineAlpha = (1 - offT) * 0.95;
+        }
+
+        if (lineAlpha < 0.02) return;
+
+        const slide = phase === 'dissolving'
+          ? Math.max(0, Math.min(1, (progress - (1 - tl.seq) * 0.2) / 0.4)) * 60
+          : 0;
+
+        tl.tokens.forEach(tok => {
+          if (!tok.cells || tok.cells.length === 0) return;
+          const startX = tok.cells[0].x;
+          const y = tl.y * cellH;
+
+          let colorFn;
+          if (tok.color === 'green') colorFn = GREEN;
+          else if (tok.color === 'red') colorFn = RED;
+          else if (tok.color === 'white') colorFn = WHITE;
+          else colorFn = DIM;
+
+          let flashBoost = 0;
+          if (tok.flashT && t - tok.flashT < 400) {
+            flashBoost = (1 - (t - tok.flashT) / 400) * 0.6;
+          }
+
+          if (tok.type === 'token') {
+            ctx.fillStyle = `${colorFn} ${lineAlpha * 0.1})`;
+            ctx.fillRect(startX + slide, y, cellW * tok.text.length, cellH);
+            ctx.fillStyle = `${colorFn} ${lineAlpha * (0.9 + flashBoost)})`;
+            ctx.fillText(tok.text, startX + slide + 1, y + cellH * 0.1);
+          } else {
+            ctx.fillStyle = `${colorFn} ${lineAlpha * (0.85 + flashBoost)})`;
+            ctx.fillText(tok.char, startX + slide + 1, y + cellH * 0.1);
+          }
+        });
+      });
+
+      // ─── 건설 중 커서 ───
+      if (phase === 'building') {
+        const currentLine = tickerLines.find(tl => {
+          return progress >= tl.seq * 0.6 && progress < tl.seq * 0.6 + 0.3;
+        });
+        if (currentLine) {
+          const localT = Math.max(0, Math.min(1, (progress - currentLine.seq * 0.6) / 0.3));
+          const lastCell = currentLine.cells[currentLine.cells.length - 1];
+          const cursorX = currentLine.cells[0].x + (lastCell.x - currentLine.cells[0].x) * localT;
+          if (Math.floor(time * 4) % 2 === 0) {
+            ctx.fillStyle = `${GREEN} 0.9)`;
+            ctx.fillRect(cursorX + cellW, currentLine.y * cellH + cellH * 0.2, cellW * 0.6, cellH * 0.7);
+          }
+        }
+      }
+
+      // ─── 우측 상단 티커 인디케이터 ───
+      if (phase === 'holding') {
+        ctx.font = `400 ${cellH * 0.6}px ${DIGITAL_FONT}`;
+        ctx.textAlign = 'left';
+        const tickerText = `AAPL  +285.4%  ▲`;
+        const tx = cssW - 180;
+        const ty = 12;
+        ctx.fillStyle = `${GREEN} 0.15)`;
+        ctx.fillRect(tx - 6, ty - 2, 170, cellH * 0.75);
+        ctx.fillStyle = `${GREEN} 0.9)`;
+        ctx.fillText(tickerText, tx, ty);
+      }
+    }
+
+    function drawTernus(progress, phase, scene, data, t) {
+      const { nodes, GRID } = data;
+      const time = t * 0.001;
+
+      // 컬러 팔레트 — 민트/시안/홀로그램 + 네온 핑크 액센트
+      const MINT = 'rgba(168, 230, 207,';
+      const CYAN = 'rgba(140, 230, 250,';
+      const ICE = 'rgba(220, 245, 255,';
+      const NEON_PINK = 'rgba(255, 130, 200,';
+      const WHITE = 'rgba(255, 255, 255,';
+
+      // 3D 카메라 — 천천히 회전
+      const camera = {
+        yaw: time * 0.15 + Math.sin(time * 0.25) * 0.12,
+        pitch: 0.35 + Math.sin(time * 0.12) * 0.06,
+        distance: 800,
+        focal: 700
+      };
+
+      // ─── 배경: 홀로그램 그리드 바닥 + 지평선 글로우 ───
+      if (phase === 'holding' || (phase === 'building' && progress > 0.3)) {
+        const baseY = cssH * 0.85;
+        // 지평선 글로우 (배경 너머)
+        const horizonGrad = ctx.createRadialGradient(cssW / 2, baseY, 0, cssW / 2, baseY, cssW * 0.7);
+        horizonGrad.addColorStop(0, 'rgba(168, 230, 207, 0.12)');
+        horizonGrad.addColorStop(0.4, 'rgba(140, 230, 250, 0.05)');
+        horizonGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = horizonGrad;
+        ctx.fillRect(0, baseY - cssH * 0.3, cssW, cssH * 0.4);
+
+        // 그리드
+        ctx.strokeStyle = `${MINT} 0.07)`;
+        ctx.lineWidth = 0.5;
+        for (let z = -200; z <= 300; z += 35) {
+          const p1 = project3D(cssW * 0.1, baseY, z, camera);
+          const p2 = project3D(cssW * 0.9, baseY, z, camera);
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+        for (let x = cssW * 0.1; x <= cssW * 0.9; x += 50) {
+          const p1 = project3D(x, baseY, -200, camera);
+          const p2 = project3D(x, baseY, 300, camera);
+          ctx.beginPath();
+          ctx.moveTo(p1.x, p1.y);
+          ctx.lineTo(p2.x, p2.y);
+          ctx.stroke();
+        }
+      }
+
+      // ─── 각 노드를 "3D 타워"로 계산 ───
+      // base (바닥)와 top (꼭대기) 각각 투영
+      const projectedNodes = nodes.map(n => {
+        // 진입/퇴장 스케일
+        const breatheH = phase === 'holding' ? Math.sin(time * 1.5 + n.seq * 6) * 3 : 0;
+        const entryH = phase === 'building'
+          ? Math.max(0, Math.min(1, (progress - n.seq * 0.5) / 0.25))
+          : (phase === 'dissolving'
+              ? Math.max(0, 1 - (progress - n.seq * 0.4) / 0.3)
+              : 1);
+
+        const currentHeight = n.height * entryH + breatheH;
+        // y는 화면 down이 positive, 3D에선 높이는 -Y로 표현
+        const baseProj = project3D(n.x, n.y, 0, camera);
+        const topProj = project3D(n.x, n.y - currentHeight, 0, camera);
+
+        return {
+          n, baseProj, topProj,
+          height: currentHeight,
+          alpha: entryH,
+          depth: baseProj.depth
+        };
+      });
+
+      // 뒤쪽부터 그리기 (depth sort)
+      projectedNodes.sort((a, b) => b.depth - a.depth);
+
+      // ─── 트레이스 라인 (바닥에 빛나는 회로) ───
+      projectedNodes.forEach(({ n, baseProj, alpha }) => {
+        if (alpha < 0.05) return;
+        let tracealpha = 0;
+        if (phase === 'building') {
+          tracealpha = Math.max(0, Math.min(1, (progress - n.seq * 0.5) / 0.25)) * 0.6;
+        } else if (phase === 'holding') {
+          tracealpha = 0.5;
+        } else {
+          tracealpha = alpha * 0.5;
+        }
+
+        if (tracealpha > 0.02) {
+          // 트레이스 글로우 (블러)
+          ctx.strokeStyle = `${CYAN} ${tracealpha * 0.3})`;
+          ctx.lineWidth = 2.5;
+          n.conns.forEach(c => {
+            const target = projectedNodes.find(pn => pn.n.id === c.to);
+            if (!target) return;
+            ctx.beginPath();
+            ctx.moveTo(baseProj.x, baseProj.y);
+            ctx.lineTo(target.baseProj.x, target.baseProj.y);
+            ctx.stroke();
+          });
+
+          // 트레이스 본선
+          ctx.strokeStyle = `${MINT} ${tracealpha})`;
+          ctx.lineWidth = 0.7;
+          n.conns.forEach(c => {
+            const target = projectedNodes.find(pn => pn.n.id === c.to);
+            if (!target) return;
+            ctx.beginPath();
+            ctx.moveTo(baseProj.x, baseProj.y);
+            ctx.lineTo(target.baseProj.x, target.baseProj.y);
+            ctx.stroke();
+          });
+        }
+      });
+
+      // ─── 각 타워 그리기 (유리 박스 + 발광) ───
+      projectedNodes.forEach(({ n, baseProj, topProj, height, alpha }) => {
+        if (alpha < 0.02) return;
+        if (height < 1) return;
+
+        const pulse = Math.sin(time * 2 + n.pulse) * 0.15 + 0.85;
+        const emit = Math.sin(time * 1.3 + n.emit) * 0.5 + 0.5; // 0~1 발광 강도
+        const scale = baseProj.scale;
+        const w = n.width * scale;
+
+        if (n.kind === 'pad') {
+          // 납작한 발광 패드 (바닥에 놓인 빛)
+          const padRadius = w * 1.5;
+          // 외곽 글로우
+          ctx.fillStyle = `${CYAN} ${alpha * emit * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(baseProj.x, baseProj.y, padRadius * 1.8, 0, Math.PI * 2);
+          ctx.fill();
+          // 본체
+          ctx.fillStyle = `${ICE} ${alpha * emit * 0.9})`;
+          ctx.beginPath();
+          ctx.arc(baseProj.x, baseProj.y, padRadius, 0, Math.PI * 2);
+          ctx.fill();
+          // 밝은 코어
+          ctx.fillStyle = `${WHITE} ${alpha * emit})`;
+          ctx.beginPath();
+          ctx.arc(baseProj.x, baseProj.y, padRadius * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+
+        // ─── 3D 박스 타워 (4면 + 상단) ───
+        // 앞면 (사각형)
+        const halfW = w;
+        const bx = baseProj.x;
+        const by = baseProj.y;
+        const tx = topProj.x;
+        const ty = topProj.y;
+
+        // 타워 그림자(바닥)
+        const shadowGrad = ctx.createRadialGradient(bx, by, 0, bx, by, halfW * 3);
+        shadowGrad.addColorStop(0, `rgba(168, 230, 207, ${alpha * 0.35})`);
+        shadowGrad.addColorStop(1, 'rgba(168, 230, 207, 0)');
+        ctx.fillStyle = shadowGrad;
+        ctx.fillRect(bx - halfW * 3, by - halfW, halfW * 6, halfW * 3);
+
+        // 타워 뒷면 (어둡게)
+        const backGrad = ctx.createLinearGradient(tx - halfW, ty, tx + halfW, ty);
+        backGrad.addColorStop(0, `rgba(20, 40, 55, ${alpha * 0.9})`);
+        backGrad.addColorStop(0.5, `rgba(40, 80, 95, ${alpha * 0.8})`);
+        backGrad.addColorStop(1, `rgba(20, 40, 55, ${alpha * 0.9})`);
+        ctx.fillStyle = backGrad;
+        ctx.beginPath();
+        ctx.moveTo(bx - halfW, by);
+        ctx.lineTo(bx + halfW, by);
+        ctx.lineTo(tx + halfW, ty);
+        ctx.lineTo(tx - halfW, ty);
+        ctx.closePath();
+        ctx.fill();
+
+        // 타워 내부 발광 (투명 유리에 빛이 갇힌 느낌)
+        const glowGrad = ctx.createLinearGradient(bx, by, tx, ty);
+        const glowColor = n.kind === 'tall' ? MINT : CYAN;
+        glowGrad.addColorStop(0, `${glowColor} ${alpha * emit * 0.15})`);
+        glowGrad.addColorStop(0.5, `${glowColor} ${alpha * emit * 0.8})`);
+        glowGrad.addColorStop(1, `${glowColor} ${alpha * emit * 0.4})`);
+        ctx.fillStyle = glowGrad;
+        ctx.beginPath();
+        ctx.moveTo(bx - halfW * 0.7, by);
+        ctx.lineTo(bx + halfW * 0.7, by);
+        ctx.lineTo(tx + halfW * 0.7, ty);
+        ctx.lineTo(tx - halfW * 0.7, ty);
+        ctx.closePath();
+        ctx.fill();
+
+        // 측면 하이라이트 (유리 반사)
+        ctx.strokeStyle = `${WHITE} ${alpha * 0.5 * pulse})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(bx - halfW, by);
+        ctx.lineTo(tx - halfW, ty);
+        ctx.moveTo(bx + halfW, by);
+        ctx.lineTo(tx + halfW, ty);
+        ctx.stroke();
+
+        // 상단 (ellipse로 cap)
+        ctx.fillStyle = `${ICE} ${alpha * emit * 0.95})`;
+        ctx.beginPath();
+        ctx.ellipse(tx, ty, halfW, halfW * 0.25, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 상단 글로우 (위로 빛이 새어나옴)
+        const topGlow = ctx.createRadialGradient(tx, ty, 0, tx, ty, halfW * 3);
+        topGlow.addColorStop(0, `${CYAN} ${alpha * emit * 0.6})`);
+        topGlow.addColorStop(1, 'rgba(140, 230, 250, 0)');
+        ctx.fillStyle = topGlow;
+        ctx.fillRect(tx - halfW * 3, ty - halfW * 3, halfW * 6, halfW * 6);
+
+        // 최상단 백라이트 포인트
+        ctx.fillStyle = `${WHITE} ${alpha * pulse * 0.9})`;
+        ctx.beginPath();
+        ctx.arc(tx, ty, halfW * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 높은 타워는 상단에 네온 핑크 tip (액센트)
+        if (n.kind === 'tall' && height > 90) {
+          ctx.fillStyle = `${NEON_PINK} ${alpha * pulse})`;
+          ctx.beginPath();
+          ctx.arc(tx, ty - halfW * 0.4, halfW * 0.25, 0, Math.PI * 2);
+          ctx.fill();
+          // 네온 글로우
+          ctx.fillStyle = `${NEON_PINK} ${alpha * pulse * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(tx, ty - halfW * 0.4, halfW * 0.8, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+
+      // ─── 떠다니는 데이터 파티클 (도시 위 공중에서 반짝임) ───
+      if (phase === 'holding' || (phase === 'building' && progress > 0.6)) {
+        const particleCount = 25;
+        for (let i = 0; i < particleCount; i++) {
+          const seed = i * 1.3;
+          const orbitT = (time * 0.3 + seed) % (Math.PI * 2);
+          // 글자 영역 위에서 떠다니게
+          const baseX = cssW * 0.3 + Math.cos(orbitT + seed) * cssW * 0.3;
+          const baseY = cssH * 0.35 + Math.sin(orbitT * 1.5 + seed) * cssH * 0.1;
+          const baseZ = Math.sin(orbitT * 0.7 + seed) * 80;
+          const partHeight = 100 + Math.sin(time + seed) * 30;
+          const proj = project3D(baseX, baseY - partHeight, baseZ, camera);
+          const twinkle = Math.sin(time * 3 + seed * 2) * 0.5 + 0.5;
+          const partAlpha = 0.7 * twinkle;
+
+          ctx.fillStyle = `${WHITE} ${partAlpha})`;
+          ctx.beginPath();
+          ctx.arc(proj.x, proj.y, 1.5 * proj.scale, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = `${CYAN} ${partAlpha * 0.4})`;
+          ctx.beginPath();
+          ctx.arc(proj.x, proj.y, 4 * proj.scale, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // ─── 전류 흐름 (바닥 트레이스 위) ───
+      if (phase === 'holding' || (phase === 'building' && progress > 0.4)) {
+        const flowT = (time * 0.35) % 1;
+        projectedNodes.forEach(({ n, baseProj }, i) => {
+          if (i % 6 !== 0) return;
+          n.conns.forEach(c => {
+            const target = projectedNodes.find(pn => pn.n.id === c.to);
+            if (!target) return;
+            const local = ((flowT + n.seq) % 1);
+            const fx = baseProj.x + (target.baseProj.x - baseProj.x) * local;
+            const fy = baseProj.y + (target.baseProj.y - baseProj.y) * local;
+            // 글로우 꼬리
+            ctx.fillStyle = `${CYAN} 0.6)`;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 3 * baseProj.scale, 0, Math.PI * 2);
+            ctx.fill();
+            // 중심 빛
+            ctx.fillStyle = `${WHITE} 0.95)`;
+            ctx.beginPath();
+            ctx.arc(fx, fy, 1.3 * baseProj.scale, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        });
+      }
+    }
+
+    // ════════════════════════════════════════════
+    //  Main loop
+    // ════════════════════════════════════════════
+    let sceneIndex = 0;
+    let phase = 'building';
+    let phaseStart = performance.now();
+    let paused = false;
+
+    function startScene(idx) {
+      sceneIndex = idx;
+      const s = SCENES[idx];
+      sceneData = prepScene(s);
+      phase = 'building';
+      phaseStart = performance.now();
+      updateUI(idx);
+    }
+
+    function updateUI(idx) {
+      const s = SCENES[idx];
+      document.getElementById('figName').textContent = s.name;
+      document.getElementById('figRole').textContent = s.role;
+      document.getElementById('figYear').textContent = s.year;
+      [1, 2, 3].forEach(n => {
+        document.getElementById('ko-' + n).classList.toggle('dim', n !== s.ko);
+      });
+      document.querySelectorAll('.dot').forEach((d, i) => {
+        d.style.background = i === idx
+          ? 'rgba(255,255,255,0.95)'
+          : (i < idx ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.18)');
+      });
+    }
+
+    function loop(t) {
+      ctx.clearRect(0, 0, cssW, cssH);
+      const s = SCENES[sceneIndex];
+
+      // Ternus 장면에서만 회로 기판 배경 그리드
+      if (s.id === 'ternus' && sceneData) {
+        const GRID = sceneData.GRID || 10;
+        ctx.strokeStyle = 'rgba(168, 230, 207, 0.04)';
+        ctx.lineWidth = 0.5;
+        ctx.beginPath();
+        for (let x = 0; x < cssW; x += GRID * 2) {
+          ctx.moveTo(x, 0); ctx.lineTo(x, cssH);
+        }
+        for (let y = 0; y < cssH; y += GRID * 2) {
+          ctx.moveTo(0, y); ctx.lineTo(cssW, y);
+        }
+        ctx.stroke();
+      }
+
+      const elapsed = t - phaseStart;
+
+      let progress;
+      if (phase === 'building') {
+        progress = Math.min(1, elapsed / s.buildMs);
+      } else if (phase === 'holding') {
+        progress = Math.min(1, elapsed / s.holdMs);
+      } else {
+        progress = Math.min(1, elapsed / s.dissolveMs);
+      }
+
+      if (sceneData) {
+        if (sceneData.type === 'jobs')   drawJobs(progress, phase, s, sceneData, t);
+        if (sceneData.type === 'cook')   drawCook(progress, phase, s, sceneData, t);
+        if (sceneData.type === 'ternus') drawTernus(progress, phase, s, sceneData, t);
+      }
+
+      // Phase transitions
+      if (progress >= 1) {
+        if (phase === 'building') {
+          phase = 'holding';
+          phaseStart = t;
+        } else if (phase === 'holding') {
+          if (!paused) {
+            phase = 'dissolving';
+            phaseStart = t;
+          }
+        } else {
+          startScene((sceneIndex + 1) % SCENES.length);
+        }
+      }
+
+      requestAnimationFrame(loop);
+    }
+
+    // ════════════════════════════════════════════
+    //  Controls
+    // ════════════════════════════════════════════
+    function nextScene() {
+      startScene((sceneIndex + 1) % SCENES.length);
+    }
+    function prevScene() {
+      startScene((sceneIndex - 1 + SCENES.length) % SCENES.length);
+    }
+    function jumpTo(i) {
+      if (i !== sceneIndex) startScene(i);
+    }
+
+    document.body.addEventListener('click', (e) => {
+      // Home 버튼은 무시 (링크로 이동)
+      if (e.target.closest('.home-btn')) return;
+      const dot = e.target.closest('.dot');
+      if (dot) { jumpTo(parseInt(dot.dataset.i)); return; }
+      nextScene();
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        nextScene();
+      } else if (e.code === 'ArrowLeft') {
+        e.preventDefault();
+        prevScene();
+      } else if (e.code === 'KeyP') {
+        paused = !paused;
+      }
+    });
+
+    // ════════════════════════════════════════════
+    //  Boot
+    // ════════════════════════════════════════════
+    function init() {
+      setupCanvas();
+      startScene(0);
+      requestAnimationFrame(loop);
+    }
+
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(() => {
+        setupCanvas();
+        startScene(sceneIndex);
+      }, 150);
+    });
+
+    document.fonts.ready.then(init);
+  </script>
+
+</body>
+</html>
