@@ -184,13 +184,24 @@
       left: 50%;
       transform: translateX(-50%);
       z-index: 30;
-      pointer-events: none;
       font-family: 'JetBrains Mono', monospace;
       font-size: 0.55rem;
       letter-spacing: 0.25em;
       text-transform: uppercase;
       color: rgba(255, 255, 255, 0.22);
       white-space: nowrap;
+    }
+    .footer-src a {
+      color: inherit;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.18);
+      padding-bottom: 1px;
+      transition: all 0.25s ease;
+      pointer-events: auto;
+    }
+    .footer-src a:hover {
+      color: rgba(255, 255, 255, 0.85);
+      border-bottom-color: rgba(255, 255, 255, 0.85);
     }
 
     @media (max-width: 700px) {
@@ -235,7 +246,7 @@
     <div class="hint">Click · Space · ← →</div>
   </div>
 
-  <div class="footer-src">eyesmag.com / 2026.04.25 · № 011 · 26.04.29</div>
+  <div class="footer-src"><a href="https://www.eyesmag.com/posts/164240/john-ternus-apple-next-era-after-cook-ai-shift" target="_blank" rel="noopener">eyesmag.com ↗</a> / 2026.04.25 · № 011 · 26.04.29</div>
 
   <script>
     // ════════════════════════════════════════════
@@ -1226,8 +1237,9 @@
     }
 
     document.body.addEventListener('click', (e) => {
-      // Home 버튼은 무시 (링크로 이동)
+      // Home 버튼, 외부 링크는 무시
       if (e.target.closest('.home-btn')) return;
+      if (e.target.closest('.footer-src a')) return;
       const dot = e.target.closest('.dot');
       if (dot) { jumpTo(parseInt(dot.dataset.i)); return; }
       nextScene();
