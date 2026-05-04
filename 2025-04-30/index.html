@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관제사 · Radar Sweep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;500&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --navy: #0a1830;
+      --navy-deep: #060f1f;
+      --fg: #e6ecf5;
+      --mute: rgba(230, 236, 245, 0.32);
+      --accent: #7de8d4;
+    }
+
+    html, body {
+      background: var(--navy-deep);
+      color: var(--fg);
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      font-family: 'Noto Serif KR', serif;
+      -webkit-font-smoothing: antialiased;
+      user-select: none;
+    }
+
+    /* 배경 그라데이션 (비네트) */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at center, rgba(12, 28, 56, 1) 0%, rgba(6, 15, 31, 1) 85%);
+      z-index: 0;
+    }
+
+    /* 레이더 캔버스: 스윕 빔 + 동심원 + 블립 + 항적 */
+    #radar {
+      position: fixed;
+      inset: 0;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* 세 문장을 각각 다른 위치에 포스터처럼 배치 */
+    .line {
+      position: fixed;
+      z-index: 3;
+      font-weight: 400;
+      font-size: clamp(22px, 2.6vw, 40px);
+      line-height: 1.35;
+      letter-spacing: -0.02em;
+      color: var(--mute);
+      max-width: 18ch;
+      transition: color 0.8s ease, text-shadow 0.8s ease;
+      will-change: color, text-shadow;
+      pointer-events: none;
+    }
+
+    .line.active {
+      color: var(--fg);
+      text-shadow:
+        0 0 18px rgba(125, 232, 212, 0.45),
+        0 0 48px rgba(125, 232, 212, 0.18);
+    }
+
+    /* 각 문장 위치 (레퍼런스 포스터 배치 참고) */
+    .line-1 { top: 12vh;  left: 8vw;  }
+    .line-2 { top: 42vh;  left: 8vw;  }
+    .line-3 { bottom: 12vh; right: 8vw; text-align: right; max-width: 20ch; }
+
+    /* HUD 링크 (Home, Source) */
+    .hud-link {
+      position: fixed;
+      z-index: 10;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(230, 236, 245, 0.55);
+      text-decoration: none;
+      padding: 0.7em 1em;
+      border: 1px solid rgba(125, 232, 212, 0.22);
+      border-radius: 2px;
+      background: rgba(6, 15, 31, 0.45);
+      backdrop-filter: blur(6px);
+      transition: all 0.25s ease;
+      white-space: nowrap;
+    }
+    .hud-link:hover {
+      color: var(--accent);
+      border-color: rgba(125, 232, 212, 0.6);
+      background: rgba(125, 232, 212, 0.08);
+    }
+    .hud-home   { top: 28px; left: 28px; }
+    .hud-source { top: 28px; right: 28px; }
+    .hud-source::before {
+      content: "↗ ";
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="radar"></canvas>
+
+  <a class="hud-link hud-home" href="../" title="전체 목록으로">← HOME</a>
+  <a class="hud-link hud-source" href="https://maily.so/oz.talking/posts/3jrk9e23z51" target="_blank" rel="noopener" title="원문 기사">SOURCE · MAILY</a>
+
+  <p class="line line-1">8시간의<br>집중 지구력</p>
+  <p class="line line-2">수백 명의 생명이 걸린<br>심리적 압박 내상</p>
+  <p class="line line-3">명확한 구두<br>커뮤니케이션</p>
+
+  <script>
+    // ─────────────────────────────────────────────
+    // RADAR SCOPE — 스윕 빔 + 동심원 + 그리드 + 떠다니는 블립 + 커서 항적
+    // ─────────────────────────────────────────────
+    const canvas = document.getElementById('radar');
+    const ctx = canvas.getContext('2d');
+    const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+    const lineEls = Array.from(document.querySelectorAll('.line'));
+    const lineState = lineEls.map(() => ({ lastSweep: -Infinity }));
+
+    let W = 0, H = 0, CX = 0, CY = 0, R = 0;
+    function resize() {
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * DPR;
+      canvas.height = H * DPR;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(DPR, DPR);
+      CX = W / 2;
+      CY = H / 2;
+      R = Math.hypot(W, H) / 2;
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    // ─── 스윕 ───
+    let sweepAngle = -Math.PI / 2;
+    const sweepSpeed = 0.006;
+
+    // ─── 커서 항적 ───
+    const trail = [];
+    const MAX_TRAIL = 140;
+    let mouse = { x: W / 2, y: H / 2 };
+    let last = { x: mouse.x, y: mouse.y };
+    let hueIndex = 0;
+    window.addEventListener('pointermove', (e) => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+    });
+
+    const neon = [
+      [125, 232, 212],
+      [98, 208, 255],
+      [180, 140, 255],
+      [255, 110, 199],
+      [255, 176, 102],
+    ];
+    function sampleNeon(t) {
+      const n = neon.length - 1;
+      const i = Math.floor(t * n);
+      const f = t * n - i;
+      const a = neon[Math.max(0, Math.min(n, i))];
+      const b = neon[Math.max(0, Math.min(n, i + 1))];
+      return [
+        a[0] + (b[0] - a[0]) * f,
+        a[1] + (b[1] - a[1]) * f,
+        a[2] + (b[2] - a[2]) * f,
+      ];
+    }
+
+    function spawnTrail(x, y) {
+      trail.push({
+        x, y,
+        size: 5 + Math.random() * 3,
+        life: 1.0,
+        hue: hueIndex % 1,
+      });
+      hueIndex += 0.014;
+      if (trail.length > MAX_TRAIL) trail.splice(0, trail.length - MAX_TRAIL);
+    }
+
+    // ─── 항공기 블립 (떠다니는 점 + ID) ───
+    const CALLSIGNS = ['KE051', 'OZ201', 'JL097', 'SQ618', 'AA280', 'UA893', 'BA017', 'AF264', 'CX411', 'EK323', 'QR858', 'TK023', 'LH720', 'AC63', 'NH175'];
+    const blips = [];
+    const NUM_BLIPS = 11;
+
+    function makeBlip() {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 0.2 + Math.random() * 0.5;
+      const margin = 80;
+      // 화면 가장자리에서 스폰, 반대쪽으로 흐름
+      const edge = Math.floor(Math.random() * 4);
+      let x, y;
+      if (edge === 0) { x = -margin; y = Math.random() * H; }
+      else if (edge === 1) { x = W + margin; y = Math.random() * H; }
+      else if (edge === 2) { x = Math.random() * W; y = -margin; }
+      else { x = Math.random() * W; y = H + margin; }
+      const tx = W - x + (Math.random() - 0.5) * 300;
+      const ty = H - y + (Math.random() - 0.5) * 300;
+      const dx = tx - x;
+      const dy = ty - y;
+      const len = Math.hypot(dx, dy);
+      return {
+        x, y,
+        vx: (dx / len) * speed,
+        vy: (dy / len) * speed,
+        callsign: CALLSIGNS[Math.floor(Math.random() * CALLSIGNS.length)] + '·' + String(Math.floor(Math.random() * 90 + 10)),
+        alt: (2 + Math.floor(Math.random() * 38)) * 1000, // feet
+        heading: Math.round(Math.random() * 360),
+        history: [],
+        lastPing: -Infinity,
+        pingStrength: 0,
+        visible: false,
+      };
+    }
+    for (let i = 0; i < NUM_BLIPS; i++) blips.push(makeBlip());
+
+    // ─── 각도 유틸 ───
+    function normAngle(a) {
+      while (a > Math.PI) a -= Math.PI * 2;
+      while (a < -Math.PI) a += Math.PI * 2;
+      return a;
+    }
+
+    function lineCenters() {
+      return lineEls.map(el => {
+        const r = el.getBoundingClientRect();
+        const x = r.left + r.width / 2;
+        const y = r.top + r.height / 2;
+        const dx = x - CX;
+        const dy = y - CY;
+        return {
+          x, y,
+          angle: Math.atan2(dy, dx),
+        };
+      });
+    }
+
+    // ─── 메인 루프 ───
+    function draw(now) {
+      ctx.clearRect(0, 0, W, H);
+
+      // ─── 격자 (미세) ───
+      ctx.strokeStyle = 'rgba(125, 232, 212, 0.035)';
+      ctx.lineWidth = 1;
+      const gridSize = 80;
+      ctx.beginPath();
+      for (let x = (CX % gridSize); x < W; x += gridSize) {
+        ctx.moveTo(x, 0); ctx.lineTo(x, H);
+      }
+      for (let y = (CY % gridSize); y < H; y += gridSize) {
+        ctx.moveTo(0, y); ctx.lineTo(W, y);
+      }
+      ctx.stroke();
+
+      // ─── 동심원 ───
+      ctx.strokeStyle = 'rgba(125, 232, 212, 0.08)';
+      ctx.lineWidth = 1;
+      for (let i = 1; i <= 5; i++) {
+        ctx.beginPath();
+        ctx.arc(CX, CY, (R * i) / 5, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      // ─── 방위 눈금 (30도마다) ───
+      ctx.strokeStyle = 'rgba(125, 232, 212, 0.09)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2;
+        ctx.beginPath();
+        ctx.moveTo(CX + Math.cos(a) * (R - 20), CY + Math.sin(a) * (R - 20));
+        ctx.lineTo(CX + Math.cos(a) * R, CY + Math.sin(a) * R);
+        ctx.stroke();
+      }
+
+      // ─── 십자선 ───
+      ctx.strokeStyle = 'rgba(125, 232, 212, 0.06)';
+      ctx.beginPath();
+      ctx.moveTo(0, CY); ctx.lineTo(W, CY);
+      ctx.moveTo(CX, 0); ctx.lineTo(CX, H);
+      ctx.stroke();
+
+      // ─── 스윕 빔 ───
+      sweepAngle += sweepSpeed;
+      const tail = 0.7; // 꼬리 길이(라디안)
+      if (ctx.createConicGradient) {
+        const beam = ctx.createConicGradient(sweepAngle - tail, CX, CY);
+        beam.addColorStop(0, 'rgba(125, 232, 212, 0)');
+        beam.addColorStop(tail / (Math.PI * 2) * 0.8, 'rgba(125, 232, 212, 0.03)');
+        beam.addColorStop(tail / (Math.PI * 2), 'rgba(125, 232, 212, 0.28)');
+        beam.addColorStop(tail / (Math.PI * 2) + 0.0001, 'rgba(125, 232, 212, 0)');
+        beam.addColorStop(1, 'rgba(125, 232, 212, 0)');
+        ctx.fillStyle = beam;
+        ctx.beginPath();
+        ctx.arc(CX, CY, R, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 선두 라인
+      ctx.strokeStyle = 'rgba(125, 232, 212, 0.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(CX, CY);
+      ctx.lineTo(CX + Math.cos(sweepAngle) * R, CY + Math.sin(sweepAngle) * R);
+      ctx.stroke();
+
+      // ─── 문장 포착 ───
+      const centers = lineCenters();
+      centers.forEach((c, i) => {
+        const diff = Math.abs(normAngle(sweepAngle - c.angle));
+        if (diff < 0.04 && now - lineState[i].lastSweep > 800) {
+          lineState[i].lastSweep = now;
+          lineEls[i].classList.add('active');
+          sparkles.push({ x: c.x, y: c.y, life: 1.0 });
+        }
+        if (now - lineState[i].lastSweep > 2200) {
+          lineEls[i].classList.remove('active');
+        }
+      });
+
+      // ─── 블립 이동 + 렌더 ───
+      ctx.font = '10px "JetBrains Mono", monospace';
+      ctx.textBaseline = 'middle';
+
+      for (let i = blips.length - 1; i >= 0; i--) {
+        const b = blips[i];
+        b.x += b.vx;
+        b.y += b.vy;
+
+        // 화면 밖으로 벗어나면 교체
+        if (b.x < -120 || b.x > W + 120 || b.y < -120 || b.y > H + 120) {
+          blips[i] = makeBlip();
+          continue;
+        }
+
+        // 히스토리 (꼬리)
+        if (Math.random() < 0.3) b.history.push({ x: b.x, y: b.y, life: 1.0 });
+        if (b.history.length > 12) b.history.shift();
+        for (const h of b.history) h.life -= 0.015;
+        b.history = b.history.filter(h => h.life > 0);
+
+        // 스윕이 블립 각도를 지나면 ping
+        const bAngle = Math.atan2(b.y - CY, b.x - CX);
+        const diff = Math.abs(normAngle(sweepAngle - bAngle));
+        if (diff < 0.03 && now - b.lastPing > 600) {
+          b.lastPing = now;
+          b.pingStrength = 1.0;
+          b.visible = true;
+        }
+        b.pingStrength *= 0.985;
+        // ping 후 잠시 동안 보임, 서서히 dim
+        const visibility = Math.max(0.08, b.pingStrength);
+
+        // 꼬리(항적) 그리기
+        for (const h of b.history) {
+          const a = h.life * visibility * 0.5;
+          ctx.fillStyle = `rgba(125, 232, 212, ${a})`;
+          ctx.beginPath();
+          ctx.arc(h.x, h.y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        // 블립 본체 (도넛형)
+        const coreAlpha = visibility * 0.95;
+        ctx.fillStyle = `rgba(125, 232, 212, ${coreAlpha})`;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = `rgba(6, 15, 31, ${coreAlpha})`;
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 1.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        // ping 확산 링
+        if (b.pingStrength > 0.1) {
+          const pr = (1 - b.pingStrength) * 30;
+          ctx.strokeStyle = `rgba(125, 232, 212, ${b.pingStrength * 0.6})`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 4 + pr, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+
+        // 라벨
+        if (visibility > 0.15) {
+          const labelAlpha = visibility * 0.85;
+          ctx.fillStyle = `rgba(125, 232, 212, ${labelAlpha})`;
+          ctx.fillText(b.callsign, b.x + 10, b.y - 6);
+          ctx.fillStyle = `rgba(230, 236, 245, ${labelAlpha * 0.45})`;
+          ctx.fillText(`FL${String(b.alt/100).padStart(3,'0')}  HDG${String(b.heading).padStart(3,'0')}`, b.x + 10, b.y + 6);
+        }
+      }
+
+      // ─── 문장 포착 스파클 ───
+      for (let i = sparkles.length - 1; i >= 0; i--) {
+        const s = sparkles[i];
+        s.life -= 0.012;
+        if (s.life <= 0) { sparkles.splice(i, 1); continue; }
+        const size = 40 * (1 - s.life);
+        const grad = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, size);
+        grad.addColorStop(0, `rgba(125, 232, 212, ${s.life * 0.35})`);
+        grad.addColorStop(1, 'rgba(125, 232, 212, 0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // ─── 커서 항적 (오직 여기만 그라데이션 네온) ───
+      const dx = mouse.x - last.x;
+      const dy = mouse.y - last.y;
+      const dist = Math.hypot(dx, dy);
+      const step = 18;
+      const steps = Math.max(1, Math.floor(dist / step));
+      for (let s = 1; s <= steps; s++) {
+        const t = s / steps;
+        spawnTrail(last.x + dx * t, last.y + dy * t);
+      }
+      if (dist > 0.5) { last.x = mouse.x; last.y = mouse.y; }
+
+      for (let i = trail.length - 1; i >= 0; i--) {
+        const p = trail[i];
+        p.life -= 0.008;
+        if (p.life <= 0) { trail.splice(i, 1); continue; }
+        const [r, g, bl] = sampleNeon(p.hue);
+        const a = p.life;
+
+        const gr = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size * 3);
+        gr.addColorStop(0, `rgba(${r|0},${g|0},${bl|0},${a * 0.55})`);
+        gr.addColorStop(1, `rgba(${r|0},${g|0},${bl|0},0)`);
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = `rgba(${r|0},${g|0},${bl|0},${a})`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size * 0.7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      requestAnimationFrame(draw);
+    }
+    const sparkles = [];
+    requestAnimationFrame(draw);
+  </script>
+</body>
+</html>
