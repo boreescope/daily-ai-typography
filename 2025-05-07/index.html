@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PROJECT FREEDOM ON HOLD</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#000;overflow:hidden;font-family:'Helvetica Neue',Arial,sans-serif;cursor:pointer;}
+
+  .home-btn{
+    position:fixed;top:22px;left:24px;z-index:100;
+    font:500 11px/1 "Helvetica Neue",sans-serif;letter-spacing:.18em;
+    color:rgba(255,255,255,.4);text-decoration:none;
+    padding:8px 12px;border:1px solid rgba(255,255,255,.2);
+    border-radius:2px;transition:all .4s ease;
+  }
+  .home-btn:hover{color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.6);}
+
+  .masked{
+    position:fixed;inset:0;
+    -webkit-mask-image:url('ref/trump_alpha.png');
+    mask-image:url('ref/trump_alpha.png');
+    -webkit-mask-size:contain;
+    mask-size:contain;
+    -webkit-mask-repeat:no-repeat;
+    mask-repeat:no-repeat;
+    -webkit-mask-position:center;
+    mask-position:center;
+    transition:opacity 1.8s ease;
+    animation:maskPulse 3s ease-in-out infinite;
+    filter:url(#roughEdge);
+  }
+
+  @keyframes maskPulse{
+    0%{transform:scale(1) translate(0,0);}
+    25%{transform:scale(1.006) translate(1px,-1px);}
+    50%{transform:scale(0.995) translate(-1px,1px);}
+    75%{transform:scale(1.004) translate(1px,1px);}
+    100%{transform:scale(1) translate(0,0);}
+  }
+
+  .masked .L{
+    position:absolute;
+    font-weight:900;
+    color:transparent;
+    -webkit-text-stroke:1.4px rgba(255,255,255,.85);
+    background:
+      radial-gradient(circle 1px at center, rgba(255,255,255,.8) 0.6px, transparent 0.6px);
+    background-size:3.8px 3.8px;
+    -webkit-background-clip:text;
+    background-clip:text;
+    line-height:1;
+    white-space:nowrap;
+  }
+
+  .message{
+    position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    font:900 clamp(32px,5.5vw,68px)/1.2 "Helvetica Neue",Arial,sans-serif;
+    color:transparent;
+    -webkit-text-stroke:2px rgba(255,255,255,.9);
+    background:
+      radial-gradient(circle 1.2px at center, rgba(255,255,255,.85) 0.7px, transparent 0.7px);
+    background-size:4px 4px;
+    -webkit-background-clip:text;
+    background-clip:text;
+    letter-spacing:.06em;
+    text-align:center;
+    opacity:0;
+    transition:opacity 1.2s ease 0.6s;
+    pointer-events:none;
+    z-index:15;
+  }
+  .message.show{opacity:1;}
+
+  .hint{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    font:400 10px/1 "Helvetica Neue",sans-serif;letter-spacing:.2em;
+    color:rgba(255,255,255,.3);text-transform:uppercase;
+    transition:opacity .6s;z-index:10;
+  }
+  .hint.hide{opacity:0;}
+
+  .credit{
+    position:fixed;bottom:24px;right:24px;
+    font:400 9px/1.4 "Helvetica Neue",sans-serif;
+    letter-spacing:.08em;color:rgba(255,255,255,.25);z-index:10;
+  }
+</style>
+</head>
+<body>
+<a class="home-btn" href="../index.html">HOME</a>
+
+<!-- 지저분한 외곽선 필터 -->
+<svg style="position:absolute;width:0;height:0;">
+  <defs>
+    <filter id="roughEdge">
+      <feTurbulence type="turbulence" baseFrequency="0.04" numOctaves="3" seed="2" result="noise">
+        <animate attributeName="seed" values="1;5;3;8;2;6;4;7;1" dur="4s" repeatCount="indefinite"/>
+      </feTurbulence>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+<div class="masked" id="masked">
+</div>
+<div class="hint" id="hint">click</div>
+<div class="credit">2025.05.07</div>
+
+<script>
+try {
+const masked = document.getElementById('masked');
+const hintEl = document.getElementById('hint');
+const W = window.innerWidth;
+const H = window.innerHeight;
+const ALL_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+const SIZE = 48;
+const COLS = Math.ceil(W / (SIZE * 0.42));
+const ROWS = Math.ceil(H / (SIZE * 0.58));
+const frag = document.createDocumentFragment();
+
+// 글자마다 고유한 keyframes 생성
+const styleSheet = document.createElement('style');
+document.head.appendChild(styleSheet);
+
+// 메시지 글자를 처음부터 읽히는 위치에 배치 (3줄, 화면 중앙)
+const MSG = "PROJECTFREEDOMONHOLD";
+const MSG_LINES = ["PROJECT", "FREEDOM", "ONHOLD"];
+const msgPositions = new Map(); // 사용 안 함 — 메시지 글자는 별도 배치
+const totalCells = COLS * ROWS;
+
+let cellIdx = 0;
+for(let row = 0; row < ROWS; row++){
+  for(let col = 0; col < COLS; col++){
+    const idx = row * COLS + col;
+    const x = col * (SIZE * 0.42) + (Math.random()*8 - 4);
+    const y = row * (SIZE * 0.58) + (Math.random()*8 - 4);
+    const size = SIZE + Math.floor(Math.random()*14 - 7);
+    const ch = ALL_CHARS[Math.floor(Math.random()*ALL_CHARS.length)];
+
+    // 고유한 랜덤 움직임 — 폭력적으로
+    let kf = `@keyframes d${idx}{`;
+    const steps = 5 + Math.floor(Math.random()*3);
+    for(let s=0; s<=steps; s++){
+      const pct = Math.round(s/steps*100);
+      const rx = Math.floor(Math.random()*50-25);
+      const ry = Math.floor(Math.random()*50-25);
+      const rot = Math.floor(Math.random()*360-180);
+      const sc = (0.9 + Math.random()*0.2).toFixed(3);
+      kf += `${pct}%{transform:translate(${rx}px,${ry}px) rotate(${rot}deg) scale(${sc});}`;
+    }
+    kf += '}';
+    styleSheet.sheet.insertRule(kf, 0);
+
+    const dur = (1.5 + Math.random()*2.5).toFixed(2);
+    const delay = (-Math.random()*4).toFixed(2);
+
+    const el = document.createElement('span');
+    el.className = 'L';
+    el.textContent = ch;
+    el.style.cssText = `
+      left:${x}px;top:${y}px;font-size:${size}px;
+      animation:d${idx} ${dur}s ease-in-out ${delay}s infinite;
+    `;
+    frag.appendChild(el);
+    cellIdx++;
+  }
+}
+
+// 메시지 글자: 처음부터 3줄 위치에 배치 (다른 글자에 묻혀있다가 드러남)
+const charW = SIZE * 1.1;
+const lineH = SIZE * 2.2;
+const totalLH = MSG_LINES.length * lineH;
+const msgStartY = (H - totalLH) / 2;
+let msgIdx = 0;
+
+MSG_LINES.forEach((line, li) => {
+  const lineW = line.length * charW;
+  const sx = (W - lineW) / 2;
+  for(let ci = 0; ci < line.length; ci++){
+    const ch = line[ci];
+    const tx = sx + ci * charW + (Math.random()*8-4);
+    const ty = msgStartY + li * lineH + (Math.random()*10-5);
+    const mIdx = totalCells + msgIdx;
+
+    // 흔들림 (초반엔 폭력적 — 클릭 후 부드럽게 전환됨)
+    let kf = `@keyframes d${mIdx}{`;
+    const mSteps = 5 + Math.floor(Math.random()*3);
+    for(let s=0; s<=mSteps; s++){
+      const pct = Math.round(s/mSteps*100);
+      const rx = Math.floor(Math.random()*50-25);
+      const ry = Math.floor(Math.random()*50-25);
+      const rot = Math.floor(Math.random()*360-180);
+      const sc = (0.9 + Math.random()*0.2).toFixed(3);
+      kf += `${pct}%{transform:translate(${rx}px,${ry}px) rotate(${rot}deg) scale(${sc});}`;
+    }
+    kf += '}';
+    styleSheet.sheet.insertRule(kf, 0);
+
+    const dur = (1.5 + Math.random()*2.5).toFixed(2);
+    const delay = (-Math.random()*4).toFixed(2);
+
+    const el = document.createElement('span');
+    el.className = 'L';
+    el.textContent = ch;
+    el.dataset.msg = '1';
+    el.style.cssText = `
+      left:${tx}px;top:${ty}px;font-size:${SIZE}px;
+      animation:d${mIdx} ${dur}s ease-in-out ${delay}s infinite;
+    `;
+    frag.appendChild(el);
+    msgIdx++;
+  }
+});
+masked.appendChild(frag);
+
+/* 클릭 → 배경 글자 하나씩 사라짐 + 마스크 해제 + 메시지 남음 */
+let state = 'idle';
+
+document.addEventListener('click', e => {
+  if(e.target.closest('.home-btn')) return;
+
+  if(state === 'idle'){
+    state = 'revealing';
+    hintEl.classList.add('hide');
+
+    const others = [...masked.querySelectorAll('.L:not([data-msg])')];
+    others.sort(() => Math.random() - 0.5);
+    const interval = 2000 / others.length;
+
+    others.forEach((el, i) => {
+      setTimeout(() => { el.style.display = 'none'; }, i * interval + Math.random() * interval);
+    });
+
+    // 2.5초 후 마스크 해제 + 메시지 글자 즉시 멈춤
+    setTimeout(() => {
+      masked.style.webkitMaskImage = 'none';
+      masked.style.maskImage = 'none';
+      masked.style.animation = 'none';
+      // filter(roughEdge distort)는 유지
+
+      masked.querySelectorAll('.L[data-msg]').forEach((el) => {
+        el.style.animation = 'none';
+        el.style.transform = 'none';
+      });
+
+      state = 'done';
+    }, 2500);
+
+  } else if(state === 'done'){
+    location.reload();
+  }
+});
+} catch(err) { document.title = err.message; console.error(err); }
+</script>
+</body>
+</html>
