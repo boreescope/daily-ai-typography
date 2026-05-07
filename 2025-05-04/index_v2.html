@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The morning sun · v2 · Quiet Pearl</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#0c0a08;overflow:hidden;color:#fff8ea;font-family:Georgia,serif;}
+
+  .home-btn{
+    position:fixed;top:22px;left:24px;z-index:50;
+    font:500 11px/1 "Helvetica Neue",sans-serif;letter-spacing:.18em;
+    color:rgba(255,248,234,.55);text-decoration:none;
+    padding:8px 12px;border:1px solid rgba(255,248,234,.25);
+    border-radius:2px;backdrop-filter:blur(4px);
+    transition:all .4s ease;
+  }
+  .home-btn:hover{color:rgba(255,248,234,.95);border-color:rgba(255,248,234,.6);}
+
+  /* nav: FINAL(v5) 강조 + 작은 archive 그룹(v1-v4) */
+  .nav{
+    position:fixed;top:20px;right:24px;z-index:50;
+    display:flex;align-items:center;gap:8px;
+    font:500 10px/1 "Helvetica Neue",sans-serif;
+  }
+  .nav .main-link{
+    color:rgba(255,244,216,.95);text-decoration:none;
+    padding:9px 14px;
+    border:1px solid rgba(255,244,216,.65);
+    border-radius:2px;
+    font-size:11px;letter-spacing:.24em;
+    transition:all .35s ease;
+  }
+  .nav .main-link.cur{ background:rgba(255,244,216,.1); }
+  .nav .main-link:hover{ background:rgba(255,244,216,.06); border-color:rgba(255,244,216,.85); }
+  .nav .arc-group{
+    display:flex;align-items:center;gap:4px;
+    margin-left:4px;padding-left:10px;
+    border-left:1px solid rgba(255,248,234,.15);
+  }
+  .nav .arc-label{
+    color:rgba(255,248,234,.3);
+    font-size:7.5px;letter-spacing:.32em;text-transform:uppercase;
+    margin-right:2px;
+  }
+  .nav .arc-link{
+    color:rgba(255,248,234,.42);text-decoration:none;
+    font-size:8.5px;letter-spacing:.16em;
+    padding:3px 5px;
+    border:1px solid rgba(255,248,234,.13);
+    border-radius:2px;
+    transition:all .35s ease;
+  }
+  .nav .arc-link.cur{ color:rgba(255,244,216,.85); border-color:rgba(255,244,216,.5); }
+  .nav .arc-link:hover{ color:rgba(255,248,234,.7); border-color:rgba(255,248,234,.36); }
+
+  .stage{position:fixed;inset:0;overflow:hidden;}
+
+  .photo{
+    position:absolute;inset:0;
+    background-size:cover;background-position:center;
+    opacity:0;
+    filter:blur(1.6px) brightness(.96) saturate(1.08);
+    will-change:transform,opacity;
+    transition:opacity 2.6s ease-in-out;
+  }
+  .photo.active{opacity:1;}
+
+  .grain{
+    position:absolute;inset:-20%;pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+    opacity:.14;mix-blend-mode:overlay;
+    animation:grainShift .9s steps(6) infinite;
+  }
+  @keyframes grainShift{
+    0%{transform:translate(0,0);}
+    20%{transform:translate(-3%,2%);}
+    40%{transform:translate(2%,-3%);}
+    60%{transform:translate(-2%,-2%);}
+    80%{transform:translate(3%,3%);}
+    100%{transform:translate(0,0);}
+  }
+
+  .vignette{
+    position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse at 70% 30%, rgba(255,220,140,.20), transparent 55%),
+      radial-gradient(ellipse at 30% 80%, rgba(60,30,10,.45), transparent 60%),
+      radial-gradient(ellipse at center, transparent 50%, rgba(10,5,0,.62) 100%);
+    mix-blend-mode:multiply;opacity:.95;
+  }
+  .flicker{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 65% 25%,rgba(255,235,180,.18),transparent 50%);
+    mix-blend-mode:screen;
+    animation:flick 6s ease-in-out infinite;
+  }
+  @keyframes flick{
+    0%,100%{opacity:.30;}
+    40%{opacity:.55;}
+    70%{opacity:.20;}
+  }
+
+  .type-wrap{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    pointer-events:none;padding:4vh 4vw;
+  }
+  #handSvg{
+    width:100%;max-width:1280px;height:auto;overflow:visible;
+  }
+
+  /* Quiet Pearl: 구슬-실 시퀀싱. .glyph 자체는 항상 opacity 1; dot과 stroke 각각 개별 제어 */
+  .glyph{ opacity:1; }
+  .glyph path{
+    fill:none;
+    stroke:#fff2d4;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    opacity:0;
+    filter:
+      drop-shadow(0 0 3px rgba(255,225,170,.45))
+      drop-shadow(0 1px 2px rgba(40,20,5,.35));
+    transition:opacity .35s ease-out;
+  }
+  .glyph path.on{ opacity:1; }
+  .glyph path.off{ opacity:.85; }
+  .glyph circle{
+    fill:#fff2d4;
+    opacity:0;
+    filter:
+      drop-shadow(0 0 4px rgba(255,225,170,.55))
+      drop-shadow(0 1px 2px rgba(40,20,5,.35));
+    transition:opacity .25s ease-out;
+  }
+  .glyph circle.on{ opacity:1; }
+
+  .cap{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    font:500 10px/1 "Helvetica Neue",sans-serif;letter-spacing:.3em;
+    color:rgba(255,248,234,.4);text-transform:uppercase;
+  }
+  .badge{
+    position:fixed;bottom:28px;right:28px;
+    font:500 10px/1 "Helvetica Neue",sans-serif;letter-spacing:.28em;
+    color:rgba(255,248,234,.42);text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+<a class="home-btn" href="../index.html">HOME</a>
+<div class="nav">
+  <a class="main-link" href="index_v5.html">FINAL</a>
+  <div class="arc-group">
+    <span class="arc-label">archive</span>
+    <a class="arc-link" href="index.html">v1</a>
+    <a class="arc-link cur" href="index_v2.html">v2</a>
+    <a class="arc-link" href="index_v3.html">v3</a>
+    <a class="arc-link" href="index_v4.html">v4</a>
+  </div>
+</div>
+
+<div class="stage">
+  <div id="photos"></div>
+  <div class="vignette"></div>
+  <div class="flicker"></div>
+  <div class="grain"></div>
+
+  <div class="type-wrap">
+    <svg id="handSvg" viewBox="0 0 1400 700" preserveAspectRatio="xMidYMid meet">
+      <g id="letters"></g>
+    </svg>
+  </div>
+</div>
+
+<div class="cap">May 04 · Quiet Pearl</div>
+<div class="badge">v2 / Pearl</div>
+
+<script>
+/* ---------- Photos ---------- */
+const photos = [
+  "ref/sunshine photo/c5f5909f85ed9781760838c8a605fece.jpg",
+  "ref/sunshine photo/407a00c92948d0792f082cf6fc008a24.jpg",
+  "ref/sunshine photo/1346a732cd6e4cb2c9cf084ab593eee1.jpg",
+  "ref/sunshine photo/8b6d9d05effe093503e4405f7be1deab.jpg",
+  "ref/sunshine photo/ceb66534943fd088a7b34d4a6ca6f41f.jpg",
+  "ref/sunshine photo/9a144c37f8a7ca9da00e2b1cdec2119f.jpg",
+  "ref/sunshine photo/d01a0665cf174a650e78240c005a58b4.jpg",
+  "ref/sunshine photo/2a511656cd416997bcb04831aaf47a33.jpg",
+];
+const stage = document.getElementById('photos');
+const layers = photos.map(src=>{
+  const d = document.createElement('div');
+  d.className = 'photo';
+  d.style.backgroundImage = `url("${src}")`;
+  stage.appendChild(d);
+  return d;
+});
+function kenBurns(el){
+  const fromScale = 1.06 + Math.random()*0.10;
+  const toScale   = fromScale + 0.08 + Math.random()*0.08;
+  const fx = (Math.random()*8-4), fy = (Math.random()*8-4);
+  const tx = fx + (Math.random()*8-4), ty = fy + (Math.random()*8-4);
+  el.animate(
+    [{transform:`scale(${fromScale}) translate(${fx}%, ${fy}%)`},
+     {transform:`scale(${toScale}) translate(${tx}%, ${ty}%)`}],
+    {duration:16000, easing:'linear', fill:'forwards'}
+  );
+}
+let current = 0;
+function show(i){
+  layers.forEach((l,idx)=>{
+    if(idx===i){ l.classList.add('active'); kenBurns(l);}
+    else l.classList.remove('active');
+  });
+}
+show(0);
+setInterval(()=>{ current=(current+1)%layers.length; show(current); },7500);
+
+/* ---------- Quiet Pearl Letters ----------
+   - 베이스라인 일관성 (y=110 고정)
+   - x-height: y=46 (어센더 top y=6, 디센더 bottom y=140)
+   - 균일한 가는 획 (3.0)
+   - 모든 stroke 끝/시작에 작은 마블 dot circle
+   - 단어-끝 swash는 매끈한 quadratic 1~2개
+*/
+
+/* dot helper: 경로 종료점에 부드럽게 닫히는 작은 라운드 (path 자체가 아니라 circle 노드로 처리) */
+const letters = {
+  /* T : 대문자 — 어센더 영역까지 사용 */
+  "T": {w:78, dots:[[8,18],[70,18],[40,114]], strokes:[
+    "M8,18 Q40,12 70,18",
+    "M40,18 Q40,66 40,114"
+  ]},
+  "h": {w:64, dots:[[6,8],[62,114]], strokes:[
+    "M6,8 Q10,60 10,114",
+    "M10,62 Q22,46 36,50 Q56,56 56,80 Q56,98 62,114"
+  ]},
+  "e": {w:58, dots:[[10,80],[52,108]], strokes:[
+    "M10,80 Q14,52 36,52 Q54,56 50,76 Q44,84 14,80 Q10,98 30,108 Q48,108 52,98"
+  ]},
+  "e_long": {w:58, dots:[[10,80],[110,118]], strokes:[
+    "M10,80 Q14,52 36,52 Q54,56 50,76 Q44,84 14,80 Q10,98 30,108 Q48,108 54,100 Q90,98 110,118"
+  ]},
+  "m": {w:96, dots:[[6,114],[44,114],[90,114]], strokes:[
+    "M6,52 Q8,82 6,114",
+    "M6,56 Q22,46 34,52 Q44,60 44,114",
+    "M44,56 Q60,46 72,52 Q90,60 90,114"
+  ]},
+  "o": {w:60, dots:[[30,52]], strokes:[
+    "M30,52 Q8,52 8,82 Q10,108 30,110 Q56,108 56,82 Q56,52 30,52"
+  ]},
+  "r": {w:48, dots:[[6,114],[42,52]], strokes:[
+    "M6,52 Q10,84 6,114",
+    "M6,58 Q18,46 30,50 Q42,52 42,52"
+  ]},
+  "n": {w:60, dots:[[6,114],[58,114]], strokes:[
+    "M6,52 Q10,84 6,114",
+    "M6,56 Q22,46 36,52 Q58,60 58,114"
+  ]},
+  "n_long": {w:60, dots:[[6,114],[112,118]], strokes:[
+    "M6,52 Q10,84 6,114",
+    "M6,56 Q22,46 36,52 Q58,60 58,108 Q88,118 112,118"
+  ]},
+  "i": {w:24, dots:[[12,28],[12,114]], strokes:[
+    "M12,52 Q14,84 12,114"
+  ]},
+  "g": {w:62, dots:[[58,52],[6,144]], strokes:[
+    "M58,52 Q34,46 16,58 Q4,76 22,82 Q48,86 54,72 Q56,60 50,52",
+    "M58,58 Q60,90 54,118 Q42,142 22,140 Q4,136 6,128"
+  ]},
+  "g_long": {w:62, dots:[[58,52],[-30,170]], strokes:[
+    "M58,52 Q34,46 16,58 Q4,76 22,82 Q48,86 54,72 Q56,60 50,52",
+    "M58,58 Q60,96 50,128 Q34,160 6,160 Q-20,158 -30,170"
+  ]},
+  "s": {w:50, dots:[[44,56],[8,108]], strokes:[
+    "M44,56 Q28,46 16,56 Q4,68 24,74 Q44,78 44,92 Q40,108 18,106 Q8,104 8,98"
+  ]},
+  "s_long": {w:50, dots:[[44,56],[110,118]], strokes:[
+    "M44,56 Q28,46 16,56 Q4,68 24,74 Q44,78 44,92 Q40,108 22,106 Q40,108 70,112 Q90,114 110,118"
+  ]},
+  "u": {w:56, dots:[[6,52],[52,114]], strokes:[
+    "M6,52 Q4,98 14,108 Q30,114 40,102 Q44,90 44,52",
+    "M44,52 Q50,84 52,114"
+  ]},
+  "t": {w:38, dots:[[16,28],[34,108]], strokes:[
+    "M16,28 Q22,72 26,104 Q28,108 34,108",
+    "M2,52 Q18,48 36,50"
+  ]},
+  "a": {w:58, dots:[[48,56],[52,114]], strokes:[
+    "M48,56 Q26,46 14,60 Q4,80 22,86 Q44,88 48,80",
+    "M48,56 Q52,86 52,114"
+  ]},
+  "k": {w:60, dots:[[6,8],[6,114],[56,114]], strokes:[
+    "M6,8 Q10,60 6,114",
+    "M10,72 Q26,58 42,46",
+    "M16,76 Q30,86 44,98 Q52,106 56,114"
+  ]},
+  "f": {w:46, dots:[[34,12],[6,114]], strokes:[
+    "M34,12 Q18,8 12,22 Q10,60 6,114",
+    "M-2,54 Q16,50 30,54"
+  ]},
+  "l": {w:24, dots:[[12,8],[12,114]], strokes:[
+    "M12,8 Q14,60 12,114"
+  ]},
+  "l_long": {w:24, dots:[[12,8],[120,118]], strokes:[
+    "M12,8 Q14,60 12,108 Q60,114 120,118"
+  ]}
+};
+
+const lines = [
+  ["The","morning","sun"],
+  ["that","makes"],
+  ["a","fool","of","me"]
+];
+
+const svg = document.getElementById('handSvg');
+const gLetters = document.getElementById('letters');
+const svgNS = "http://www.w3.org/2000/svg";
+
+const spaceWidth = 60;
+const lineHeight = 178;
+const startY = 100;
+const vb = 1400;
+
+const LONG_TAIL_TARGETS = new Set(["morning","sun","makes","fool","me"]);
+/* 더 풍부한 커닝 페어 */
+const KERN = {
+  "T|h":-8,"t|h":-10,"h|e":-6,
+  "m|o":-4,"o|r":-6,"r|n":-4,"n|i":-2,"i|n":-2,"n|g":-4,
+  "s|u":-4,"u|n":-4,
+  "t|h":-10,"h|a":-6,"a|t":-10,
+  "m|a":-4,"a|k":-8,"k|e":-6,"e|s":-4,
+  "f|o":-4,"o|o":-2,"o|l":-4,
+  "o|f":-4,
+  "m|e":-4
+};
+
+function lineTotalWidth(words){
+  let w = 0;
+  words.forEach((word,wi)=>{
+    const lastIdx = word.length - 1;
+    for(let i=0; i<word.length; i++){
+      const ch = word[i];
+      const isLast = (i === lastIdx);
+      const useLong = isLast && LONG_TAIL_TARGETS.has(word);
+      const key = useLong ? ch + "_long" : ch;
+      const L = letters[key] || letters[ch];
+      w += (L?L.w:32);
+      if(i < lastIdx){
+        const kern = KERN[ch + "|" + word[i+1]] || 0;
+        w += kern;
+      }
+    }
+    if(wi < words.length-1) w += spaceWidth;
+  });
+  return w;
+}
+
+const groups = [];
+
+lines.forEach((words, li)=>{
+  const total = lineTotalWidth(words);
+  let x = (vb - total)/2;
+  const y = startY + li*lineHeight;
+
+  words.forEach((word, wi)=>{
+    const lastIdx = word.length - 1;
+    for(let idx=0; idx<word.length; idx++){
+      const ch = word[idx];
+      const isLast = (idx === lastIdx);
+      const useLong = isLast && LONG_TAIL_TARGETS.has(word);
+      const key = useLong ? ch + "_long" : ch;
+      const L = letters[key] || letters[ch];
+      if(L){
+        const g = document.createElementNS(svgNS, "g");
+        g.setAttribute("class","glyph");
+        /* Pearl: 흔들림 최소화 */
+        const rot = (Math.random()*4-2).toFixed(2);
+        const jx = (Math.random()*4-2).toFixed(2);
+        const jy = (Math.random()*4-2).toFixed(2);
+        const sc = (0.97 + Math.random()*0.06).toFixed(3);
+        const baseX = x + +jx;
+        const baseY = y + +jy;
+        const baseTransform = `translate(${baseX}, ${baseY}) rotate(${rot}) scale(${sc})`;
+        const startTransform = `translate(${baseX}, ${baseY + 14}) rotate(${rot}) scale(${sc})`;
+        const endTransform = `translate(${baseX}, ${baseY - 10}) rotate(${+rot + 1}) scale(${sc})`;
+        g.setAttribute("transform", startTransform);
+        g._base = baseTransform;
+        g._start = startTransform;
+        g._end = endTransform;
+        g._orderX = baseX + L.w/2;
+
+        const pathEls = [];
+        L.strokes.forEach((d)=>{
+          const p = document.createElementNS(svgNS, "path");
+          p.setAttribute("d", d);
+          p.setAttribute("stroke-width", 3.0);
+          g.appendChild(p);
+          pathEls.push(p);
+        });
+        const dotEls = [];
+        (L.dots||[]).forEach(([cx,cy])=>{
+          const c = document.createElementNS(svgNS, "circle");
+          c.setAttribute("cx", cx);
+          c.setAttribute("cy", cy);
+          c.setAttribute("r", 0); /* 펄지 — 애니로 r 0→4 */
+          c._targetR = 4.2;
+          g.appendChild(c);
+          dotEls.push(c);
+        });
+
+        gLetters.appendChild(g);
+        groups.push({g, paths:pathEls, dots:dotEls, line:li});
+        x += L.w;
+        if(idx < lastIdx){
+          const kern = KERN[ch + "|" + word[idx+1]] || 0;
+          x += kern;
+        }
+      } else {
+        x += 28;
+      }
+    }
+    if(wi < words.length-1) x += spaceWidth;
+  });
+});
+
+function setupDash(p){
+  const len = p.getTotalLength();
+  p.style.setProperty('--len', len);
+  p.style.strokeDasharray = len;
+  p.style.strokeDashoffset = len;
+}
+groups.forEach(({paths})=>paths.forEach(setupDash));
+
+function animateDash(p, duration, easing){
+  const len = parseFloat(p.style.getPropertyValue('--len'));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = easing ? easing(t) : (1 - Math.pow(1-t, 3));
+    p.style.strokeDashoffset = (len * (1-e)).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function animateDotR(c, duration){
+  const target = c._targetR;
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = 1 - Math.pow(1-t, 3);
+    c.setAttribute("r", (target*e).toFixed(2));
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function animateTransform(el, fromAttr, toAttr, duration, easing){
+  const parse = s => {
+    const m = s.match(/translate\(([-\d.]+),\s*([-\d.]+)\)\s*rotate\(([-\d.]+)\)\s*scale\(([-\d.]+)\)/);
+    return m ? {tx:+m[1], ty:+m[2], rot:+m[3], sc:+m[4]} : null;
+  };
+  const a = parse(fromAttr), b = parse(toAttr);
+  if(!a || !b){ el.setAttribute('transform', toAttr); return; }
+  const ease = easing || (t => 1 - Math.pow(1-t, 3));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = ease(t);
+    const tx = a.tx + (b.tx-a.tx)*e;
+    const ty = a.ty + (b.ty-a.ty)*e;
+    const rot = a.rot + (b.rot-a.rot)*e;
+    const sc = a.sc + (b.sc-a.sc)*e;
+    el.setAttribute('transform', `translate(${tx.toFixed(2)}, ${ty.toFixed(2)}) rotate(${rot.toFixed(2)}) scale(${sc.toFixed(3)})`);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+const plantEase = t => t<.5 ? 4*t*t*t : 1 - Math.pow(-2*t+2, 3)/2;
+
+/* Pearl Threading:
+   1) 글자 단위로 baseTransform에 즉시 자리잡음 (슬라이드 X)
+   2) 그 글자의 dots가 한 알씩 r 0→4로 톡톡 박힘 (왼→오 순)
+   3) dots가 어느 정도 박히면 stroke가 dasharray로 실처럼 흘러 들어감
+   4) 다음 글자로 이어짐 (빠른 좌→우 카스케이드)
+*/
+function bloom(){
+  const sorted = [...groups].sort((a,b)=> a.g._orderX - b.g._orderX);
+  sorted.forEach((grp, i)=>{
+    const delay = 100 + i*120;
+    setTimeout(()=>{
+      grp.g.setAttribute('transform', grp.g._base);
+      /* 1) dots 시퀀스 (각 80ms 간격) */
+      grp.dots.forEach((c, di)=>{
+        setTimeout(()=>{
+          c.classList.add('on');
+          animateDotR(c, 320);
+        }, di*90);
+      });
+      /* 2) dot 시퀀스가 거의 끝날 즈음, stroke가 천천히 실처럼 흐름 */
+      const strokeStart = (grp.dots.length||1) * 90 - 30;
+      grp.paths.forEach((p, pi)=>{
+        setTimeout(()=>{
+          p.classList.add('on');
+          animateDash(p, 1200 + Math.random()*240, plantEase);
+        }, strokeStart + pi*180);
+      });
+    }, delay);
+  });
+}
+
+/* Wilt:
+   stroke가 먼저 dasharray 역추적으로 사라지고,
+   그 뒤 dots가 한 알씩 작아지며 풀어짐
+*/
+function bloomDashOut(p, duration){
+  const len = parseFloat(p.style.getPropertyValue('--len'));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = t*t;
+    p.style.strokeDashoffset = (len * e).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function animateDotShrink(c, duration){
+  const startR = parseFloat(c.getAttribute("r")) || c._targetR;
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = 1 - Math.pow(1-t, 2);
+    c.setAttribute("r", (startR*(1-e)).toFixed(2));
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function wilt(){
+  const sorted = [...groups].sort((a,b)=> a.g._orderX - b.g._orderX);
+  sorted.forEach((grp, i)=>{
+    const delay = i*30;
+    setTimeout(()=>{
+      grp.paths.forEach((p, pi)=>{
+        setTimeout(()=>{
+          bloomDashOut(p, 700);
+          setTimeout(()=> p.classList.remove('on'), 700);
+        }, pi*70);
+      });
+      const stOut = (grp.paths.length||1) * 70 + 500;
+      grp.dots.forEach((c, di)=>{
+        setTimeout(()=>{
+          c.classList.remove('on');
+          animateDotShrink(c, 380);
+        }, stOut + di*60);
+      });
+    }, delay);
+  });
+}
+
+function reset(){
+  groups.forEach(({g,paths,dots})=>{
+    g.setAttribute('transform', g._base);
+    paths.forEach(p=>{
+      p.classList.remove('on');
+      const len = parseFloat(p.style.getPropertyValue('--len'));
+      p.style.strokeDashoffset = len;
+    });
+    dots.forEach(c => {
+      c.classList.remove('on');
+      c.setAttribute("r", 0);
+    });
+  });
+}
+
+function loop(){
+  reset();
+  setTimeout(bloom, 300);
+  setTimeout(wilt, 8800);
+}
+loop();
+setInterval(loop, 12500);
+</script>
+</body>
+</html>

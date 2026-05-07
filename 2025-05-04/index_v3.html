@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The morning sun · v3 · Harvest Ribbon</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#0c0a08;overflow:hidden;color:#fff8ea;font-family:Georgia,serif;}
+
+  .home-btn{
+    position:fixed;top:22px;left:24px;z-index:50;
+    font:500 11px/1 "Helvetica Neue",sans-serif;letter-spacing:.18em;
+    color:rgba(255,248,234,.55);text-decoration:none;
+    padding:8px 12px;border:1px solid rgba(255,248,234,.25);
+    border-radius:2px;backdrop-filter:blur(4px);
+    transition:all .4s ease;
+  }
+  .home-btn:hover{color:rgba(255,248,234,.95);border-color:rgba(255,248,234,.6);}
+
+  /* nav: FINAL(v5) 강조 + 작은 archive 그룹(v1-v4) */
+  .nav{
+    position:fixed;top:20px;right:24px;z-index:50;
+    display:flex;align-items:center;gap:8px;
+    font:500 10px/1 "Helvetica Neue",sans-serif;
+  }
+  .nav .main-link{
+    color:rgba(255,244,216,.95);text-decoration:none;
+    padding:9px 14px;
+    border:1px solid rgba(255,244,216,.65);
+    border-radius:2px;
+    font-size:11px;letter-spacing:.24em;
+    transition:all .35s ease;
+  }
+  .nav .main-link.cur{ background:rgba(255,244,216,.1); }
+  .nav .main-link:hover{ background:rgba(255,244,216,.06); border-color:rgba(255,244,216,.85); }
+  .nav .arc-group{
+    display:flex;align-items:center;gap:4px;
+    margin-left:4px;padding-left:10px;
+    border-left:1px solid rgba(255,248,234,.15);
+  }
+  .nav .arc-label{
+    color:rgba(255,248,234,.3);
+    font-size:7.5px;letter-spacing:.32em;text-transform:uppercase;
+    margin-right:2px;
+  }
+  .nav .arc-link{
+    color:rgba(255,248,234,.42);text-decoration:none;
+    font-size:8.5px;letter-spacing:.16em;
+    padding:3px 5px;
+    border:1px solid rgba(255,248,234,.13);
+    border-radius:2px;
+    transition:all .35s ease;
+  }
+  .nav .arc-link.cur{ color:rgba(255,244,216,.85); border-color:rgba(255,244,216,.5); }
+  .nav .arc-link:hover{ color:rgba(255,248,234,.7); border-color:rgba(255,248,234,.36); }
+
+  .stage{position:fixed;inset:0;overflow:hidden;}
+
+  .photo{
+    position:absolute;inset:0;
+    background-size:cover;background-position:center;
+    opacity:0;
+    filter:blur(1.4px) brightness(.92) saturate(1.10) contrast(1.05);
+    will-change:transform,opacity;
+    transition:opacity 2.6s ease-in-out;
+  }
+  .photo.active{opacity:1;}
+
+  .grain{
+    position:absolute;inset:-20%;pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+    opacity:.18;mix-blend-mode:overlay;
+    animation:grainShift .9s steps(6) infinite;
+  }
+  @keyframes grainShift{
+    0%{transform:translate(0,0);}
+    20%{transform:translate(-3%,2%);}
+    40%{transform:translate(2%,-3%);}
+    60%{transform:translate(-2%,-2%);}
+    80%{transform:translate(3%,3%);}
+    100%{transform:translate(0,0);}
+  }
+
+  .vignette{
+    position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse at 70% 30%, rgba(255,200,110,.28), transparent 55%),
+      radial-gradient(ellipse at 30% 80%, rgba(60,30,10,.45), transparent 60%),
+      radial-gradient(ellipse at center, transparent 50%, rgba(10,5,0,.6) 100%);
+    mix-blend-mode:multiply;opacity:.95;
+  }
+  .flicker{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 65% 25%,rgba(255,210,140,.24),transparent 50%);
+    mix-blend-mode:screen;
+    animation:flick 6s ease-in-out infinite;
+  }
+  @keyframes flick{
+    0%,100%{opacity:.32;}
+    40%{opacity:.6;}
+    70%{opacity:.22;}
+  }
+
+  .type-wrap{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    pointer-events:none;padding:4vh 4vw;
+  }
+  #handSvg{
+    width:100%;max-width:1280px;height:auto;overflow:visible;
+  }
+
+  /* Harvest Ribbon: 붓질 한 번 — scaleX로 펴지면서 칠해짐 */
+  .glyph{
+    opacity:0;
+  }
+  .glyph.on{
+    opacity:1;
+    transition:opacity .35s ease-out;
+  }
+  .glyph.off{
+    opacity:0;
+    transition:opacity .85s ease-in;
+  }
+
+  /* 리본은 두 겹: 진한 베이스 + 그 위 하이라이트 = 입체감 */
+  .glyph .base{
+    fill:none;
+    stroke:#ffd690;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:
+      drop-shadow(0 0 5px rgba(255,180,90,.55))
+      drop-shadow(0 0 14px rgba(255,150,70,.32))
+      drop-shadow(0 3px 4px rgba(40,15,0,.55));
+  }
+  .glyph .hl{
+    fill:none;
+    stroke:#fff4d2;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    opacity:.55;
+  }
+
+  .cap{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    font:500 10px/1 "Helvetica Neue",sans-serif;letter-spacing:.3em;
+    color:rgba(255,248,234,.4);text-transform:uppercase;
+  }
+  .badge{
+    position:fixed;bottom:28px;right:28px;
+    font:500 10px/1 "Helvetica Neue",sans-serif;letter-spacing:.28em;
+    color:rgba(255,248,234,.42);text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+<a class="home-btn" href="../index.html">HOME</a>
+<div class="nav">
+  <a class="main-link" href="index_v5.html">FINAL</a>
+  <div class="arc-group">
+    <span class="arc-label">archive</span>
+    <a class="arc-link" href="index.html">v1</a>
+    <a class="arc-link" href="index_v2.html">v2</a>
+    <a class="arc-link cur" href="index_v3.html">v3</a>
+    <a class="arc-link" href="index_v4.html">v4</a>
+  </div>
+</div>
+
+<div class="stage">
+  <div id="photos"></div>
+  <div class="vignette"></div>
+  <div class="flicker"></div>
+  <div class="grain"></div>
+
+  <div class="type-wrap">
+    <svg id="handSvg" viewBox="0 0 1400 700" preserveAspectRatio="xMidYMid meet">
+      <g id="letters"></g>
+    </svg>
+  </div>
+</div>
+
+<div class="cap">May 04 · Harvest Ribbon</div>
+<div class="badge">v3 / Ribbon</div>
+
+<script>
+const photos = [
+  "ref/sunshine photo/c5f5909f85ed9781760838c8a605fece.jpg",
+  "ref/sunshine photo/407a00c92948d0792f082cf6fc008a24.jpg",
+  "ref/sunshine photo/1346a732cd6e4cb2c9cf084ab593eee1.jpg",
+  "ref/sunshine photo/8b6d9d05effe093503e4405f7be1deab.jpg",
+  "ref/sunshine photo/ceb66534943fd088a7b34d4a6ca6f41f.jpg",
+  "ref/sunshine photo/9a144c37f8a7ca9da00e2b1cdec2119f.jpg",
+  "ref/sunshine photo/d01a0665cf174a650e78240c005a58b4.jpg",
+  "ref/sunshine photo/2a511656cd416997bcb04831aaf47a33.jpg",
+];
+const stage = document.getElementById('photos');
+const layers = photos.map(src=>{
+  const d = document.createElement('div');
+  d.className = 'photo';
+  d.style.backgroundImage = `url("${src}")`;
+  stage.appendChild(d);
+  return d;
+});
+function kenBurns(el){
+  const fromScale = 1.08 + Math.random()*0.10;
+  const toScale   = fromScale + 0.10 + Math.random()*0.08;
+  const fx = (Math.random()*8-4), fy = (Math.random()*8-4);
+  const tx = fx + (Math.random()*10-5), ty = fy + (Math.random()*10-5);
+  el.animate(
+    [{transform:`scale(${fromScale}) translate(${fx}%, ${fy}%)`},
+     {transform:`scale(${toScale}) translate(${tx}%, ${ty}%)`}],
+    {duration:15000, easing:'linear', fill:'forwards'}
+  );
+}
+let current = 0;
+function show(i){
+  layers.forEach((l,idx)=>{
+    if(idx===i){ l.classList.add('active'); kenBurns(l);}
+    else l.classList.remove('active');
+  });
+}
+show(0);
+setInterval(()=>{ current=(current+1)%layers.length; show(current); },7500);
+
+/* ---------- Harvest Ribbon Letters ----------
+   - 굵은 stroke (10) + 위에 얇은 하이라이트(3, opacity .55)로 두 겹 리본
+   - swash는 매끈한 quadratic 두 번
+   - 일관된 베이스라인, 미세한 흔들림
+*/
+
+/* swash 매끈한 꼬리 */
+const TAIL_RIGHT = " Q90,128 130,142 Q150,148 160,144";
+const TAIL_DOWN  = " Q40,150 18,170 Q-2,184 -8,176";
+const TAIL_UP    = " Q90,80 110,52 Q124,38 130,46";
+
+const letters = {
+  "T": {w:90, strokes:[
+    "M6,18 Q44,8 78,18 Q86,20 84,28 Q78,32 70,28",
+    "M44,18 Q44,68 44,116 Q44,124 38,124 Q30,120 34,112"
+  ]},
+  "h": {w:70, strokes:[
+    "M8,8 Q12,60 12,116 Q12,124 6,122",
+    "M12,62 Q26,46 44,52 Q60,58 60,86 Q60,108 64,116 Q70,118 66,110"
+  ]},
+  "e": {w:62, strokes:[
+    "M54,72 Q40,52 22,60 Q8,72 18,86 Q34,92 48,82 Q52,76 50,70",
+    "M16,84 Q12,104 32,108 Q52,108 56,96 Q56,90 50,86"
+  ]},
+  "e_long": {w:62, strokes:[
+    "M54,72 Q40,52 22,60 Q8,72 18,86 Q34,92 48,82 Q52,76 50,70",
+    "M16,84 Q12,104 32,108 Q52,108 56,96 Q60,90 56,86" + TAIL_RIGHT
+  ]},
+  "m": {w:104, strokes:[
+    "M6,52 Q10,84 8,116 Q8,122 4,120",
+    "M12,56 Q26,46 38,54 Q44,62 44,116",
+    "M44,56 Q60,46 76,56 Q82,64 82,116 Q82,122 86,122 Q92,120 88,114"
+  ]},
+  "o": {w:68, strokes:[
+    "M40,56 Q14,56 12,82 Q14,108 40,110 Q66,108 66,82 Q64,56 40,56"
+  ]},
+  "r": {w:54, strokes:[
+    "M6,52 Q10,84 6,116 Q6,122 2,120",
+    "M10,60 Q24,46 40,52 Q48,56 44,62 Q38,64 32,58"
+  ]},
+  "n": {w:68, strokes:[
+    "M6,52 Q10,84 6,116 Q6,122 2,120",
+    "M12,56 Q28,46 48,52 Q60,60 60,90 Q60,108 64,116 Q70,118 66,110"
+  ]},
+  "n_long": {w:68, strokes:[
+    "M6,52 Q10,84 6,116 Q6,122 2,120",
+    "M12,56 Q28,46 48,52 Q60,60 60,90 Q60,108 64,116" + TAIL_RIGHT
+  ]},
+  "i": {w:28, strokes:[
+    "M14,28 Q14,29 14,30",
+    "M14,52 Q16,84 14,116 Q14,124 8,122"
+  ]},
+  "g": {w:68, strokes:[
+    "M56,60 Q34,46 18,60 Q4,80 22,86 Q48,90 56,76 Q58,64 50,56",
+    "M58,62 Q60,98 50,124 Q34,144 16,138 Q4,134 8,128"
+  ]},
+  "g_long": {w:68, strokes:[
+    "M56,60 Q34,46 18,60 Q4,80 22,86 Q48,90 56,76 Q58,64 50,56",
+    "M58,62 Q60,98 50,124 Q34,144 16,138" + TAIL_DOWN
+  ]},
+  "s": {w:54, strokes:[
+    "M48,60 Q32,48 18,58 Q6,70 26,76 Q48,80 48,94 Q42,108 22,106 Q10,102 8,96"
+  ]},
+  "s_long": {w:54, strokes:[
+    "M48,60 Q32,48 18,58 Q6,70 26,76 Q48,80 48,94 Q42,108 22,106" + TAIL_RIGHT
+  ]},
+  "u": {w:64, strokes:[
+    "M6,52 Q2,98 14,108 Q30,114 42,104 Q48,94 48,52",
+    "M48,52 Q54,86 52,116 Q52,122 56,122 Q62,120 58,114"
+  ]},
+  "t": {w:42, strokes:[
+    "M18,28 Q22,72 26,108 Q28,116 36,116 Q42,114 38,108",
+    "M-2,52 Q18,46 38,50"
+  ]},
+  "a": {w:64, strokes:[
+    "M52,60 Q26,46 14,62 Q4,82 22,90 Q48,92 52,82 Q54,72 48,60",
+    "M52,60 Q56,90 54,116 Q54,122 58,122 Q64,120 60,114"
+  ]},
+  "k": {w:64, strokes:[
+    "M8,8 Q12,60 12,116 Q12,124 6,122",
+    "M14,72 Q30,58 46,46 Q52,42 48,52 Q34,64 22,72",
+    "M22,72 Q34,80 46,94 Q56,108 60,116 Q60,122 56,122 Q50,120 50,116"
+  ]},
+  "f": {w:50, strokes:[
+    "M36,12 Q20,4 14,22 Q12,60 8,116 Q8,124 2,122",
+    "M-4,52 Q16,46 32,50"
+  ]},
+  "l": {w:28, strokes:[
+    "M14,8 Q16,60 14,116 Q14,124 8,122"
+  ]},
+  "l_long": {w:28, strokes:[
+    "M14,8 Q16,60 14,108" + TAIL_RIGHT
+  ]}
+};
+
+const lines = [
+  ["The","morning","sun"],
+  ["that","makes"],
+  ["a","fool","of","me"]
+];
+
+const svg = document.getElementById('handSvg');
+const gLetters = document.getElementById('letters');
+const svgNS = "http://www.w3.org/2000/svg";
+
+const spaceWidth = 64;
+const lineHeight = 188;
+const startY = 100;
+const vb = 1400;
+
+const LONG_TAIL_TARGETS = new Set(["morning","sun","makes","fool","me"]);
+/* 두꺼운 글자라 더 타이트한 커닝 */
+const KERN = {
+  "T|h":-12,
+  "h|e":-8,
+  "m|o":-6,"o|r":-8,"r|n":-6,"n|i":-4,"i|n":-4,"n|g":-6,
+  "s|u":-6,"u|n":-6,
+  "t|h":-12,"h|a":-8,"a|t":-12,
+  "m|a":-6,"a|k":-10,"k|e":-8,"e|s":-6,
+  "f|o":-6,"o|o":-4,"o|l":-6,
+  "o|f":-6,
+  "m|e":-6
+};
+
+function lineTotalWidth(words){
+  let w = 0;
+  words.forEach((word,wi)=>{
+    const lastIdx = word.length - 1;
+    for(let i=0; i<word.length; i++){
+      const ch = word[i];
+      const isLast = (i === lastIdx);
+      const useLong = isLast && LONG_TAIL_TARGETS.has(word);
+      const key = useLong ? ch + "_long" : ch;
+      const L = letters[key] || letters[ch];
+      w += (L?L.w:32);
+      if(i < lastIdx){
+        const kern = KERN[ch + "|" + word[i+1]] || 0;
+        w += kern;
+      }
+    }
+    if(wi < words.length-1) w += spaceWidth;
+  });
+  return w;
+}
+
+const groups = [];
+
+lines.forEach((words, li)=>{
+  const total = lineTotalWidth(words);
+  let x = (vb - total)/2;
+  const y = startY + li*lineHeight;
+
+  words.forEach((word, wi)=>{
+    const lastIdx = word.length - 1;
+    for(let idx=0; idx<word.length; idx++){
+      const ch = word[idx];
+      const isLast = (idx === lastIdx);
+      const useLong = isLast && LONG_TAIL_TARGETS.has(word);
+      const key = useLong ? ch + "_long" : ch;
+      const L = letters[key] || letters[ch];
+      if(L){
+        const g = document.createElementNS(svgNS, "g");
+        g.setAttribute("class","glyph");
+        /* Ribbon: scaleX 압축→펼침 + 살짝 후방경사(왼→오 흐름) */
+        const rot = (Math.random()*4-2).toFixed(2);
+        const jx = (Math.random()*4-2).toFixed(2);
+        const jy = (Math.random()*4-2).toFixed(2);
+        const sc = (0.97 + Math.random()*0.06).toFixed(3);
+        const skewX = -6;  /* 살짝 우상향 슬랜트 효과 */
+        const baseX = x + +jx;
+        const baseY = y + +jy;
+        /* 시작: 가로 0.35로 압축 / 끝: 살짝 늘어진 채 아래로 흘러내림 */
+        const baseTransform = `translate(${baseX}, ${baseY}) rotate(${rot}) skewX(${skewX}) scale(${sc}, ${sc})`;
+        const startTransform = `translate(${baseX}, ${baseY}) rotate(${rot}) skewX(${skewX}) scale(${(sc*0.32).toFixed(3)}, ${(sc*0.92).toFixed(3)})`;
+        const endTransform = `translate(${baseX}, ${(baseY+34).toFixed(2)}) rotate(${(+rot + 4).toFixed(2)}) skewX(${skewX}) scale(${sc}, ${(sc*0.78).toFixed(3)})`;
+        g.setAttribute("transform", startTransform);
+        g._base = baseTransform;
+        g._start = startTransform;
+        g._end = endTransform;
+        g._orderX = baseX + L.w/2;
+
+        const baseEls = [];
+        const hlEls = [];
+        L.strokes.forEach((d)=>{
+          /* 베이스 두꺼운 리본 — 정방향 트레이스 */
+          const base = document.createElementNS(svgNS, "path");
+          base.setAttribute("d", d);
+          base.setAttribute("class","base");
+          const baseW = (10 + Math.random()*1.6).toFixed(2);
+          base.setAttribute("stroke-width", baseW);
+          g.appendChild(base);
+          baseEls.push(base);
+          /* 하이라이트 얇은 라인 — 역방향(끝→시작) 트레이스로 광택 잔상 */
+          const hl = document.createElementNS(svgNS, "path");
+          hl.setAttribute("d", d);
+          hl.setAttribute("class","hl");
+          hl.setAttribute("stroke-width", 3);
+          g.appendChild(hl);
+          hlEls.push(hl);
+        });
+
+        gLetters.appendChild(g);
+        groups.push({g, baseEls, hlEls, paths:[...baseEls, ...hlEls], line:li});
+        x += L.w;
+        if(idx < lastIdx){
+          const kern = KERN[ch + "|" + word[idx+1]] || 0;
+          x += kern;
+        }
+      } else {
+        x += 32;
+      }
+    }
+    if(wi < words.length-1) x += spaceWidth;
+  });
+});
+
+/* dasharray setup — direction은 base/hl 별로 다르게 */
+function setupDashFwd(p){
+  const len = p.getTotalLength();
+  p.style.setProperty('--len', len);
+  p.style.strokeDasharray = len;
+  p.style.strokeDashoffset = len;       /* 시작=invisible, 정방향(시작→끝) 트레이스 */
+}
+function setupDashRev(p){
+  const len = p.getTotalLength();
+  p.style.setProperty('--len', len);
+  p.style.strokeDasharray = len;
+  p.style.strokeDashoffset = -len;      /* 시작=invisible, 역방향(끝→시작) 트레이스 */
+}
+groups.forEach(({baseEls,hlEls})=>{
+  baseEls.forEach(setupDashFwd);
+  hlEls.forEach(setupDashRev);
+});
+
+function animateDashFwd(p, duration, easing){
+  const len = parseFloat(p.style.getPropertyValue('--len'));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = easing ? easing(t) : (1 - Math.pow(1-t, 3));
+    p.style.strokeDashoffset = (len * (1-e)).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function animateDashRev(p, duration, easing){
+  const len = parseFloat(p.style.getPropertyValue('--len'));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = easing ? easing(t) : (1 - Math.pow(1-t, 3));
+    /* -len → 0 으로 보간 */
+    p.style.strokeDashoffset = (-len * (1-e)).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+function animateDashOut(p, duration){
+  /* 사라짐: 현재 offset → ±len (보이지 않음) */
+  const len = parseFloat(p.style.getPropertyValue('--len'));
+  const cur = parseFloat(p.style.strokeDashoffset) || 0;
+  const target = cur >= 0 ? len : -len;
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = t*t;
+    p.style.strokeDashoffset = (cur + (target-cur)*e).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function animateTransform(el, fromAttr, toAttr, duration, easing){
+  /* scale(sx, sy) 두 값 지원 */
+  const re = /translate\(([-\d.]+),\s*([-\d.]+)\)\s*rotate\(([-\d.]+)\)\s*skewX\(([-\d.]+)\)\s*scale\(([-\d.]+),\s*([-\d.]+)\)/;
+  const a = re.exec(fromAttr), b = re.exec(toAttr);
+  if(!a || !b){ el.setAttribute('transform', toAttr); return; }
+  const A = {tx:+a[1], ty:+a[2], rot:+a[3], sk:+a[4], sx:+a[5], sy:+a[6]};
+  const B = {tx:+b[1], ty:+b[2], rot:+b[3], sk:+b[4], sx:+b[5], sy:+b[6]};
+  const ease = easing || (t => 1 - Math.pow(1-t, 3));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = ease(t);
+    const tx = A.tx + (B.tx-A.tx)*e;
+    const ty = A.ty + (B.ty-A.ty)*e;
+    const rot = A.rot + (B.rot-A.rot)*e;
+    const sk = A.sk + (B.sk-A.sk)*e;
+    const sx = A.sx + (B.sx-A.sx)*e;
+    const sy = A.sy + (B.sy-A.sy)*e;
+    el.setAttribute('transform', `translate(${tx.toFixed(2)}, ${ty.toFixed(2)}) rotate(${rot.toFixed(2)}) skewX(${sk.toFixed(2)}) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+/* 살짝 오버슛이 있는 ease — 붓이 멈출 때의 잔진동 */
+const brushEase = t => {
+  const c = 1.4;
+  return 1 + c * Math.pow(t-1, 3) + (c-0.4) * Math.pow(t-1, 2);
+};
+const dropEase = t => t*t*t;  /* 떨어질 땐 가속 */
+
+function bloom(){
+  const sorted = [...groups].sort((a,b)=> a.g._orderX - b.g._orderX);
+  sorted.forEach((grp, i)=>{
+    const delay = 90 + i*100;
+    setTimeout(()=>{
+      grp.g.classList.remove('off');
+      grp.g.classList.add('on');
+      /* 가로 압축이 풀리면서 글자가 한 번에 칠해짐 */
+      animateTransform(grp.g, grp.g._start, grp.g._base, 720, brushEase);
+      /* base는 정방향, hl은 역방향 + 약간 더 빠르게 */
+      grp.baseEls.forEach((p, pi)=>{
+        setTimeout(()=> animateDashFwd(p, 700, brushEase), pi*40);
+      });
+      grp.hlEls.forEach((p, pi)=>{
+        setTimeout(()=> animateDashRev(p, 520, t=>1-Math.pow(1-t,2)), 240 + pi*40);
+      });
+    }, delay);
+  });
+}
+
+function wilt(){
+  /* 중력 드립: 글자가 아래로 흘러내리면서 dasharray가 양옆으로 빠지듯 사라짐 */
+  const sorted = [...groups].sort((a,b)=> a.g._orderX - b.g._orderX);
+  sorted.forEach((grp, i)=>{
+    setTimeout(()=>{
+      grp.paths.forEach(p => animateDashOut(p, 600));
+      animateTransform(grp.g, grp.g._base, grp.g._end, 900, dropEase);
+      setTimeout(()=>{
+        grp.g.classList.remove('on');
+        grp.g.classList.add('off');
+      }, 400);
+    }, i*22);
+  });
+}
+
+function reset(){
+  groups.forEach(({g, baseEls, hlEls})=>{
+    g.classList.remove('on','off');
+    g.setAttribute('transform', g._start);
+    baseEls.forEach(p=>{
+      const len = parseFloat(p.style.getPropertyValue('--len'));
+      p.style.strokeDashoffset = len;
+    });
+    hlEls.forEach(p=>{
+      const len = parseFloat(p.style.getPropertyValue('--len'));
+      p.style.strokeDashoffset = -len;
+    });
+  });
+}
+
+function loop(){
+  reset();
+  setTimeout(bloom, 300);
+  setTimeout(wilt, 8600);
+}
+loop();
+setInterval(loop, 12200);
+</script>
+</body>
+</html>

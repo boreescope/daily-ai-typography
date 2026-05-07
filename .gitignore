@@ -3,3 +3,7 @@
 
 # Kapture screen recordings (often >100MB)
 Kapture*.gif
+
+# Reference images (저작권)
+**/ref/
+ref/

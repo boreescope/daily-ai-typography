@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>The morning sun · v4 · Sunlit Garden</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#0c0a08;overflow:hidden;color:#fff8ea;font-family:Georgia,serif;}
+
+  .home-btn{
+    position:fixed;top:22px;left:24px;z-index:50;
+    font:500 11px/1 "Helvetica Neue",sans-serif;letter-spacing:.18em;
+    color:rgba(255,248,234,.55);text-decoration:none;
+    padding:8px 12px;border:1px solid rgba(255,248,234,.25);
+    border-radius:2px;backdrop-filter:blur(4px);
+    transition:all .4s ease;
+  }
+  .home-btn:hover{color:rgba(255,248,234,.95);border-color:rgba(255,248,234,.6);}
+
+  /* nav: FINAL(v5) 강조 + 작은 archive 그룹(v1-v4) */
+  .nav{
+    position:fixed;top:20px;right:24px;z-index:50;
+    display:flex;align-items:center;gap:8px;
+    font:500 10px/1 "Helvetica Neue",sans-serif;
+  }
+  .nav .main-link{
+    color:rgba(255,244,216,.95);text-decoration:none;
+    padding:9px 14px;
+    border:1px solid rgba(255,244,216,.65);
+    border-radius:2px;
+    font-size:11px;letter-spacing:.24em;
+    transition:all .35s ease;
+  }
+  .nav .main-link.cur{ background:rgba(255,244,216,.1); }
+  .nav .main-link:hover{ background:rgba(255,244,216,.06); border-color:rgba(255,244,216,.85); }
+  .nav .arc-group{
+    display:flex;align-items:center;gap:4px;
+    margin-left:4px;padding-left:10px;
+    border-left:1px solid rgba(255,248,234,.15);
+  }
+  .nav .arc-label{
+    color:rgba(255,248,234,.3);
+    font-size:7.5px;letter-spacing:.32em;text-transform:uppercase;
+    margin-right:2px;
+  }
+  .nav .arc-link{
+    color:rgba(255,248,234,.42);text-decoration:none;
+    font-size:8.5px;letter-spacing:.16em;
+    padding:3px 5px;
+    border:1px solid rgba(255,248,234,.13);
+    border-radius:2px;
+    transition:all .35s ease;
+  }
+  .nav .arc-link.cur{ color:rgba(255,244,216,.85); border-color:rgba(255,244,216,.5); }
+  .nav .arc-link:hover{ color:rgba(255,248,234,.7); border-color:rgba(255,248,234,.36); }
+
+  .stage{position:fixed;inset:0;overflow:hidden;}
+
+  .photo{
+    position:absolute;inset:0;
+    background-size:cover;background-position:center;
+    opacity:0;
+    filter:blur(1.6px) brightness(.96) saturate(1.06);
+    will-change:transform,opacity;
+    transition:opacity 2.6s ease-in-out;
+  }
+  .photo.active{opacity:1;}
+
+  .grain{
+    position:absolute;inset:-20%;pointer-events:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+    opacity:.16;mix-blend-mode:overlay;
+    animation:grainShift .9s steps(6) infinite;
+  }
+  @keyframes grainShift{
+    0%{transform:translate(0,0);}
+    20%{transform:translate(-3%,2%);}
+    40%{transform:translate(2%,-3%);}
+    60%{transform:translate(-2%,-2%);}
+    80%{transform:translate(3%,3%);}
+    100%{transform:translate(0,0);}
+  }
+
+  .vignette{
+    position:absolute;inset:0;pointer-events:none;
+    background:
+      radial-gradient(ellipse at 70% 30%, rgba(255,220,140,.22), transparent 55%),
+      radial-gradient(ellipse at 30% 80%, rgba(60,30,10,.35), transparent 60%),
+      radial-gradient(ellipse at center, transparent 55%, rgba(10,5,0,.5) 100%);
+    mix-blend-mode:multiply;opacity:.92;
+  }
+  .flicker{
+    position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(ellipse at 65% 25%,rgba(255,235,180,.22),transparent 50%);
+    mix-blend-mode:screen;
+    animation:flick 6s ease-in-out infinite;
+  }
+  @keyframes flick{
+    0%,100%{opacity:.35;}
+    40%{opacity:.6;}
+    70%{opacity:.25;}
+  }
+
+  .type-wrap{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    pointer-events:none;padding:4vh 4vw;
+  }
+  #handSvg{
+    width:100%;max-width:1300px;height:auto;overflow:visible;
+  }
+
+  /* Sunlit Garden: 땅에서 자라남 — scaleY로 솟아남, opacity는 항상 1 */
+  .glyph{ opacity:1; }
+  .glyph.fade{ opacity:0; transition:opacity .6s ease-in; }
+
+  .glyph path{
+    fill:none;
+    stroke:#fff4d8;
+    stroke-linecap:round;
+    stroke-linejoin:round;
+    filter:
+      drop-shadow(0 0 4px rgba(255,220,150,.55))
+      drop-shadow(0 0 12px rgba(255,180,100,.3))
+      drop-shadow(0 2px 3px rgba(40,20,5,.4));
+  }
+
+  /* 장식: 햇살, 꽃잎, 반짝임 */
+  .deco{ opacity:0; }
+  .deco.on{ opacity:1; transition:opacity 1.4s ease-out; }
+  .deco.off{ opacity:0; transition:opacity 1.0s ease-in; }
+  .deco line, .deco path, .deco circle{
+    stroke:#ffe7b3;
+    stroke-linecap:round;
+    fill:none;
+    filter:
+      drop-shadow(0 0 4px rgba(255,210,140,.65))
+      drop-shadow(0 0 10px rgba(255,170,90,.32));
+  }
+  .deco circle.fill{
+    fill:#ffe7b3;
+    stroke:none;
+  }
+  .deco .petal{ fill:#ffe0a8; stroke:none; opacity:.85; }
+  .deco .core{ fill:#ffd070; stroke:none; }
+
+  .cap{
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    font:500 10px/1 "Helvetica Neue",sans-serif;letter-spacing:.3em;
+    color:rgba(255,248,234,.4);text-transform:uppercase;
+  }
+  .badge{
+    position:fixed;bottom:28px;right:28px;
+    font:500 10px/1 "Helvetica Neue",sans-serif;letter-spacing:.28em;
+    color:rgba(255,248,234,.42);text-transform:uppercase;
+  }
+</style>
+</head>
+<body>
+<a class="home-btn" href="../index.html">HOME</a>
+<div class="nav">
+  <a class="main-link" href="index_v5.html">FINAL</a>
+  <div class="arc-group">
+    <span class="arc-label">archive</span>
+    <a class="arc-link" href="index.html">v1</a>
+    <a class="arc-link" href="index_v2.html">v2</a>
+    <a class="arc-link" href="index_v3.html">v3</a>
+    <a class="arc-link cur" href="index_v4.html">v4</a>
+  </div>
+</div>
+
+<div class="stage">
+  <div id="photos"></div>
+  <div class="vignette"></div>
+  <div class="flicker"></div>
+  <div class="grain"></div>
+
+  <div class="type-wrap">
+    <svg id="handSvg" viewBox="0 0 1400 700" preserveAspectRatio="xMidYMid meet">
+      <g id="decoBack"></g>
+      <g id="letters"></g>
+      <g id="decoFront"></g>
+    </svg>
+  </div>
+</div>
+
+<div class="cap">May 04 · Sunlit Garden</div>
+<div class="badge">v4 / Garden</div>
+
+<script>
+const photos = [
+  "ref/sunshine photo/c5f5909f85ed9781760838c8a605fece.jpg",
+  "ref/sunshine photo/407a00c92948d0792f082cf6fc008a24.jpg",
+  "ref/sunshine photo/1346a732cd6e4cb2c9cf084ab593eee1.jpg",
+  "ref/sunshine photo/8b6d9d05effe093503e4405f7be1deab.jpg",
+  "ref/sunshine photo/ceb66534943fd088a7b34d4a6ca6f41f.jpg",
+  "ref/sunshine photo/9a144c37f8a7ca9da00e2b1cdec2119f.jpg",
+  "ref/sunshine photo/d01a0665cf174a650e78240c005a58b4.jpg",
+  "ref/sunshine photo/2a511656cd416997bcb04831aaf47a33.jpg",
+];
+const stageEl = document.getElementById('photos');
+const layers = photos.map(src=>{
+  const d = document.createElement('div');
+  d.className = 'photo';
+  d.style.backgroundImage = `url("${src}")`;
+  stageEl.appendChild(d);
+  return d;
+});
+function kenBurns(el){
+  const fromScale = 1.08 + Math.random()*0.10;
+  const toScale   = fromScale + 0.10 + Math.random()*0.08;
+  const fx = (Math.random()*8-4), fy = (Math.random()*8-4);
+  const tx = fx + (Math.random()*10-5), ty = fy + (Math.random()*10-5);
+  el.animate(
+    [{transform:`scale(${fromScale}) translate(${fx}%, ${fy}%)`},
+     {transform:`scale(${toScale}) translate(${tx}%, ${ty}%)`}],
+    {duration:15000, easing:'linear', fill:'forwards'}
+  );
+}
+let current = 0;
+function show(i){
+  layers.forEach((l,idx)=>{
+    if(idx===i){ l.classList.add('active'); kenBurns(l);}
+    else l.classList.remove('active');
+  });
+}
+show(0);
+setInterval(()=>{ current=(current+1)%layers.length; show(current); },7500);
+
+/* ---------- Sunlit Garden Letters ----------
+   - 베이스라인 일관성, 미세 흔들림
+   - 부드러운 swash (한 호흡으로 빠져나가는 매끈한 곡선)
+*/
+
+const TAIL_RIGHT = " Q90,118 130,134 Q150,138 158,132";
+const TAIL_DOWN  = " Q40,150 16,170 Q-2,182 -8,174";
+
+const letters = {
+  "T": {w:84, strokes:[
+    ["M6,18 Q42,8 76,18 Q84,20 80,28", 4.4],
+    ["M42,18 Q42,68 42,114 Q42,122 36,122 Q28,118 32,110", 3.8]
+  ]},
+  "h": {w:66, strokes:[
+    ["M6,8 Q10,60 10,116 Q10,124 4,122", 4.0],
+    ["M10,62 Q24,46 42,52 Q58,58 58,86 Q58,108 62,116 Q68,118 64,110", 3.4]
+  ]},
+  "e": {w:60, strokes:[
+    ["M52,72 Q38,52 22,60 Q8,72 18,84 Q34,90 46,82 Q50,76 48,70", 3.6],
+    ["M16,82 Q12,102 32,108 Q52,108 56,96 Q56,90 50,86", 3.2]
+  ]},
+  "e_long": {w:60, strokes:[
+    ["M52,72 Q38,52 22,60 Q8,72 18,84 Q34,90 46,82 Q50,76 48,70", 3.6],
+    ["M16,82 Q12,102 32,108 Q52,108 58,98" + TAIL_RIGHT, 3.2]
+  ]},
+  "m": {w:96, strokes:[
+    ["M6,52 Q10,84 8,116 Q8,124 4,122", 4.0],
+    ["M12,56 Q26,46 36,52 Q42,60 42,116", 3.4],
+    ["M42,56 Q56,46 70,52 Q80,60 80,116 Q80,124 84,124 Q90,122 86,116", 3.4]
+  ]},
+  "o": {w:64, strokes:[
+    ["M36,52 Q12,52 12,82 Q14,108 36,110 Q60,108 60,82 Q58,52 36,52", 3.6]
+  ]},
+  "r": {w:50, strokes:[
+    ["M6,52 Q10,84 6,116 Q6,124 2,122", 3.8],
+    ["M10,60 Q22,46 38,50 Q46,52 42,58 Q36,60 30,54", 3.0]
+  ]},
+  "n": {w:64, strokes:[
+    ["M6,52 Q10,84 6,116 Q6,124 2,122", 4.0],
+    ["M12,56 Q26,46 44,52 Q56,60 56,90 Q56,108 60,116 Q66,118 62,110", 3.4]
+  ]},
+  "n_long": {w:64, strokes:[
+    ["M6,52 Q10,84 6,116 Q6,124 2,122", 4.0],
+    ["M12,56 Q26,46 44,52 Q56,60 56,90 Q56,108 60,116" + TAIL_RIGHT, 3.4]
+  ]},
+  "i": {w:26, strokes:[
+    ["M14,52 Q16,84 14,116 Q14,124 8,122", 3.6]
+  ]},
+  "g": {w:64, strokes:[
+    ["M52,60 Q32,46 16,60 Q4,80 22,86 Q46,90 52,76 Q54,64 46,56", 3.6],
+    ["M54,62 Q56,98 48,124 Q34,144 18,138 Q4,134 8,128", 3.2]
+  ]},
+  "g_long": {w:64, strokes:[
+    ["M52,60 Q32,46 16,60 Q4,80 22,86 Q46,90 52,76 Q54,64 46,56", 3.6],
+    ["M54,62 Q56,98 48,124 Q34,144 18,138" + TAIL_DOWN, 3.2]
+  ]},
+  "s": {w:50, strokes:[
+    ["M44,60 Q28,48 16,58 Q4,68 24,74 Q46,78 46,92 Q42,108 22,106 Q10,102 8,96", 3.6]
+  ]},
+  "s_long": {w:50, strokes:[
+    ["M44,60 Q28,48 16,58 Q4,68 24,74 Q46,78 46,92 Q42,108 22,106" + TAIL_RIGHT, 3.6]
+  ]},
+  "u": {w:60, strokes:[
+    ["M6,52 Q2,98 14,108 Q30,114 40,104 Q44,94 44,52", 3.6],
+    ["M44,52 Q50,86 48,116 Q48,124 52,124 Q58,122 54,114", 3.2]
+  ]},
+  "t": {w:40, strokes:[
+    ["M16,28 Q22,72 26,108 Q28,116 34,116 Q40,114 36,108", 3.8],
+    ["M-2,52 Q18,46 36,50", 2.8]
+  ]},
+  "a": {w:60, strokes:[
+    ["M48,60 Q24,46 14,60 Q4,80 20,88 Q44,90 48,80 Q50,68 44,58", 3.6],
+    ["M48,60 Q52,90 50,116 Q50,124 54,124 Q60,122 56,114", 3.2]
+  ]},
+  "k": {w:60, strokes:[
+    ["M6,8 Q10,60 6,116 Q6,124 2,122", 4.0],
+    ["M12,72 Q28,58 42,46 Q48,42 44,52 Q32,62 22,70", 3.2],
+    ["M22,70 Q34,80 46,94 Q54,108 58,116 Q58,122 54,122 Q48,120 50,116", 3.0]
+  ]},
+  "f": {w:46, strokes:[
+    ["M32,12 Q18,4 12,22 Q10,60 6,116 Q6,124 0,122", 3.6],
+    ["M-4,52 Q14,46 30,50", 2.6]
+  ]},
+  "l": {w:26, strokes:[
+    ["M14,8 Q16,60 14,116 Q14,124 8,122", 3.8]
+  ]},
+  "l_long": {w:26, strokes:[
+    ["M14,8 Q16,60 14,108" + TAIL_RIGHT, 3.8]
+  ]}
+};
+
+const lines = [
+  ["The","morning","sun"],
+  ["that","makes"],
+  ["a","fool","of","me"]
+];
+
+const svg = document.getElementById('handSvg');
+const gLetters = document.getElementById('letters');
+const gDecoBack = document.getElementById('decoBack');
+const gDecoFront = document.getElementById('decoFront');
+const svgNS = "http://www.w3.org/2000/svg";
+
+const spaceWidth = 64;
+const lineHeight = 184;
+const startY = 100;
+const vb = 1400;
+
+const LONG_TAIL_TARGETS = new Set(["morning","sun","makes","fool","me"]);
+const KERN = {
+  "T|h":-10,
+  "h|e":-6,
+  "m|o":-4,"o|r":-6,"r|n":-4,"n|i":-2,"i|n":-2,"n|g":-4,
+  "s|u":-4,"u|n":-4,
+  "t|h":-12,"h|a":-6,"a|t":-12,
+  "m|a":-4,"a|k":-8,"k|e":-6,"e|s":-4,
+  "f|o":-4,"o|o":-2,"o|l":-4,
+  "o|f":-4,
+  "m|e":-4
+};
+
+function lineTotalWidth(words){
+  let w = 0;
+  words.forEach((word,wi)=>{
+    const lastIdx = word.length - 1;
+    for(let i=0; i<word.length; i++){
+      const ch = word[i];
+      const isLast = (i === lastIdx);
+      const useLong = isLast && LONG_TAIL_TARGETS.has(word);
+      const key = useLong ? ch + "_long" : ch;
+      const L = letters[key] || letters[ch];
+      w += (L?L.w:32);
+      if(i < lastIdx){
+        const kern = KERN[ch + "|" + word[i+1]] || 0;
+        w += kern;
+      }
+    }
+    if(wi < words.length-1) w += spaceWidth;
+  });
+  return w;
+}
+
+const groups = [];
+const wordBoxes = []; /* {word, x0, x1, y, line} 장식 배치용 */
+
+lines.forEach((words, li)=>{
+  const total = lineTotalWidth(words);
+  let x = (vb - total)/2;
+  const y = startY + li*lineHeight;
+
+  words.forEach((word, wi)=>{
+    const lastIdx = word.length - 1;
+    const wordX0 = x;
+    for(let idx=0; idx<word.length; idx++){
+      const ch = word[idx];
+      const isLast = (idx === lastIdx);
+      const useLong = isLast && LONG_TAIL_TARGETS.has(word);
+      const key = useLong ? ch + "_long" : ch;
+      const L = letters[key] || letters[ch];
+      if(L){
+        const g = document.createElementNS(svgNS, "g");
+        g.setAttribute("class","glyph");
+        const rot = +(Math.random()*5-2.5).toFixed(2);
+        const jx = +(Math.random()*5-2.5).toFixed(2);
+        const jy = +(Math.random()*5-2.5).toFixed(2);
+        const sc = +(0.96 + Math.random()*0.08).toFixed(3);
+        const baseX = x + jx;
+        const baseY = y + jy;
+        /* baseline 앵커: local y=110이 world (baseY+110*sc)에 고정되도록
+           sy_factor 0(완전 압축, baseline에 붙음) ~ 1(원래 키) */
+        const baselineLocal = 110;
+        const tyFor = (sf) => +(baseY + baselineLocal*sc*(1-sf)).toFixed(2);
+        const syFor = (sf) => +(sc*sf).toFixed(3);
+        /* 약간의 sway: start와 base 사이의 회전 차이로 자연스러운 흔들 */
+        const swayStart = +(rot + (Math.random()*6-3)).toFixed(2);
+        const baseTransform  = `translate(${baseX}, ${tyFor(1.00)}) rotate(${rot}) scale(${sc}, ${syFor(1.00)})`;
+        const startTransform = `translate(${baseX}, ${tyFor(0.04)}) rotate(${swayStart}) scale(${sc}, ${syFor(0.04)})`;
+        const endTransform   = `translate(${baseX}, ${tyFor(0.55)}) rotate(${(rot+8).toFixed(2)}) scale(${sc}, ${syFor(0.55)})`;
+        g.setAttribute("transform", startTransform);
+        g._base = baseTransform;
+        g._start = startTransform;
+        g._end = endTransform;
+        g._orderX = baseX + L.w/2;
+
+        const pathEls = [];
+        L.strokes.forEach(([d, w])=>{
+          const p = document.createElementNS(svgNS, "path");
+          p.setAttribute("d", d);
+          const variedW = (w * 1.2 * (0.92 + Math.random()*0.16)).toFixed(2);
+          p.setAttribute("stroke-width", variedW);
+          g.appendChild(p);
+          pathEls.push(p);
+        });
+
+        gLetters.appendChild(g);
+        groups.push({g, paths:pathEls, line:li});
+        x += L.w;
+        if(idx < lastIdx){
+          const kern = KERN[ch + "|" + word[idx+1]] || 0;
+          x += kern;
+        }
+      } else {
+        x += 28;
+      }
+    }
+    wordBoxes.push({word, x0:wordX0, x1:x, y, line:li});
+    if(wi < words.length-1) x += spaceWidth;
+  });
+});
+
+/* ---------- 장식 (햇살 / 꽃 / 반짝임) ----------
+   각 장식은 .deco 그룹으로 만들어서, 글자와 함께 bloom 시 페이드인 + 살짝 회전.
+*/
+const decoElements = [];
+
+function makeSun(cx, cy, r, rays){
+  const g = document.createElementNS(svgNS, "g");
+  g.setAttribute("class","deco");
+  g._kind = "sun";
+  g.setAttribute("transform", `translate(${cx},${cy}) rotate(0) scale(0.4, 0.4)`);
+  /* 중심 원 */
+  const core = document.createElementNS(svgNS, "circle");
+  core.setAttribute("cx", 0); core.setAttribute("cy", 0);
+  core.setAttribute("r", r); core.setAttribute("class","core");
+  g.appendChild(core);
+  /* 광선 */
+  const N = rays || 8;
+  for(let i=0;i<N;i++){
+    const ang = (i/N)*Math.PI*2;
+    const x1 = Math.cos(ang)*(r+4);
+    const y1 = Math.sin(ang)*(r+4);
+    const x2 = Math.cos(ang)*(r+18);
+    const y2 = Math.sin(ang)*(r+18);
+    const ln = document.createElementNS(svgNS, "line");
+    ln.setAttribute("x1",x1.toFixed(2));
+    ln.setAttribute("y1",y1.toFixed(2));
+    ln.setAttribute("x2",x2.toFixed(2));
+    ln.setAttribute("y2",y2.toFixed(2));
+    ln.setAttribute("stroke-width", 2.5);
+    g.appendChild(ln);
+  }
+  g._target = `translate(${cx},${cy}) rotate(0) scale(1, 1)`;
+  g._start = `translate(${cx},${cy}) rotate(-40) scale(0.15, 0.15)`;
+  g._end = `translate(${cx},${cy}) rotate(20) scale(0.25, 0.25)`;
+  g.setAttribute("transform", g._start);
+  return g;
+}
+
+function makeFlower(cx, cy, scale){
+  const g = document.createElementNS(svgNS, "g");
+  g.setAttribute("class","deco");
+  g._kind = "flower";
+  g._petals = [];
+  g.setAttribute("transform", `translate(${cx},${cy}) rotate(0) scale(0.2, 0.2)`);
+  /* 5장 꽃잎 — 각 꽃잎은 개별 g로 감싸 wilt 시 흩어짐 처리 */
+  const N = 5;
+  for(let i=0;i<N;i++){
+    const ang = (i/N)*Math.PI*2 - Math.PI/2;
+    const px = Math.cos(ang)*7;
+    const py = Math.sin(ang)*7;
+    const pg = document.createElementNS(svgNS, "g");
+    pg.setAttribute("transform", `translate(0,0)`);
+    const pet = document.createElementNS(svgNS, "ellipse");
+    pet.setAttribute("cx", px.toFixed(2));
+    pet.setAttribute("cy", py.toFixed(2));
+    pet.setAttribute("rx", 5);
+    pet.setAttribute("ry", 7);
+    pet.setAttribute("class","petal");
+    pet.setAttribute("transform", `rotate(${(i/N)*360 - 90} ${px.toFixed(2)} ${py.toFixed(2)})`);
+    pg.appendChild(pet);
+    pg._fallAng = ang;
+    g.appendChild(pg);
+    g._petals.push(pg);
+  }
+  /* 중심 */
+  const c = document.createElementNS(svgNS, "circle");
+  c.setAttribute("cx",0); c.setAttribute("cy",0);
+  c.setAttribute("r", 3.6);
+  c.setAttribute("class","core");
+  g.appendChild(c);
+  const sc = +(scale||1).toFixed(2);
+  const finalRot = +(Math.random()*40-20).toFixed(1);
+  g._target = `translate(${cx},${cy}) rotate(${finalRot}) scale(${sc}, ${sc})`;
+  g._start  = `translate(${cx},${cy}) rotate(-60) scale(0.1, 0.1)`;
+  g._end    = `translate(${cx},${cy}) rotate(${(finalRot+10).toFixed(1)}) scale(${(sc*0.9).toFixed(2)}, ${(sc*0.9).toFixed(2)})`;
+  g.setAttribute("transform", g._start);
+  return g;
+}
+
+function makeSparkle(cx, cy, size){
+  const g = document.createElementNS(svgNS, "g");
+  g.setAttribute("class","deco");
+  g._kind = "sparkle";
+  const s = size || 6;
+  /* 4-pointed star with 두 개의 line */
+  const v = document.createElementNS(svgNS, "line");
+  v.setAttribute("x1", 0); v.setAttribute("y1", -s);
+  v.setAttribute("x2", 0); v.setAttribute("y2", s);
+  v.setAttribute("stroke-width", 1.6);
+  g.appendChild(v);
+  const h = document.createElementNS(svgNS, "line");
+  h.setAttribute("x1", -s); h.setAttribute("y1", 0);
+  h.setAttribute("x2", s); h.setAttribute("y2", 0);
+  h.setAttribute("stroke-width", 1.6);
+  g.appendChild(h);
+  const c = document.createElementNS(svgNS, "circle");
+  c.setAttribute("cx",0); c.setAttribute("cy",0);
+  c.setAttribute("r", 1.4);
+  c.setAttribute("class","fill");
+  g.appendChild(c);
+  const finalRot = +(Math.random()*60-30).toFixed(1);
+  g._target = `translate(${cx},${cy}) rotate(${finalRot}) scale(1, 1)`;
+  g._start  = `translate(${cx},${cy}) rotate(0) scale(0.1, 0.1)`;
+  g._end    = `translate(${cx},${cy}) rotate(${(finalRot+30).toFixed(1)}) scale(1.4, 1.4)`;
+  g.setAttribute("transform", g._start);
+  return g;
+}
+
+/* 단어 위치를 따라 장식 배치 */
+function placeDecos(){
+  wordBoxes.forEach(({word,x0,x1,y,line})=>{
+    const midX = (x0+x1)/2;
+    if(word === "morning"){
+      /* "morning" 위에 작은 해 */
+      const sun = makeSun(midX, y - 38, 8, 9);
+      gDecoBack.appendChild(sun);
+      decoElements.push(sun);
+      /* 단어 양 옆에 sparkle */
+      const sp1 = makeSparkle(x0 - 18, y - 16, 5);
+      const sp2 = makeSparkle(x1 + 14, y - 24, 4);
+      gDecoFront.appendChild(sp1);
+      gDecoFront.appendChild(sp2);
+      decoElements.push(sp1, sp2);
+    }
+    if(word === "sun"){
+      /* sun 단어 위 큰 해 */
+      const sun = makeSun(midX + 6, y - 50, 11, 12);
+      gDecoBack.appendChild(sun);
+      decoElements.push(sun);
+    }
+    if(word === "fool"){
+      /* fool 위에 꽃 두 송이 */
+      const f1 = makeFlower(x0 + 14, y - 32, 1.0);
+      const f2 = makeFlower(x1 - 14, y - 22, 0.8);
+      gDecoFront.appendChild(f1);
+      gDecoFront.appendChild(f2);
+      decoElements.push(f1, f2);
+    }
+    if(word === "me"){
+      /* me 끝 부분에 작은 꽃 + sparkle */
+      const f = makeFlower(x1 + 30, y + 30, 0.9);
+      gDecoFront.appendChild(f);
+      decoElements.push(f);
+      const sp = makeSparkle(x1 + 56, y + 8, 5);
+      gDecoFront.appendChild(sp);
+      decoElements.push(sp);
+    }
+    if(word === "makes"){
+      /* makes 위 sparkle */
+      const sp = makeSparkle(midX, y - 36, 5);
+      gDecoFront.appendChild(sp);
+      decoElements.push(sp);
+    }
+    if(word === "that"){
+      /* that 옆 작은 꽃 */
+      const f = makeFlower(x0 - 28, y + 12, 0.7);
+      gDecoFront.appendChild(f);
+      decoElements.push(f);
+    }
+    if(word === "of"){
+      /* of 위 sparkle */
+      const sp = makeSparkle(midX, y - 28, 4);
+      gDecoFront.appendChild(sp);
+      decoElements.push(sp);
+    }
+    if(word === "a"){
+      /* a 옆 작은 꽃 */
+      const f = makeFlower(x0 - 22, y - 4, 0.6);
+      gDecoFront.appendChild(f);
+      decoElements.push(f);
+    }
+  });
+}
+placeDecos();
+
+/* dasharray — 글자 path는 dasharray로 같이 따라 그려진다 */
+function setupDash(p){
+  const len = p.getTotalLength();
+  p.style.setProperty('--len', len);
+  p.style.strokeDasharray = len;
+  p.style.strokeDashoffset = len;
+}
+groups.forEach(({paths})=>paths.forEach(setupDash));
+
+function animateDash(p, duration, easing){
+  const len = parseFloat(p.style.getPropertyValue('--len'));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = easing ? easing(t) : (1 - Math.pow(1-t, 3));
+    p.style.strokeDashoffset = (len * (1-e)).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+/* scale(sx, sy) 두 값 지원 */
+function animateTransform(el, fromAttr, toAttr, duration, easing){
+  const re = /translate\(([-\d.]+),\s*([-\d.]+)\)\s*rotate\(([-\d.]+)\)\s*scale\(([-\d.]+),\s*([-\d.]+)\)/;
+  const a = re.exec(fromAttr); const b = re.exec(toAttr);
+  if(!a || !b){ el.setAttribute('transform', toAttr); return; }
+  const A = {tx:+a[1], ty:+a[2], rot:+a[3], sx:+a[4], sy:+a[5]};
+  const B = {tx:+b[1], ty:+b[2], rot:+b[3], sx:+b[4], sy:+b[5]};
+  const ease = easing || (t => 1 - Math.pow(1-t, 3));
+  const start = performance.now();
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = ease(t);
+    const tx = A.tx + (B.tx-A.tx)*e;
+    const ty = A.ty + (B.ty-A.ty)*e;
+    const rot = A.rot + (B.rot-A.rot)*e;
+    const sx = A.sx + (B.sx-A.sx)*e;
+    const sy = A.sy + (B.sy-A.sy)*e;
+    el.setAttribute('transform', `translate(${tx.toFixed(2)}, ${ty.toFixed(2)}) rotate(${rot.toFixed(2)}) scale(${sx.toFixed(3)}, ${sy.toFixed(3)})`);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+/* 살짝 오버슛이 있는 ease — 식물이 솟을 때 끝에서 한 번 더 펴지는 느낌 */
+const sproutEase = t => {
+  const c = 1.7, c1 = c+1;
+  return 1 + c1 * Math.pow(t-1, 3) + c * Math.pow(t-1, 2);
+};
+const witherEase = t => t*t;
+const dewEase = t => 1 - Math.pow(1-t, 4);
+
+/* ---------- bloom: 글자 sprout + 장식 3파동 ---------- */
+function bloom(){
+  /* 글자: 왼→오 줄별로 카스케이드. baseline 앵커 scaleY로 솟아오름 */
+  const sorted = [...groups].sort((a,b)=>{
+    if(a.line !== b.line) return a.line - b.line;
+    return a.g._orderX - b.g._orderX;
+  });
+  sorted.forEach((grp, i)=>{
+    const delay = 100 + i*95;
+    setTimeout(()=>{
+      grp.g.classList.remove('fade');
+      animateTransform(grp.g, grp.g._start, grp.g._base, 950, sproutEase);
+      /* dasharray는 자라는 시간보다 살짝 늦게, 부드럽게 채워진다 */
+      grp.paths.forEach((p, pi)=>{
+        setTimeout(()=>{
+          animateDash(p, 900 + Math.random()*180, sproutEase);
+        }, 200 + pi*80);
+      });
+    }, delay);
+  });
+
+  /* 장식: 3파동 — sparkles → flowers → suns */
+  const sparkles = decoElements.filter(d => d._kind === "sparkle");
+  const flowers  = decoElements.filter(d => d._kind === "flower");
+  const suns     = decoElements.filter(d => d._kind === "sun");
+
+  /* wave 1: sparkles — 빠르고 가볍게 (이슬방울처럼 톡톡) */
+  sparkles.forEach((d, i)=>{
+    setTimeout(()=>{
+      d.classList.remove('off');
+      d.classList.add('on');
+      animateTransform(d, d._start, d._target, 480, dewEase);
+    }, 350 + i*110 + Math.random()*120);
+  });
+  /* wave 2: flowers — 중간 무게, 꽃잎이 펴지는 듯 천천히 */
+  flowers.forEach((d, i)=>{
+    setTimeout(()=>{
+      d.classList.remove('off');
+      d.classList.add('on');
+      animateTransform(d, d._start, d._target, 1100, sproutEase);
+    }, 1100 + i*160 + Math.random()*160);
+  });
+  /* wave 3: suns — 마지막에 천천히 떠오름 (회전 오래) */
+  suns.forEach((d, i)=>{
+    setTimeout(()=>{
+      d.classList.remove('off');
+      d.classList.add('on');
+      animateTransform(d, d._start, d._target, 1700, sproutEase);
+    }, 1900 + i*260);
+  });
+}
+
+/* ---------- wilt: 시들기 + 흩어지기 ---------- */
+function petalFall(petalG, ang, dist, duration){
+  const start = performance.now();
+  const fx = Math.cos(ang)*dist;
+  const fy = Math.sin(ang)*dist + dist*0.6; /* 중력 보정으로 살짝 더 아래로 */
+  function step(now){
+    const t = Math.min((now-start)/duration, 1);
+    const e = 1 - Math.pow(1-t, 2);
+    petalG.setAttribute("transform", `translate(${(fx*e).toFixed(1)}, ${(fy*e).toFixed(1)}) rotate(${(t*40).toFixed(1)})`);
+    petalG.style.opacity = (1-e).toFixed(2);
+    if(t<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function wilt(){
+  /* 글자: 시들면서 baseline으로 다시 가라앉음 + 살짝 옆으로 기움 + 페이드 */
+  groups.forEach((grp, i)=>{
+    setTimeout(()=>{
+      animateTransform(grp.g, grp.g._base, grp.g._end, 950, witherEase);
+      setTimeout(()=> grp.g.classList.add('fade'), 250);
+    }, i*22);
+  });
+  /* 장식 — 종류별로 다른 사라짐 */
+  const sparkles = decoElements.filter(d => d._kind === "sparkle");
+  const flowers  = decoElements.filter(d => d._kind === "flower");
+  const suns     = decoElements.filter(d => d._kind === "sun");
+  /* sparkles: 가장 빨리 깜빡 사라짐 (커지면서 fade) */
+  sparkles.forEach((d, i)=>{
+    setTimeout(()=>{
+      animateTransform(d, d._target, d._end, 380, t=>t);
+      d.classList.remove('on');
+      d.classList.add('off');
+    }, i*40);
+  });
+  /* flowers: 꽃잎이 사방으로 흩어지며 떨어짐 */
+  flowers.forEach((d, i)=>{
+    setTimeout(()=>{
+      d._petals.forEach((pg, pi)=>{
+        const ang = pg._fallAng + (Math.random()*0.6-0.3);
+        const dist = 24 + Math.random()*16;
+        petalFall(pg, ang, dist, 900);
+      });
+      /* 중심부와 전체는 약간의 지연 후 페이드 */
+      setTimeout(()=>{
+        d.classList.remove('on');
+        d.classList.add('off');
+      }, 600);
+    }, 200 + i*80);
+  });
+  /* suns: 천천히 더 커지며 빛이 사그라듦 */
+  suns.forEach((d, i)=>{
+    setTimeout(()=>{
+      animateTransform(d, d._target, d._end, 1100, t=>t);
+      setTimeout(()=>{
+        d.classList.remove('on');
+        d.classList.add('off');
+      }, 600);
+    }, 100 + i*100);
+  });
+}
+
+function reset(){
+  groups.forEach(({g,paths})=>{
+    g.classList.remove('fade');
+    g.setAttribute('transform', g._start);
+    paths.forEach(p=>{
+      const len = parseFloat(p.style.getPropertyValue('--len'));
+      p.style.strokeDashoffset = len;
+    });
+  });
+  decoElements.forEach(d=>{
+    d.classList.remove('on','off');
+    d.setAttribute('transform', d._start);
+    if(d._petals){
+      d._petals.forEach(pg=>{
+        pg.setAttribute("transform", "translate(0,0)");
+        pg.style.opacity = 1;
+      });
+    }
+  });
+}
+
+function loop(){
+  reset();
+  setTimeout(bloom, 300);
+  setTimeout(wilt, 8800);
+}
+loop();
+setInterval(loop, 12500);
+</script>
+</body>
+</html>
