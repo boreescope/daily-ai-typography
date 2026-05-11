@@ -103,11 +103,27 @@ html,body{
   z-index:100;
   display:flex;
   justify-content:space-between;
+  align-items:center;
   text-shadow:0 0 5px var(--green-dim);
 }
 
 .terminal-title{letter-spacing:2px;}
 .terminal-status{animation:blink 1s infinite;}
+.home-btn{
+  color:var(--green-dim);
+  text-decoration:none;
+  padding:4px 10px;
+  border:1px solid var(--green-dim);
+  font-size:11px;
+  letter-spacing:1px;
+  transition:all 0.2s;
+}
+.home-btn:hover{
+  color:var(--green);
+  border-color:var(--green);
+  text-shadow:0 0 10px var(--green);
+  box-shadow:0 0 10px rgba(0,255,0,0.3);
+}
 @keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
 
 .line{
@@ -263,7 +279,10 @@ html,body{
 
   <div class="terminal-header">
     <span class="terminal-title">COLLEAGUE.SKILL v2.0.26 — NEURAL RESURRECTION PROTOCOL</span>
-    <span class="terminal-status">●</span>
+    <div style="display:flex;align-items:center;gap:15px;">
+      <a href="../" class="home-btn">← HOME</a>
+      <span class="terminal-status">●</span>
+    </div>
   </div>
 
   <div class="terminal" id="screen"></div>
