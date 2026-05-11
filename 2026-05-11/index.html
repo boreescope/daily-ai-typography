@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>찰나가 흩어지는 걸 보면서</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@200;300;400&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #b8d4ec;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-family: 'IBM Plex Sans KR', sans-serif;
+      overflow: hidden;
+    }
+
+    .bg-image {
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background-image: url('blue-triangle-pattern-background_90220-1574.avif');
+      background-size: cover;
+      background-position: center;
+      filter: blur(80px);
+      opacity: 0.7;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+
+    .text-container {
+      position: fixed;
+      bottom: 5%;
+      text-align: center;
+      z-index: 10;
+    }
+
+    .line {
+      color: #2a3a5a;
+      font-size: 1rem;
+      font-weight: 400;
+      letter-spacing: 0.25em;
+      line-height: 2;
+    }
+
+    .home-btn {
+      position: fixed;
+      top: 1.5rem;
+      left: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: rgba(42, 58, 90, 0.15);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s ease;
+      z-index: 100;
+    }
+
+    .home-btn:hover {
+      background: rgba(42, 58, 90, 0.25);
+    }
+
+    .home-btn svg {
+      width: 20px;
+      height: 20px;
+      fill: #2a3a5a;
+      opacity: 0.7;
+    }
+  </style>
+</head>
+<body>
+  <a href="../index.html" class="home-btn">
+    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  </a>
+
+  <div class="bg-image"></div>
+
+  <div class="container">
+    <svg viewBox="0 0 800 1000" preserveAspectRatio="xMidYMid slice">
+      <defs>
+        <filter id="waterDistort" x="-30%" y="-30%" width="160%" height="160%">
+          <feTurbulence id="turbulence" type="fractalNoise" baseFrequency="0.008 0.012" numOctaves="4" result="noise" seed="5"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="40" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+
+        <filter id="waterLight" x="-30%" y="-30%" width="160%" height="160%">
+          <feTurbulence id="turbulence2" type="fractalNoise" baseFrequency="0.006 0.01" numOctaves="3" result="noise" seed="15"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="28" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+
+        <filter id="waterHeavy" x="-30%" y="-30%" width="160%" height="160%">
+          <feTurbulence id="turbulence3" type="fractalNoise" baseFrequency="0.005 0.008" numOctaves="3" result="noise" seed="25"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="50" xChannelSelector="R" yChannelSelector="G"/>
+          <feGaussianBlur stdDeviation="1.5"/>
+        </filter>
+
+        <filter id="softShadow">
+          <feGaussianBlur stdDeviation="25"/>
+        </filter>
+
+        <filter id="blur3">
+          <feGaussianBlur stdDeviation="8"/>
+        </filter>
+
+        <!-- Noise/grain texture -->
+        <filter id="noise" x="0%" y="0%" width="100%" height="100%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="4" result="noise"/>
+          <feColorMatrix type="saturate" values="0"/>
+          <feBlend in="SourceGraphic" in2="noise" mode="multiply"/>
+        </filter>
+      </defs>
+
+      <!-- Noise overlay -->
+      <rect width="100%" height="100%" filter="url(#noise)" opacity="0.08"/>
+
+      <!-- Soft shadows -->
+      <g filter="url(#softShadow)" opacity="0.12">
+        <ellipse cx="400" cy="580" rx="220" ry="100" fill="#2a4a6a"/>
+        <ellipse cx="200" cy="400" rx="80" ry="50" fill="#2a4a6a"/>
+        <ellipse cx="600" cy="350" rx="90" ry="45" fill="#2a4a6a"/>
+        <ellipse cx="150" cy="700" rx="70" ry="40" fill="#2a4a6a"/>
+        <ellipse cx="650" cy="720" rx="85" ry="50" fill="#2a4a6a"/>
+      </g>
+
+      <!-- Scattered numbers - outermost layer -->
+      <g filter="url(#waterHeavy)" font-family="Georgia, serif" fill="#3a4a6a">
+        <text x="15" y="50" font-size="14" opacity="0.2">7</text>
+        <text x="780" y="40" font-size="12" opacity="0.15">2</text>
+        <text x="5" y="180" font-size="13" opacity="0.18">11</text>
+        <text x="790" y="200" font-size="11" opacity="0.15">5</text>
+        <text x="10" y="320" font-size="12" opacity="0.2">4</text>
+        <text x="785" y="350" font-size="14" opacity="0.18">9</text>
+        <text x="8" y="480" font-size="11" opacity="0.15">1</text>
+        <text x="788" y="500" font-size="13" opacity="0.2">8</text>
+        <text x="12" y="650" font-size="14" opacity="0.18">6</text>
+        <text x="782" y="680" font-size="12" opacity="0.15">3</text>
+        <text x="5" y="820" font-size="13" opacity="0.2">10</text>
+        <text x="790" y="850" font-size="11" opacity="0.18">12</text>
+        <text x="15" y="970" font-size="12" opacity="0.15">5</text>
+        <text x="780" y="960" font-size="14" opacity="0.2">7</text>
+      </g>
+
+      <!-- Scattered numbers - outer layer -->
+      <g filter="url(#waterLight)" font-family="Georgia, serif" fill="#3a4a6a">
+        <text x="50" y="90" font-size="18" opacity="0.25">3</text>
+        <text x="740" y="100" font-size="16" opacity="0.22">11</text>
+        <text x="40" y="220" font-size="17" opacity="0.25">8</text>
+        <text x="750" y="250" font-size="15" opacity="0.22">1</text>
+        <text x="55" y="380" font-size="16" opacity="0.25">6</text>
+        <text x="735" y="420" font-size="18" opacity="0.22">4</text>
+        <text x="45" y="550" font-size="15" opacity="0.25">12</text>
+        <text x="745" y="580" font-size="17" opacity="0.22">9</text>
+        <text x="60" y="720" font-size="18" opacity="0.25">2</text>
+        <text x="730" y="750" font-size="16" opacity="0.22">7</text>
+        <text x="50" y="880" font-size="17" opacity="0.25">10</text>
+        <text x="740" y="900" font-size="15" opacity="0.22">5</text>
+      </g>
+
+      <!-- Scattered numbers - middle layer with Korean -->
+      <g filter="url(#waterLight)" font-family="'IBM Plex Sans KR', sans-serif" fill="#3a4a6a">
+        <text x="100" y="130" font-size="22" opacity="0.3">9</text>
+        <text x="680" y="150" font-size="20" opacity="0.28">멈춰서</text>
+        <text x="90" y="280" font-size="21" opacity="0.3">5</text>
+        <text x="690" y="310" font-size="23" opacity="0.28">2</text>
+        <text x="105" y="450" font-size="20" opacity="0.3">11</text>
+        <text x="675" y="480" font-size="22" opacity="0.28">7</text>
+        <text x="95" y="620" font-size="23" opacity="0.3">바라보고</text>
+        <text x="685" y="650" font-size="21" opacity="0.28">4</text>
+        <text x="110" y="800" font-size="22" opacity="0.3">1</text>
+        <text x="670" y="830" font-size="20" opacity="0.28">10</text>
+        <text x="100" y="950" font-size="21" opacity="0.3">6</text>
+        <text x="680" y="970" font-size="23" opacity="0.28">3</text>
+      </g>
+
+      <!-- Scattered numbers - inner layer with Korean -->
+      <g filter="url(#waterDistort)" font-family="'IBM Plex Sans KR', sans-serif" fill="#3a4a6a">
+        <text x="160" y="180" font-size="28" opacity="0.38">11</text>
+        <text x="600" y="200" font-size="26" opacity="0.35">4</text>
+        <text x="150" y="350" font-size="27" opacity="0.38">3</text>
+        <text x="620" y="380" font-size="29" opacity="0.35">8</text>
+        <text x="170" y="530" font-size="26" opacity="0.38">6</text>
+        <text x="590" y="560" font-size="28" opacity="0.35">12</text>
+        <text x="155" y="700" font-size="29" opacity="0.38">찰나</text>
+        <text x="610" y="730" font-size="27" opacity="0.35">1</text>
+        <text x="165" y="870" font-size="28" opacity="0.38">9</text>
+        <text x="595" y="900" font-size="26" opacity="0.35">5</text>
+      </g>
+
+      <!-- Blur smear effects -->
+      <g filter="url(#blur3)" opacity="0.1">
+        <ellipse cx="220" cy="300" rx="60" ry="35" fill="#3a4a6a"/>
+        <ellipse cx="580" cy="330" rx="55" ry="30" fill="#3a4a6a"/>
+        <ellipse cx="250" cy="550" rx="65" ry="32" fill="#3a4a6a"/>
+        <ellipse cx="550" cy="580" rx="58" ry="28" fill="#3a4a6a"/>
+        <ellipse cx="230" cy="780" rx="50" ry="25" fill="#3a4a6a"/>
+        <ellipse cx="570" cy="800" rx="62" ry="30" fill="#3a4a6a"/>
+      </g>
+
+      <!-- Main clock group -->
+      <g id="clockGroup" filter="url(#waterDistort)">
+        <circle cx="400" cy="480" r="150" fill="none" stroke="#3a4a6a" stroke-width="2.5" opacity="0.65"/>
+
+        <g font-family="Georgia, serif" font-size="24" fill="#3a4a6a">
+          <text x="400" y="355" text-anchor="middle" opacity="0.8">12</text>
+          <text x="468" y="380" text-anchor="middle" opacity="0.7">1</text>
+          <text x="515" y="430" text-anchor="middle" opacity="0.75">2</text>
+          <text x="535" y="490" text-anchor="middle" opacity="0.8">3</text>
+          <text x="515" y="550" text-anchor="middle" opacity="0.7">4</text>
+          <text x="468" y="598" text-anchor="middle" opacity="0.75">5</text>
+          <text x="400" y="620" text-anchor="middle" opacity="0.8">6</text>
+          <text x="332" y="598" text-anchor="middle" opacity="0.7">7</text>
+          <text x="285" y="550" text-anchor="middle" opacity="0.75">8</text>
+          <text x="265" y="490" text-anchor="middle" opacity="0.8">9</text>
+          <text x="285" y="430" text-anchor="middle" opacity="0.7">10</text>
+          <text x="332" y="380" text-anchor="middle" opacity="0.75">11</text>
+        </g>
+
+        <!-- Clock hands -->
+        <line x1="400" y1="480" x2="400" y2="400" stroke="#2a3a5a" stroke-width="2" stroke-linecap="round" id="secondHand"/>
+        <line x1="400" y1="480" x2="400" y2="390" stroke="#2a3a5a" stroke-width="3" stroke-linecap="round" id="minuteHand"/>
+        <line x1="400" y1="480" x2="345" y2="455" stroke="#2a3a5a" stroke-width="4.5" stroke-linecap="round" id="hourHand"/>
+        <circle cx="400" cy="480" r="7" fill="#2a3a5a"/>
+      </g>
+    </svg>
+
+    <div class="text-container">
+      <div class="line">가만히 멈춰서 시계를 바라보고 있어</div>
+      <div class="line">찰나가 흩어지는 걸 보면서</div>
+    </div>
+  </div>
+
+  <script>
+    const turbulence = document.getElementById('turbulence');
+    const turbulence2 = document.getElementById('turbulence2');
+    const turbulence3 = document.getElementById('turbulence3');
+
+    let time = 0;
+
+    function animateWater() {
+      time += 0.016;
+
+      const baseFreqX = 0.015 + Math.sin(time * 0.5) * 0.004;
+      const baseFreqY = 0.02 + Math.cos(time * 0.4) * 0.004;
+
+      const baseFreqX2 = 0.01 + Math.sin(time * 0.4 + 1) * 0.003;
+      const baseFreqY2 = 0.015 + Math.cos(time * 0.35 + 1) * 0.003;
+
+      const baseFreqX3 = 0.012 + Math.sin(time * 0.35 + 2) * 0.004;
+      const baseFreqY3 = 0.018 + Math.cos(time * 0.3 + 2) * 0.004;
+
+      if (turbulence) {
+        turbulence.setAttribute('baseFrequency', `${baseFreqX} ${baseFreqY}`);
+      }
+      if (turbulence2) {
+        turbulence2.setAttribute('baseFrequency', `${baseFreqX2} ${baseFreqY2}`);
+      }
+      if (turbulence3) {
+        turbulence3.setAttribute('baseFrequency', `${baseFreqX3} ${baseFreqY3}`);
+      }
+
+      requestAnimationFrame(animateWater);
+    }
+
+    const secondHand = document.getElementById('secondHand');
+    const minuteHand = document.getElementById('minuteHand');
+    const hourHand = document.getElementById('hourHand');
+
+    const cx = 400, cy = 480;
+    const secondLength = 80;
+    const minuteLength = 90;
+    const hourLength = 55;
+
+    let lastSecond = -1;
+    let secondBounce = 0;
+    let bounceVelocity = 0;
+
+    function updateClock() {
+      const now = new Date();
+      const hours = now.getHours() % 12;
+      const minutes = now.getMinutes();
+      const seconds = now.getSeconds();
+
+      // Tick-tock effect for second hand
+      if (seconds !== lastSecond) {
+        lastSecond = seconds;
+        bounceVelocity = 0.08; // Initial overshoot
+      }
+
+      // Spring physics for bounce
+      bounceVelocity -= secondBounce * 0.3; // Spring force
+      bounceVelocity *= 0.85; // Damping
+      secondBounce += bounceVelocity;
+
+      // Second hand moves in discrete steps with bounce
+      const secondAngle = ((seconds * 6 - 90) + secondBounce * 3) * Math.PI / 180;
+      const minuteAngle = ((minutes + seconds / 60) * 6 - 90) * Math.PI / 180;
+      const hourAngle = ((hours + minutes / 60) * 30 - 90) * Math.PI / 180;
+
+      secondHand.setAttribute('x2', cx + Math.cos(secondAngle) * secondLength);
+      secondHand.setAttribute('y2', cy + Math.sin(secondAngle) * secondLength);
+
+      minuteHand.setAttribute('x2', cx + Math.cos(minuteAngle) * minuteLength);
+      minuteHand.setAttribute('y2', cy + Math.sin(minuteAngle) * minuteLength);
+
+      hourHand.setAttribute('x2', cx + Math.cos(hourAngle) * hourLength);
+      hourHand.setAttribute('y2', cy + Math.sin(hourAngle) * hourLength);
+
+      requestAnimationFrame(updateClock);
+    }
+
+    animateWater();
+    updateClock();
+  </script>
+</body>
+</html>
