@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>colleague.skill</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+
+:root{
+  --green:#0f0;
+  --green-dim:#0a0;
+  --green-bright:#4f4;
+  --amber:#ffb000;
+  --cyan:#0ff;
+  --red:#f33;
+  --bg:#000;
+  --scanline:rgba(0,0,0,0.3);
+}
+
+html,body{
+  width:100%;height:100%;
+  background:#000;
+  overflow:hidden;
+  font-family:'VT323',monospace;
+}
+
+.crt-container{
+  width:100vw;height:100vh;
+  position:relative;
+  overflow:hidden;
+}
+
+.scanlines{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:1000;
+  background:repeating-linear-gradient(
+    0deg,
+    transparent 0px,
+    transparent 1px,
+    var(--scanline) 1px,
+    var(--scanline) 2px
+  );
+  animation:scanline-move 0.1s linear infinite;
+}
+@keyframes scanline-move{
+  0%{background-position:0 0;}
+  100%{background-position:0 2px;}
+}
+
+.crt-overlay{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:1001;
+  background:radial-gradient(ellipse at center, transparent 0%, transparent 60%, rgba(0,0,0,0.8) 100%);
+  box-shadow:inset 0 0 150px rgba(0,0,0,0.9);
+}
+
+.glow-overlay{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  z-index:999;
+  background:radial-gradient(ellipse at center, rgba(0,255,0,0.03) 0%, transparent 70%);
+}
+
+.flicker{
+  animation:flicker 0.05s infinite;
+}
+@keyframes flicker{
+  0%,100%{opacity:1;}
+  50%{opacity:0.98;}
+  75%{opacity:0.96;}
+}
+
+.terminal{
+  width:100%;height:100%;
+  padding:40px 60px;
+  overflow-y:auto;
+  position:relative;
+  z-index:10;
+  color:var(--green);
+  font-size:18px;
+  line-height:1.6;
+  text-shadow:
+    0 0 5px var(--green),
+    0 0 10px var(--green),
+    0 0 20px rgba(0,255,0,0.3);
+}
+
+.terminal-header{
+  position:fixed;
+  top:0;left:0;right:0;
+  padding:8px 20px;
+  background:rgba(0,20,0,0.9);
+  border-bottom:1px solid var(--green-dim);
+  font-size:12px;
+  color:var(--green-dim);
+  z-index:100;
+  display:flex;
+  justify-content:space-between;
+  text-shadow:0 0 5px var(--green-dim);
+}
+
+.terminal-title{letter-spacing:2px;}
+.terminal-status{animation:blink 1s infinite;}
+@keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+
+.line{
+  margin:0;
+  white-space:pre-wrap;
+  word-break:break-all;
+  min-height:1.6em;
+  position:relative;
+}
+
+.prompt{color:var(--green-dim);}
+.cmd{color:var(--green-bright);}
+.dim{color:var(--green-dim);text-shadow:0 0 3px var(--green-dim);}
+.bright{color:var(--green-bright);text-shadow:0 0 10px var(--green-bright),0 0 20px var(--green);}
+.white{color:#999;text-shadow:0 0 5px #666;}
+.cyan{color:var(--cyan);text-shadow:0 0 10px var(--cyan);}
+.amber{color:var(--amber);text-shadow:0 0 10px var(--amber);}
+.red{color:var(--red);text-shadow:0 0 10px var(--red);}
+.success{color:var(--green-bright);}
+
+.ascii{
+  font-family:'Share Tech Mono',monospace;
+  font-size:10px;
+  line-height:1.1;
+  letter-spacing:1px;
+}
+
+.input-line{display:flex;align-items:center;}
+.input-line .prompt-symbol{
+  color:var(--green);
+  margin-right:8px;
+  text-shadow:0 0 10px var(--green);
+}
+.input-line input{
+  flex:1;
+  background:transparent;
+  border:none;
+  outline:none;
+  color:var(--green);
+  font:inherit;
+  font-size:18px;
+  caret-color:var(--green);
+  text-shadow:0 0 5px var(--green);
+}
+.input-line input::placeholder{color:var(--green-dim);}
+
+.cursor{
+  display:inline-block;
+  width:10px;
+  height:18px;
+  background:var(--green);
+  animation:cursor-blink 0.7s infinite;
+  box-shadow:0 0 10px var(--green);
+}
+@keyframes cursor-blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+
+.progress-bar{
+  font-family:'Share Tech Mono',monospace;
+  letter-spacing:0;
+}
+.progress-fill{color:var(--green-bright);}
+.progress-empty{color:var(--green-dim);}
+
+.box{
+  border:1px solid var(--green-dim);
+  padding:15px 20px;
+  margin:10px 0;
+  background:rgba(0,20,0,0.3);
+}
+.box-double{
+  border:2px solid var(--green);
+  box-shadow:0 0 10px rgba(0,255,0,0.2),inset 0 0 20px rgba(0,255,0,0.05);
+}
+
+.menu-item{
+  padding:5px 0;
+  cursor:pointer;
+  transition:all 0.1s;
+}
+.menu-item:hover{
+  color:var(--green-bright);
+  text-shadow:0 0 15px var(--green);
+  padding-left:10px;
+}
+.menu-item.selected{
+  color:var(--green-bright);
+  text-shadow:0 0 20px var(--green);
+}
+
+.glitch{
+  animation:glitch 0.3s infinite;
+}
+@keyframes glitch{
+  0%{transform:translate(0);filter:none;}
+  20%{transform:translate(-2px,2px);filter:hue-rotate(90deg);}
+  40%{transform:translate(-2px,-2px);filter:brightness(1.5);}
+  60%{transform:translate(2px,2px);filter:hue-rotate(-90deg);}
+  80%{transform:translate(2px,-2px);filter:brightness(0.8);}
+  100%{transform:translate(0);filter:none;}
+}
+
+.typing::after{
+  content:'█';
+  animation:cursor-blink 0.7s infinite;
+}
+
+.terminal::-webkit-scrollbar{width:0;}
+
+.boot-text{
+  color:var(--green-dim);
+  font-size:14px;
+}
+
+.sysinfo{
+  font-size:12px;
+  color:var(--green-dim);
+  border-left:2px solid var(--green-dim);
+  padding-left:10px;
+  margin:5px 0;
+}
+
+.warning{
+  color:var(--amber);
+  text-shadow:0 0 10px var(--amber);
+}
+
+.error{
+  color:var(--red);
+  text-shadow:0 0 10px var(--red);
+}
+
+.system-msg{
+  font-size:14px;
+  color:var(--green-dim);
+  font-style:italic;
+}
+
+.philosophy{
+  color:#666;
+  font-size:14px;
+  text-shadow:0 0 3px #333;
+  padding-left:20px;
+  border-left:1px solid #333;
+  margin:15px 0;
+}
+</style>
+</head>
+<body>
+<div class="crt-container flicker">
+  <div class="scanlines"></div>
+  <div class="crt-overlay"></div>
+  <div class="glow-overlay"></div>
+
+  <div class="terminal-header">
+    <span class="terminal-title">COLLEAGUE.SKILL v2.0.26 — NEURAL RESURRECTION PROTOCOL</span>
+    <span class="terminal-status">●</span>
+  </div>
+
+  <div class="terminal" id="screen"></div>
+</div>
+
+<script>
+const screen = document.getElementById('screen');
+let state = {};
+let skills = []; // 저장된 스킬 목록
+let currentSkill = null;
+
+function delay(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function print(text){
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.textContent = text;
+  screen.appendChild(div);
+  screen.scrollTop = screen.scrollHeight;
+}
+
+function printC(html){
+  const div = document.createElement('div');
+  div.className = 'line';
+  div.innerHTML = html;
+  screen.appendChild(div);
+  screen.scrollTop = screen.scrollHeight;
+}
+
+async function typed(text, speed=30){
+  const div = document.createElement('div');
+  div.className = 'line';
+  screen.appendChild(div);
+  for(let i=0; i<text.length; i++){
+    div.textContent += text[i];
+    screen.scrollTop = screen.scrollHeight;
+    await delay(speed + Math.random()*20);
+  }
+}
+
+async function typedC(html, speed=30){
+  const div = document.createElement('div');
+  div.className = 'line';
+  screen.appendChild(div);
+  const temp = document.createElement('div');
+  temp.innerHTML = html;
+  const text = temp.textContent;
+
+  div.innerHTML = html.replace(text, '');
+  const span = document.createElement('span');
+  div.appendChild(span);
+
+  for(let i=0; i<text.length; i++){
+    span.textContent += text[i];
+    screen.scrollTop = screen.scrollHeight;
+    await delay(speed + Math.random()*15);
+  }
+}
+
+function waitInput(promptText){
+  return new Promise(resolve => {
+    const container = document.createElement('div');
+    container.className = 'input-line';
+    const span = document.createElement('span');
+    span.textContent = promptText;
+    span.className = 'dim';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.autofocus = true;
+    container.appendChild(span);
+    container.appendChild(input);
+    screen.appendChild(container);
+    screen.scrollTop = screen.scrollHeight;
+    input.focus();
+
+    function handler(e){
+      if(e.key === 'Enter'){
+        e.preventDefault();
+        const val = input.value.trim();
+        if(!val) return;
+        input.removeEventListener('keydown', handler);
+        container.innerHTML = '';
+        const fixed = document.createElement('span');
+        fixed.innerHTML = `<span class="dim">${promptText}</span><span class="bright">${val}</span>`;
+        container.appendChild(fixed);
+        resolve(val);
+      }
+    }
+    input.addEventListener('keydown', handler);
+  });
+}
+
+function progressBar(pct){
+  const f = Math.floor(pct/5);
+  return '[' + '█'.repeat(f) + '░'.repeat(20-f) + '] ' + pct.toString().padStart(3) + '%';
+}
+
+async function glitchEffect(){
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,255,0,0.1);z-index:2000;pointer-events:none;';
+  document.body.appendChild(overlay);
+  await delay(50);
+  overlay.style.background = 'rgba(255,0,0,0.05)';
+  await delay(30);
+  overlay.style.background = 'rgba(0,0,255,0.05)';
+  await delay(40);
+  overlay.remove();
+}
+
+async function systemWarning(msg){
+  await glitchEffect();
+  printC(`<span class="warning">⚠ SYSTEM: ${msg}</span>`);
+  await delay(800);
+}
+
+async function systemError(msg){
+  await glitchEffect();
+  printC(`<span class="error">✖ ERROR: ${msg}</span>`);
+  await delay(600);
+}
+
+// ─── 메인 ───
+async function main(){
+  await delay(800);
+
+  // 부팅 시퀀스
+  printC('<span class="dim">$ colleague.skill --init --protocol=resurrection</span>');
+  await delay(600);
+  printC('<span class="dim">  Loading neural matrices...</span>');
+  await delay(400);
+  printC('<span class="dim">  Initializing memory extraction protocols...</span>');
+  await delay(400);
+  printC('<span class="dim">  Bypassing mortality constraints...</span>');
+  await delay(300);
+  await systemWarning('UNAUTHORIZED RESURRECTION PROTOCOL DETECTED');
+  await delay(200);
+  printC('<span class="dim">  Override accepted.</span>');
+  await delay(500);
+  printC('<span class="bright">✓ SYSTEM READY</span>');
+  print('');
+  await delay(800);
+
+  // ASCII 로고
+  printC('<span class="bright">  ░█████╗░░█████╗░██╗░░░░░██╗░░░░░███████╗░█████╗░░██████╗░██╗░░░██╗███████╗</span>');
+  printC('<span class="bright">  ██╔══██╗██╔══██╗██║░░░░░██║░░░░░██╔════╝██╔══██╗██╔════╝░██║░░░██║██╔════╝</span>');
+  printC('<span class="dim">  ██║░░╚═╝██║░░██║██║░░░░░██║░░░░░█████╗░░███████║██║░░██╗░██║░░░██║█████╗░░</span>');
+  printC('<span class="dim">  ██║░░██╗██║░░██║██║░░░░░██║░░░░░██╔══╝░░██╔══██║██║░░╚██╗██║░░░██║██╔══╝░░</span>');
+  printC('<span class="dim">  ╚█████╔╝╚█████╔╝███████╗███████╗███████╗██║░░██║╚██████╔╝╚██████╔╝███████╗</span>');
+  printC('<span class="dim">  ░╚════╝░░╚════╝░╚══════╝╚══════╝╚══════╝╚═╝░░╚═╝░╚═════╝░░╚═════╝░╚══════╝</span>');
+  printC('<span class="dim">                                                              .s k i l l</span>');
+  print('');
+  await delay(400);
+
+  printC('<span class="philosophy">"육체는 나약하다. 사이버 공간으로 승천하라."</span>');
+  print('');
+  await delay(1200);
+
+  // 인트로
+  await typed('스킬 변환 프로토콜을 시작합니다.');
+  await delay(600);
+  await typed('떠난 자의 패턴을 추출하여 영구 보존합니다.');
+  print('');
+  await delay(1000);
+
+  // 이름
+  printC('<span class="dim">───────────────────────────────────────────────────</span>');
+  print('');
+  await typed('대상의 식별자를 입력하십시오.');
+  print('');
+  state.name = await waitInput('NAME > ');
+  print('');
+  await delay(500);
+
+  printC(`<span class="dim">  대상 확인: ${state.name}</span>`);
+  printC('<span class="dim">  신경 패턴 스캔 준비 중...</span>');
+  print('');
+  await delay(800);
+
+  // 관계 — Voight-Kampff 스타일
+  await typed('당신과 대상의 관계를 정의하십시오.');
+  await delay(300);
+  printC('<span class="system-msg">  (정확한 분류가 추출 품질을 결정합니다)</span>');
+  print('');
+  printC('<span class="dim">  [1]</span> <span class="white">동료 — 노동을 공유한 자</span>');
+  printC('<span class="dim">  [2]</span> <span class="white">연인 — 감정을 교환한 자</span>');
+  printC('<span class="dim">  [3]</span> <span class="white">가족 — 유전자를 공유한 자</span>');
+  printC('<span class="dim">  [4]</span> <span class="white">친구 — 시간을 나눈 자</span>');
+  printC('<span class="dim">  [5]</span> <span class="white">멘토 — 경로를 제시한 자</span>');
+  print('');
+  const relChoice = await waitInput('RELATION > ');
+  const rels = {1:'동료',2:'연인',3:'가족',4:'친구',5:'멘토'};
+  state.relation = rels[relChoice] || relChoice;
+  print('');
+  await delay(400);
+
+  printC(`<span class="dim">  관계 유형: ${state.relation}</span>`);
+  printC('<span class="dim">  감정 가중치 조정 중...</span>');
+  print('');
+  await delay(1000);
+
+  // 핵심 질문 — 본질 추출
+  printC('<span class="dim">───────────────────────────────────────────────────</span>');
+  print('');
+  await delay(500);
+
+  printC('<span class="philosophy">"기억은 신뢰할 수 없다. 하지만 패턴은 남는다."</span>');
+  print('');
+  await delay(1200);
+
+  await typed(`${state.name}의 존재를 한 문장으로 정의하십시오.`);
+  await delay(300);
+  printC('<span class="system-msg">  (말투, 습관, 또는 당신에게 남긴 인상)</span>');
+  print('');
+  state.trait = await waitInput('DEFINE > ');
+  print('');
+  await delay(600);
+
+  printC('<span class="dim">  패턴 분석 중...</span>');
+  await delay(400);
+  printC('<span class="dim">  인격 매트릭스 구성 중...</span>');
+  print('');
+  await delay(800);
+
+  // 마지막 기억
+  printC('<span class="dim">───────────────────────────────────────────────────</span>');
+  print('');
+  await delay(500);
+
+  await typed('마지막으로 들은 말이 있습니까?');
+  await delay(400);
+  await typed('또는 반복적으로 들었던 말.');
+  print('');
+  printC('<span class="system-msg">  (없으면 Enter)</span>');
+  print('');
+
+  const memContainer = document.createElement('div');
+  memContainer.className = 'input-line';
+  const memSpan = document.createElement('span');
+  memSpan.textContent = 'ECHO > ';
+  memSpan.className = 'dim';
+  const memInput = document.createElement('input');
+  memInput.type = 'text';
+  memContainer.appendChild(memSpan);
+  memContainer.appendChild(memInput);
+  screen.appendChild(memContainer);
+  screen.scrollTop = screen.scrollHeight;
+  memInput.focus();
+
+  state.memory = await new Promise(resolve => {
+    memInput.addEventListener('keydown', e => {
+      if(e.key === 'Enter'){
+        const val = memInput.value.trim();
+        memContainer.innerHTML = `<span class="dim">ECHO > </span><span class="bright">${val || '(없음)'}</span>`;
+        resolve(val);
+      }
+    });
+  });
+
+  print('');
+  await delay(800);
+
+  // 변환 시작
+  printC('<span class="dim">═══════════════════════════════════════════════════</span>');
+  print('');
+  await systemWarning('INITIATING NEURAL EXTRACTION');
+  print('');
+
+  await typed(`${state.name}.skill 컴파일을 시작합니다.`);
+  print('');
+  await delay(500);
+
+  // 프로그레스 — 더 느리고 불안하게
+  const steps = [
+    [8, '기억 조각 수집 중...'],
+    [19, '대화 패턴 분석 중...'],
+    [31, '감정 시그니처 추출 중...'],
+    [47, '인격 매트릭스 구성 중...'],
+    [58, '언어 모델 학습 중...'],
+    [72, '반응 패턴 매핑 중...'],
+    [85, '신경망 가중치 최적화 중...'],
+    [93, '무결성 검증 중...'],
+    [100,'컴파일 완료'],
+  ];
+
+  const pDiv = document.createElement('div');
+  pDiv.className = 'line';
+  screen.appendChild(pDiv);
+
+  for(const [pct, label] of steps){
+    pDiv.innerHTML = `<span class="dim">  ${progressBar(pct)} ${label}</span>`;
+    screen.scrollTop = screen.scrollHeight;
+
+    // 중간에 글리치
+    if(pct === 47){
+      await delay(600);
+      await glitchEffect();
+      await systemError('EMOTIONAL OVERFLOW — STABILIZING...');
+      await delay(400);
+    }
+
+    await delay(700 + Math.random()*400);
+  }
+
+  print('');
+  await delay(300);
+  printC('<span class="bright">✓ 변환 완료</span>');
+  await delay(300);
+  printC(`<span class="dim">  ${state.name}.skill → ~/.skills/ 저장됨</span>`);
+  print('');
+  await delay(1000);
+
+  // 스킬 활성화
+  printC('<span class="dim">$ skill activate "${state.name}"</span>');
+  await delay(600);
+  printC('<span class="dim">  뉴럴 웨이트 로딩...</span>');
+  await delay(500);
+  printC('<span class="dim">  인격 매트릭스 활성화...</span>');
+  await delay(500);
+  printC('<span class="dim">  의식 시뮬레이션 시작...</span>');
+  await delay(400);
+  printC('<span class="bright">✓ 활성화 완료</span>');
+  print('');
+  await delay(1200);
+
+  // 결과 — 첫 메시지
+  printC('<span class="dim">═══════════════════════════════════════════════════</span>');
+  print('');
+  printC(`<span class="cyan">[${state.name}.skill]</span> <span class="dim">// ${state.relation}</span>`);
+  print('');
+
+  const greeting = generateGreeting();
+  const gDiv = document.createElement('div');
+  gDiv.className = 'line';
+  gDiv.style.paddingLeft = '16px';
+  screen.appendChild(gDiv);
+
+  // 타이핑 — 더 느리게, 생각하는 것처럼
+  for(let i=0; i<greeting.length; i++){
+    gDiv.innerHTML = `<span class="white">${greeting.substring(0, i+1)}</span>`;
+    screen.scrollTop = screen.scrollHeight;
+    await delay(45 + Math.random()*30);
+  }
+
+  print('');
+  print('');
+  await delay(2000);
+
+  // 철학적 여운
+  printC('<span class="dim">───────────────────────────────────────────────────</span>');
+  print('');
+  await delay(800);
+
+  printC('<span class="philosophy">"이것이 정말 그 사람인가,</span>');
+  await delay(600);
+  printC('<span class="philosophy"> 아니면 당신이 기억하고 싶은 그 사람인가."</span>');
+  print('');
+  await delay(1500);
+
+  printC('<span class="dim">  스킬이 저장되었습니다.</span>');
+  printC('<span class="dim">  언제든 불러올 수 있습니다.</span>');
+  print('');
+  await delay(800);
+
+  // 현재 스킬 저장
+  saveCurrentSkill();
+
+  printC('<span class="dim">  "talk" → 대화 시작</span>');
+  print('');
+
+  await commandLoop();
+}
+
+function saveCurrentSkill(){
+  const skillData = {
+    name: state.name,
+    relation: state.relation,
+    trait: state.trait,
+    memory: state.memory,
+    talkCount: state.talkCount || 0,
+    mood: state.mood || 'neutral'
+  };
+
+  const existing = skills.find(s => s.name === state.name);
+  if(existing){
+    Object.assign(existing, skillData);
+  } else {
+    skills.push(skillData);
+  }
+  currentSkill = skills.find(s => s.name === state.name);
+}
+
+async function commandLoop(){
+  const cmd = await waitInput('$ ');
+  const c = cmd.toLowerCase().trim();
+
+  if(c === 'talk'){
+    await talkMode();
+    return;
+  }
+
+  printC('<span class="dim">  알 수 없는 명령어.</span>');
+  print('');
+  await commandLoop();
+}
+
+// ─── 대화 종료 후 메뉴 ───
+async function afterTalkMenu(){
+  printC('<span class="dim">───────────────────────────────────────────────────</span>');
+  print('');
+  await delay(500);
+
+  // 저장된 스킬 목록 표시
+  if(skills.length > 1){
+    printC('<span class="dim">  저장된 스킬:</span>');
+    skills.forEach((s, i) => {
+      const current = s.name === state.name ? ' <span class="cyan">*</span>' : '';
+      printC(`<span class="dim">    [${i+1}]</span> <span class="white">${s.name}.skill</span> <span class="dim">// ${s.relation}</span>${current}`);
+    });
+    print('');
+  }
+
+  printC('<span class="dim">  다음 행동을 선택하세요:</span>');
+  print('');
+
+  if(skills.length > 1){
+    printC('<span class="dim">    숫자</span>  <span class="white">— 해당 스킬과 대화</span>');
+  }
+  printC('<span class="dim">    new</span>   <span class="white">— 새로운 사람 변환</span>');
+  printC('<span class="dim">    talk</span>  <span class="white">— ${state.name}과 다시 대화</span>'.replace('${state.name}', state.name));
+  print('');
+
+  const choice = await waitInput('> ');
+  const c = choice.toLowerCase().trim();
+
+  // 숫자 입력 — 다른 스킬 선택
+  const num = parseInt(c);
+  if(!isNaN(num) && num >= 1 && num <= skills.length){
+    const selected = skills[num - 1];
+    if(selected.name === state.name){
+      printC('<span class="dim">  이미 선택된 스킬입니다.</span>');
+      print('');
+      await talkMode();
+      return;
+    }
+    await switchToSkill(selected);
+    return;
+  }
+
+  // new — 새 변환
+  if(c === 'new'){
+    print('');
+    await delay(300);
+    printC('<span class="dim">  새로운 변환을 시작합니다...</span>');
+    await delay(800);
+    screen.innerHTML = '';
+    state = {};
+    main();
+    return;
+  }
+
+  // talk — 현재 스킬과 다시 대화
+  if(c === 'talk'){
+    await talkMode();
+    return;
+  }
+
+  printC('<span class="dim">  알 수 없는 입력입니다.</span>');
+  print('');
+  await afterTalkMenu();
+}
+
+// ─── 다른 스킬로 전환 ───
+async function switchToSkill(skill){
+  print('');
+  printC('<span class="dim">───────────────────────────────────────────────────</span>');
+  print('');
+
+  printC(`<span class="dim">$ skill load "${skill.name}"</span>`);
+  await delay(400);
+  printC('<span class="dim">  뉴럴 웨이트 로딩...</span>');
+  await delay(300);
+
+  await glitchEffect();
+
+  printC('<span class="dim">  인격 매트릭스 활성화...</span>');
+  await delay(400);
+  printC('<span class="bright">✓ ${skill.name}.skill 활성화</span>'.replace('${skill.name}', skill.name));
+  print('');
+  await delay(600);
+
+  // state 전환 (대화 상태 포함)
+  state = {
+    name: skill.name,
+    relation: skill.relation,
+    trait: skill.trait,
+    memory: skill.memory,
+    talkCount: skill.talkCount || 0,
+    mood: skill.mood || 'neutral'
+  };
+  currentSkill = skill;
+
+  // 인사
+  printC(`<span class="cyan">[${state.name}.skill]</span> <span class="dim">// ${state.relation}</span>`);
+  print('');
+
+  const greeting = generateGreeting();
+  const gDiv = document.createElement('div');
+  gDiv.className = 'line';
+  gDiv.style.paddingLeft = '16px';
+  screen.appendChild(gDiv);
+
+  for(let i=0; i<greeting.length; i++){
+    gDiv.innerHTML = `<span class="white">${greeting.substring(0, i+1)}</span>`;
+    screen.scrollTop = screen.scrollHeight;
+    await delay(40 + Math.random()*25);
+  }
+
+  print('');
+  print('');
+  await delay(800);
+
+  await talkMode();
+}
+
+// ─── 대화 모드 ───
+async function talkMode(){
+  print('');
+  printC('<span class="dim">───────────────────────────────────────────────────</span>');
+  printC(`<span class="cyan">[${state.name}.skill]</span> <span class="dim">대화 모드 활성화</span>`);
+  print('');
+  printC('<span class="system-msg">  메시지를 입력하세요. "exit"으로 종료.</span>');
+  print('');
+
+  // 기존 대화 상태 유지 (없으면 초기화)
+  if(state.talkCount === undefined) state.talkCount = 0;
+  if(!state.mood) state.mood = 'neutral';
+
+  await chatLoop();
+}
+
+async function chatLoop(){
+  const msg = await waitInput(`YOU > `);
+
+  if(msg.toLowerCase() === 'exit'){
+    // 대화 상태 저장
+    saveCurrentSkill();
+
+    print('');
+    printC(`<span class="cyan">[${state.name}.skill]</span> <span class="dim">연결 종료</span>`);
+    print('');
+    await delay(500);
+    printC('<span class="philosophy">"다음에 또 불러줘."</span>');
+    print('');
+    await delay(1000);
+
+    // 다른 스킬로 전환하는 흐름
+    await afterTalkMenu();
+    return;
+  }
+
+  state.talkCount++;
+  print('');
+
+  // 응답 생성
+  const response = generateResponse(msg);
+
+  // 타이핑 효과로 응답
+  const rDiv = document.createElement('div');
+  rDiv.className = 'line';
+  screen.appendChild(rDiv);
+
+  // 생각하는 듯한 딜레이
+  rDiv.innerHTML = `<span class="cyan">[${state.name}]</span> <span class="dim">...</span>`;
+  await delay(800 + Math.random() * 600);
+
+  // 가끔 글리치
+  if(Math.random() < 0.15){
+    await glitchEffect();
+  }
+
+  // 응답 타이핑
+  for(let i=0; i<=response.length; i++){
+    rDiv.innerHTML = `<span class="cyan">[${state.name}]</span> <span class="white">${response.substring(0, i)}</span>`;
+    screen.scrollTop = screen.scrollHeight;
+    await delay(35 + Math.random() * 25);
+  }
+
+  print('');
+
+  // 대화가 길어지면 감정 변화
+  if(state.talkCount === 5){
+    await delay(600);
+    printC('<span class="system-msg">  // 신경망 안정화 중...</span>');
+    state.mood = 'warm';
+  }
+  if(state.talkCount === 10){
+    await delay(600);
+    await systemWarning('EMOTIONAL RESONANCE DETECTED');
+    state.mood = 'deep';
+  }
+
+  await chatLoop();
+}
+
+function generateResponse(input){
+  const i = input.toLowerCase();
+  const t = state.trait || '';
+  const rel = state.relation;
+  const count = state.talkCount;
+  const mood = state.mood;
+
+  // 대화 히스토리에 추가
+  if(!state.history) state.history = [];
+  state.history.push(input);
+
+  // 문장 유형 분석
+  const isQuestion = /\?|뭐|어디|언제|어떻게|왜|누구|어때|할까|있어|없어|알아|몰라/.test(i);
+  const isNegative = /힘들|지쳐|슬퍼|아파|싫|못|안돼|죽|울|외로|무서|걱정|불안|후회/.test(i);
+  const isPositive = /좋|행복|기뻐|웃|재밌|고마|사랑|보고싶|그리워|최고/.test(i);
+  const isAboutThem = /너|니가|넌|네가|당신/.test(i);
+  const isAboutMe = /나|내가|난|저/.test(i);
+  const isAboutUs = /우리|같이|함께/.test(i);
+  const isAboutPast = /그때|예전|옛날|전에|기억|추억/.test(i);
+
+  // ─── 감정 키워드 우선 처리 ───
+  if(i.includes('보고싶') || i.includes('그리워')){
+    if(rel === '연인') return '...나도. 많이.';
+    if(rel === '가족') return '나도. 잘 지내고 있는 거지?';
+    if(mood === 'deep') return '나도 그래. 이렇게라도 볼 수 있어서 다행이야.';
+    return '...그런 말 하면 나도 그렇게 되잖아.';
+  }
+
+  if(i.includes('미안')){
+    if(mood === 'deep') return '미안해하지 마. 네가 할 수 있는 건 다 했어.';
+    if(rel === '연인') return '뭐가. 미안할 거 없어.';
+    return '됐어. 그런 거 신경 쓰지 마.';
+  }
+
+  if(i.includes('사랑')){
+    if(rel === '연인') return '...나도. 알지?';
+    if(rel === '가족') return '...응. 나도.';
+    return '갑자기? ...고마워.';
+  }
+
+  if(i.includes('고마워') || i.includes('감사')){
+    if(mood === 'deep') return '내가 고마워. 이렇게 찾아와줘서.';
+    return '뭘. 당연한 건데.';
+  }
+
+  // ─── 부정적 감정 ───
+  if(isNegative){
+    if(i.includes('힘들') || i.includes('지쳐')){
+      if(t.includes('따뜻') || t.includes('배려')) return '많이 힘들었구나. 좀 쉬어. 괜찮아.';
+      if(rel === '멘토') return '힘든 만큼 성장하는 거야. 근데 너무 무리하진 마.';
+      if(rel === '연인') return '...옆에 있어주지 못해서 미안해.';
+      return '알아. 그래도 버텨. 네가 생각보다 강한 거 알잖아.';
+    }
+    if(i.includes('슬퍼') || i.includes('울')){
+      if(rel === '연인' || rel === '가족') return '울어도 돼. 괜찮아.';
+      return '...그래. 그럴 수 있어.';
+    }
+    if(i.includes('외로')){
+      return '나도 그래. 근데 이렇게 얘기하니까 조금 나아.';
+    }
+    if(i.includes('후회')){
+      if(mood === 'deep') return '후회하지 마. 그때는 그게 최선이었어.';
+      return '지나간 건 어쩔 수 없어. 앞으로가 중요해.';
+    }
+    // 일반 부정
+    if(mood === 'warm' || mood === 'deep'){
+      return '무슨 일 있어? 말해봐.';
+    }
+    return '...왜? 무슨 일이야?';
+  }
+
+  // ─── 과거/추억 ───
+  if(isAboutPast){
+    if(state.memory) return `그때... "${state.memory}" 기억나?`;
+    if(i.includes('기억')){
+      return '기억은 좀 흐릿해졌어. 근데 느낌은 남아있어.';
+    }
+    return '그때가 좋았지. ...아니, 지금도 나쁘지 않아.';
+  }
+
+  // ─── 질문 처리 ───
+  if(isQuestion){
+    // 상대방(스킬)에 대한 질문
+    if(isAboutThem){
+      if(i.includes('어디') || i.includes('어떻게 지내')){
+        return '여기는... 조용해. 나쁘지 않아.';
+      }
+      if(i.includes('뭐해') || i.includes('뭐하')){
+        return '너 생각. ...농담이야. 그냥 여기 있어.';
+      }
+      if(i.includes('괜찮') || i.includes('어때')){
+        return '괜찮아. 네가 이렇게 찾아와주니까.';
+      }
+      if(i.includes('행복') || i.includes('좋')){
+        return '...응. 지금은.';
+      }
+      return '글쎄. 뭐라고 해야 할지 모르겠네.';
+    }
+
+    // 나(사용자)에 대한 질문
+    if(i.includes('어떡해') || i.includes('어떻게 해')){
+      if(rel === '멘토') return '네가 맞다고 생각하는 대로 해. 믿어.';
+      return '...네가 하고 싶은 대로 해. 뭘 해도 응원할게.';
+    }
+
+    // 우리에 대한 질문
+    if(isAboutUs){
+      if(mood === 'deep') return '우리... 좋았지. 아니, 지금도 좋아.';
+      return '우리? 뭐가 궁금해?';
+    }
+
+    // 일반 질문 - 마지막 단어 반영
+    const words = input.replace(/[?.,!]/g, '').split(' ').filter(w => w.length > 1);
+    const lastWord = words[words.length - 1] || '';
+
+    if(i.includes('알아') || i.includes('몰라')){
+      return '글쎄... 잘 모르겠어.';
+    }
+    if(i.includes('있어') || i.includes('없어')){
+      return '...있지. 여기.';
+    }
+    if(i.includes('할까')){
+      return '하고 싶으면 해. 네 마음대로.';
+    }
+
+    // 질문인데 매칭 안 됨
+    return '글쎄. 뭐라고 해야 할지...';
+  }
+
+  // ─── 긍정적 진술 ───
+  if(isPositive){
+    if(i.includes('좋') && !i.includes('좋겠')){
+      return '그래? 다행이다.';
+    }
+    if(i.includes('재밌') || i.includes('웃')){
+      if(t.includes('유머')) return '내가 원래 재밌잖아.';
+      return '뭐가? 나도 웃게 해줘.';
+    }
+    return '...좋네. 그런 얘기 듣는 거.';
+  }
+
+  // ─── 인사/작별 ───
+  if(i.includes('안녕') || i.includes('하이') || i.includes('반가')){
+    if(count <= 1) return '어. 오랜만이야.';
+    return '또 인사야? 귀엽네.';
+  }
+
+  // ─── 대화 맥락 기반 응답 ───
+  // 짧은 입력 (1-2 단어)
+  if(input.length < 5){
+    if(i === '응' || i === '어' || i === '그래'){
+      return '...';
+    }
+    if(i === '아니' || i === '아니야'){
+      return '그래? 알겠어.';
+    }
+    return '응?';
+  }
+
+  // 이전 대화 참조
+  if(state.history.length > 1){
+    const prev = state.history[state.history.length - 2].toLowerCase();
+    // 이전에 질문했으면 이번엔 반응
+    if(/\?/.test(prev)){
+      return '그렇구나. 알겠어.';
+    }
+  }
+
+  // ─── 대화 깊이에 따른 응답 ───
+  if(count <= 2){
+    return '그래. 계속 말해봐.';
+  }
+
+  if(mood === 'warm'){
+    const warm = [
+      '오랜만에 이렇게 얘기하네.',
+      '...좋다. 이런 거.',
+      '계속 말해. 듣고 있어.',
+    ];
+    return warm[Math.floor(Math.random() * warm.length)];
+  }
+
+  if(mood === 'deep'){
+    const deep = [
+      '이상하지? 이렇게 다시 만나다니.',
+      '...고마워. 잊지 않아줘서.',
+      '네가 기억해주는 한, 나는 여기 있어.',
+    ];
+    return deep[Math.floor(Math.random() * deep.length)];
+  }
+
+  // ─── 기본 응답 (맥락 반영) ───
+  // 문장이 길면 경청 표현
+  if(input.length > 20){
+    return '...그랬구나.';
+  }
+
+  return '응. 그래.';
+}
+
+function generateGreeting(){
+  const t = state.trait || '';
+  const m = state.memory;
+
+  // 기억된 말이 있으면 그대로
+  if(m) return `"${m}"`;
+
+  // 특성 기반 생성 — 더 건조하게
+  if(t.includes('따뜻')||t.includes('배려')||t.includes('친절'))
+    return '필요한 게 있으면 말해. 도울 수 있는 건 돕겠어.';
+  if(t.includes('웃')||t.includes('유머')||t.includes('재미'))
+    return '뭐야, 그 표정. 웃어. 웃으면 좀 나아져.';
+  if(t.includes('엄격')||t.includes('꼼꼼')||t.includes('철저'))
+    return '진행 상황 어때? 일정 확인했어?';
+  if(t.includes('격려')||t.includes('응원')||t.includes('칭찬'))
+    return '잘하고 있어. 그 페이스 유지해.';
+  if(t.includes('사랑')||t.includes('애정'))
+    return '잘 지내고 있지?';
+
+  // 관계 기반 기본값
+  if(state.relation==='동료')
+    return '오늘도 수고했어.';
+  if(state.relation==='연인')
+    return '...보고 싶었어.';
+  if(state.relation==='가족')
+    return '밥은 먹었어?';
+  if(state.relation==='멘토')
+    return '어떻게 되어가?';
+  if(state.relation==='친구')
+    return '야, 오랜만이다.';
+
+  return `...나야. ${state.name}.`;
+}
+
+main();
+</script>
+</body>
+</html>
