@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BrainFog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #f8f7f4;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      cursor: default;
+    }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    .home-btn {
+      position: fixed;
+      top: 1.5rem;
+      left: 1.5rem;
+      width: 40px;
+      height: 40px;
+      border: none;
+      background: rgba(30, 30, 30, 0.05);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s ease;
+      z-index: 100;
+    }
+    .home-btn:hover { background: rgba(30, 30, 30, 0.1); }
+    .home-btn svg { width: 20px; height: 20px; fill: #1a1a1a; opacity: 0.4; }
+  </style>
+</head>
+<body>
+  <a href="../index.html" class="home-btn">
+    <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+  </a>
+  <canvas id="c"></canvas>
+
+  <script>
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+
+    let W, H, dpr;
+    let particles = [];
+    let branches = [];
+    let mouse = { x: -9999, y: -9999 };
+    let mouseTrail = [];
+    let glitchTimer = 0;
+    let glitchActive = false;
+    let glitchSlices = [];
+
+    function resize() {
+      dpr = window.devicePixelRatio || 1;
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      generateParticles();
+    }
+
+    function sampleText() {
+      const offscreen = document.createElement('canvas');
+      offscreen.width = W;
+      offscreen.height = H;
+      const offCtx = offscreen.getContext('2d');
+
+      const fontSize = Math.min(W * 0.22, H * 0.55, 280);
+      offCtx.save();
+      offCtx.translate(W / 2, H / 2);
+      offCtx.scale(0.72, 1.25);
+      offCtx.fillStyle = '#000';
+      offCtx.font = `700 ${fontSize}px "Cormorant Garamond", Georgia, serif`;
+      offCtx.textAlign = 'center';
+      offCtx.textBaseline = 'middle';
+      offCtx.fillText('BrainFog', 0, 0);
+      offCtx.restore();
+
+      return offCtx.getImageData(0, 0, W, H);
+    }
+
+    function getAlpha(data, x, y) {
+      const ix = Math.floor(x), iy = Math.floor(y);
+      if (ix < 0 || ix >= W || iy < 0 || iy >= H) return 0;
+      return data.data[(iy * W + ix) * 4 + 3];
+    }
+
+    function distToEdge(data, x, y, maxDist) {
+      for (let d = 1; d <= maxDist; d++) {
+        for (let a = 0; a < 8; a++) {
+          const angle = a * Math.PI / 4;
+          if (getAlpha(data, x + Math.cos(angle) * d, y + Math.sin(angle) * d) < 30) return d;
+        }
+      }
+      return maxDist + 1;
+    }
+
+    function getEdgeNormal(data, x, y) {
+      let nx = 0, ny = 0;
+      const r = 5;
+      for (let a = 0; a < 16; a++) {
+        const angle = a * Math.PI / 8;
+        const dx = Math.cos(angle), dy = Math.sin(angle);
+        const alpha = getAlpha(data, x + dx * r, y + dy * r);
+        if (alpha < 30) {
+          nx += dx;
+          ny += dy;
+        }
+      }
+      const len = Math.sqrt(nx * nx + ny * ny) || 1;
+      return { x: nx / len, y: ny / len };
+    }
+
+    function generateBranch(startX, startY, angle, length, depth, maxDepth, thickness) {
+      if (depth > maxDepth || length < 2) return;
+
+      const segments = 6 + Math.floor(Math.random() * 4);
+      const segLen = length / segments;
+      let cx = startX, cy = startY, curAngle = angle;
+      const baseThickness = thickness || (0.55 - depth * 0.12);
+
+      for (let i = 0; i < segments; i++) {
+        curAngle += (Math.random() - 0.5) * 0.2;
+        const nx = cx + Math.cos(curAngle) * segLen;
+        const ny = cy + Math.sin(curAngle) * segLen;
+        const t = Math.max(0.08, baseThickness * (1 - i / segments * 0.8));
+
+        branches.push({
+          x1: cx, y1: cy, x2: nx, y2: ny,
+          homeX1: cx, homeY1: cy, homeX2: nx, homeY2: ny,
+          thickness: t,
+          broken: false, vx: 0, vy: 0, vr: 0, angle: 0, fadeOut: 1
+        });
+
+        // Sparse dots along branch
+        if (Math.random() < 0.25) {
+          const dotX = (cx + nx) / 2 + (Math.random() - 0.5) * 1.5;
+          const dotY = (cy + ny) / 2 + (Math.random() - 0.5) * 1.5;
+          particles.push({
+            homeX: dotX, homeY: dotY, x: dotX, y: dotY,
+            vx: 0, vy: 0,
+            size: 0.1 + Math.random() * 0.25,
+            opacity: 1, targetOpacity: 1,
+            drift: Math.random() * Math.PI * 2,
+            driftSpeed: 0.002 + Math.random() * 0.003,
+            dispersed: false, disperseVx: 0, disperseVy: 0
+          });
+        }
+
+        cx = nx; cy = ny;
+      }
+
+      // Gentle end fork — only one direction, not both
+      if (Math.random() < 0.5 && depth < maxDepth) {
+        const spread = (Math.random() > 0.5 ? 1 : -1) * (0.3 + Math.random() * 0.4);
+        generateBranch(cx, cy, curAngle + spread, length * (0.35 + Math.random() * 0.15), depth + 1, maxDepth, baseThickness * 0.5);
+      }
+
+      // Tiny tip dots
+      for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
+        const dotX = cx + (Math.random() - 0.5) * 4;
+        const dotY = cy + (Math.random() - 0.5) * 4;
+        particles.push({
+          homeX: dotX, homeY: dotY, x: dotX, y: dotY,
+          vx: 0, vy: 0,
+          size: 0.1 + Math.random() * 0.25,
+          opacity: 1, targetOpacity: 1,
+          drift: Math.random() * Math.PI * 2,
+          driftSpeed: 0.003 + Math.random() * 0.005,
+          dispersed: false, disperseVx: 0, disperseVy: 0
+        });
+      }
+    }
+
+    function generateParticles() {
+      particles = [];
+      branches = [];
+
+      const imageData = sampleText();
+      const step = 1.5;
+
+      // Collect edge points for branch origins
+      const edgePoints = [];
+
+      for (let y = 0; y < H; y += step) {
+        for (let x = 0; x < W; x += step) {
+          const alpha = getAlpha(imageData, x, y);
+          if (alpha < 20) continue;
+
+          const density = alpha / 255;
+          const edgeDist = distToEdge(imageData, x, y, 12);
+
+          // Collect edge points (sparse — fewer, more elegant branches)
+          if (edgeDist <= 3 && Math.random() < 0.004) {
+            const normal = getEdgeNormal(imageData, x, y);
+            edgePoints.push({ x, y, nx: normal.x, ny: normal.y });
+          }
+
+          let threshold;
+          if (edgeDist <= 2) threshold = 0.85;
+          else if (edgeDist <= 4) threshold = 0.7;
+          else if (edgeDist <= 7) threshold = 0.5;
+          else if (edgeDist <= 10) threshold = 0.35;
+          else threshold = 0.22;
+
+          if (Math.random() < threshold * density) {
+            let size;
+            if (edgeDist <= 3) size = 0.2 + Math.random() * 0.4;
+            else if (edgeDist <= 6) size = 0.3 + Math.random() * 0.6;
+            else size = 0.4 + Math.random() * 0.8;
+
+            const jx = (Math.random() - 0.5) * 1.2;
+            const jy = (Math.random() - 0.5) * 1.2;
+
+            particles.push({
+              homeX: x + jx, homeY: y + jy,
+              x: x + jx, y: y + jy,
+              vx: 0, vy: 0,
+              size,
+              opacity: 1, targetOpacity: 1,
+              drift: Math.random() * Math.PI * 2,
+              driftSpeed: 0.001 + Math.random() * 0.002,
+              dispersed: false, disperseVx: 0, disperseVy: 0
+            });
+          }
+        }
+      }
+
+      // Dissolve particles
+      for (let i = 0; i < 4000; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const dist = 1 + Math.random() * 50;
+        const baseX = Math.random() * W;
+        const baseY = Math.random() * H;
+
+        if (getAlpha(imageData, baseX, baseY) > 50) {
+          const px = baseX + Math.cos(angle) * dist;
+          const py = baseY + Math.sin(angle) * dist;
+          if (getAlpha(imageData, px, py) < 20) {
+            const falloff = Math.pow(1 - dist / 50, 1.5);
+            if (falloff > 0.05) {
+              particles.push({
+                homeX: px, homeY: py, x: px, y: py,
+                vx: 0, vy: 0,
+                size: 0.15 + Math.random() * 0.4,
+                opacity: falloff, targetOpacity: falloff,
+                drift: Math.random() * Math.PI * 2,
+                driftSpeed: 0.003 + Math.random() * 0.006,
+                dispersed: false, disperseVx: 0, disperseVy: 0
+              });
+            }
+          }
+        }
+      }
+
+      // Generate branches from edge points — growing outward from letter strokes
+      edgePoints.forEach(pt => {
+        const baseAngle = Math.atan2(pt.ny, pt.nx);
+        const spread = (Math.random() - 0.5) * 0.8;
+        const length = 15 + Math.random() * 45;
+        const maxDepth = 2 + Math.floor(Math.random() * 3);
+        generateBranch(pt.x, pt.y, baseAngle + spread, length, 0, maxDepth, 0.8 + Math.random() * 0.3);
+      });
+
+      // Edge fog frame — scattered dots along screen borders
+      const edgeDepth = 130;
+      const fogCount = 30000;
+
+      for (let i = 0; i < fogCount; i++) {
+        let px, py;
+        const side = Math.floor(Math.random() * 4);
+
+        if (side === 0) { // top
+          px = Math.random() * W;
+          py = Math.random() * edgeDepth * (0.2 + Math.random() * 0.8);
+        } else if (side === 1) { // bottom
+          px = Math.random() * W;
+          py = H - Math.random() * edgeDepth * (0.2 + Math.random() * 0.8);
+        } else if (side === 2) { // left
+          px = Math.random() * edgeDepth * (0.2 + Math.random() * 0.8);
+          py = Math.random() * H;
+        } else { // right
+          px = W - Math.random() * edgeDepth * (0.2 + Math.random() * 0.8);
+          py = Math.random() * H;
+        }
+
+        // Density falloff — denser at edges, sparser toward center
+        const distFromEdge = Math.min(px, py, W - px, H - py);
+        const falloff = Math.pow(1 - distFromEdge / edgeDepth, 1.5);
+
+        if (Math.random() < falloff * 0.8) {
+          // Cluster variation — organic clumps
+          const clusterJitter = Math.random() < 0.4 ? 10 : 2.5;
+          const jx = (Math.random() - 0.5) * clusterJitter;
+          const jy = (Math.random() - 0.5) * clusterJitter;
+
+          particles.push({
+            homeX: px + jx, homeY: py + jy,
+            x: px + jx, y: py + jy,
+            vx: 0, vy: 0,
+            size: 0.3 + Math.random() * 0.9,
+            opacity: falloff * (0.7 + Math.random() * 0.3),
+            targetOpacity: falloff * (0.7 + Math.random() * 0.3),
+            drift: Math.random() * Math.PI * 2,
+            driftSpeed: 0.002 + Math.random() * 0.005,
+            dispersed: false, disperseVx: 0, disperseVy: 0
+          });
+        }
+      }
+    }
+
+    canvas.addEventListener('mousemove', e => {
+      mouse.x = e.clientX;
+      mouse.y = e.clientY;
+      mouseTrail.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+      if (mouseTrail.length > 30) mouseTrail.shift();
+    });
+    canvas.addEventListener('mouseleave', () => { mouse.x = -9999; mouse.y = -9999; });
+    canvas.addEventListener('click', () => { glitchActive = true; glitchTimer = 18; generateGlitchSlices(); });
+
+    function generateGlitchSlices() {
+      glitchSlices = [];
+      const count = 3 + Math.floor(Math.random() * 5);
+      for (let i = 0; i < count; i++) {
+        glitchSlices.push({ y: Math.random() * H, h: 2 + Math.random() * 12, offset: (Math.random() - 0.5) * 10 });
+      }
+    }
+
+    function update() {
+      const now = Date.now();
+      const radius = 100;
+
+      mouseTrail = mouseTrail.filter(p => now - p.time < 2000);
+
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+
+        if (!p.dispersed) {
+          for (let t = 0; t < mouseTrail.length; t++) {
+            const dx = p.x - mouseTrail[t].x;
+            const dy = p.y - mouseTrail[t].y;
+            if (Math.sqrt(dx * dx + dy * dy) < radius) {
+              const angle = Math.atan2(dy, dx) + (Math.random() - 0.5) * 1.5;
+              p.dispersed = true;
+              p.disperseVx = Math.cos(angle) * (0.3 + Math.random() * 0.5);
+              p.disperseVy = Math.sin(angle) * (0.3 + Math.random() * 0.5) - 0.2;
+              p.targetOpacity = 0;
+              break;
+            }
+          }
+        }
+
+        if (p.dispersed) {
+          p.x += p.disperseVx;
+          p.y += p.disperseVy;
+          p.disperseVx *= 0.995;
+          p.disperseVy *= 0.995;
+          p.disperseVy -= 0.003;
+          p.opacity += (p.targetOpacity - p.opacity) * 0.015;
+
+          if (p.opacity < 0.02) {
+            p.opacity = 0;
+            p.dispersed = false;
+            p.targetOpacity = p.size > 0.5 ? 1 : 1;
+            p.x = p.homeX + (Math.random() - 0.5) * 5;
+            p.y = p.homeY + (Math.random() - 0.5) * 5;
+          }
+        } else {
+          p.x += (p.homeX - p.x) * 0.008;
+          p.y += (p.homeY - p.y) * 0.008;
+          p.opacity += (p.targetOpacity - p.opacity) * 0.02;
+
+          p.drift += p.driftSpeed;
+          p.x += Math.sin(p.drift) * 0.04;
+          p.y += Math.cos(p.drift * 0.7) * 0.03;
+        }
+      }
+
+      // Branches break and fall
+      for (let i = 0; i < branches.length; i++) {
+        const b = branches[i];
+        if (b.broken) {
+          b.vy += 0.08;
+          b.vx *= 0.99;
+          b.x1 += b.vx; b.y1 += b.vy;
+          b.x2 += b.vx; b.y2 += b.vy;
+          b.angle += b.vr;
+          b.fadeOut -= 0.006;
+          continue;
+        }
+
+        const midX = (b.homeX1 + b.homeX2) / 2;
+        const midY = (b.homeY1 + b.homeY2) / 2;
+
+        for (let t = 0; t < mouseTrail.length; t++) {
+          const dx = midX - mouseTrail[t].x;
+          const dy = midY - mouseTrail[t].y;
+          if (Math.sqrt(dx * dx + dy * dy) < radius * 0.5) {
+            b.broken = true;
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+            b.vx = (dx / dist) * (0.5 + Math.random());
+            b.vy = -0.5 - Math.random();
+            b.vr = (Math.random() - 0.5) * 0.08;
+            break;
+          }
+        }
+      }
+
+      for (let i = branches.length - 1; i >= 0; i--) {
+        if (branches[i].broken && branches[i].fadeOut <= 0) {
+          branches.splice(i, 1);
+        }
+      }
+
+      if (glitchActive) {
+        glitchTimer--;
+        if (glitchTimer % 3 === 0) generateGlitchSlices();
+        if (glitchTimer <= 0) { glitchActive = false; glitchSlices = []; }
+      } else if (Math.random() < 0.002) {
+        glitchActive = true;
+        glitchTimer = 2 + Math.floor(Math.random() * 4);
+        generateGlitchSlices();
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#f8f7f4';
+      ctx.fillRect(0, 0, W, H);
+
+      if (glitchActive && glitchSlices.length > 0) {
+        drawContent(0);
+        for (const slice of glitchSlices) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(0, slice.y, W, slice.h);
+          ctx.clip();
+          ctx.fillStyle = '#f8f7f4';
+          ctx.fillRect(0, slice.y, W, slice.h);
+          drawContent(slice.offset);
+          ctx.restore();
+        }
+      } else {
+        drawContent(0);
+      }
+    }
+
+    function drawContent(offsetX) {
+      const color = '#2a2a2a';
+
+      // Branches
+      ctx.strokeStyle = color;
+      ctx.lineCap = 'round';
+      for (let i = 0; i < branches.length; i++) {
+        const b = branches[i];
+        const alpha = b.broken ? b.fadeOut * 0.75 : 0.75;
+        if (alpha <= 0) continue;
+        ctx.globalAlpha = alpha;
+        ctx.lineWidth = b.thickness;
+
+        if (b.broken) {
+          ctx.save();
+          const midX = (b.x1 + b.x2) / 2;
+          const midY = (b.y1 + b.y2) / 2;
+          ctx.translate(midX + offsetX, midY);
+          ctx.rotate(b.angle);
+          const halfLen = Math.sqrt((b.x2 - b.x1) ** 2 + (b.y2 - b.y1) ** 2) / 2;
+          ctx.beginPath();
+          ctx.moveTo(-halfLen, 0);
+          ctx.lineTo(halfLen, 0);
+          ctx.stroke();
+          ctx.restore();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(b.homeX1 + offsetX, b.homeY1);
+          ctx.lineTo(b.homeX2 + offsetX, b.homeY2);
+          ctx.stroke();
+        }
+      }
+
+      // Dots
+      ctx.fillStyle = color;
+      for (let i = 0; i < particles.length; i++) {
+        const p = particles[i];
+        if (p.opacity < 0.01) continue;
+        ctx.globalAlpha = p.opacity * 0.85;
+        ctx.beginPath();
+        ctx.arc(p.x + offsetX, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.globalAlpha = 1;
+    }
+
+    function loop() {
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('resize', resize);
+    document.fonts.ready.then(() => { resize(); loop(); });
+  </script>
+</body>
+</html>
