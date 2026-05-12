@@ -342,6 +342,8 @@ async function typedC(html, speed=30){
   }
 }
 
+let currentInput = null;
+
 function waitInput(promptText){
   return new Promise(resolve => {
     const container = document.createElement('div');
@@ -351,12 +353,13 @@ function waitInput(promptText){
     span.className = 'dim';
     const input = document.createElement('input');
     input.type = 'text';
-    input.autofocus = true;
     container.appendChild(span);
     container.appendChild(input);
     screen.appendChild(container);
     screen.scrollTop = screen.scrollHeight;
-    input.focus();
+
+    currentInput = input;
+    setTimeout(() => input.focus(), 50);
 
     function handler(e){
       if(e.key === 'Enter'){
@@ -364,6 +367,7 @@ function waitInput(promptText){
         const val = input.value.trim();
         if(!val) return;
         input.removeEventListener('keydown', handler);
+        currentInput = null;
         container.innerHTML = '';
         const fixed = document.createElement('span');
         fixed.innerHTML = `<span class="dim">${promptText}</span><span class="bright">${val}</span>`;
@@ -374,6 +378,10 @@ function waitInput(promptText){
     input.addEventListener('keydown', handler);
   });
 }
+
+document.addEventListener('click', () => {
+  if(currentInput) currentInput.focus();
+});
 
 function progressBar(pct){
   const f = Math.floor(pct/5);
@@ -529,11 +537,13 @@ async function main(){
   memContainer.appendChild(memInput);
   screen.appendChild(memContainer);
   screen.scrollTop = screen.scrollHeight;
-  memInput.focus();
+  currentInput = memInput;
+  setTimeout(() => memInput.focus(), 50);
 
   state.memory = await new Promise(resolve => {
     memInput.addEventListener('keydown', e => {
       if(e.key === 'Enter'){
+        currentInput = null;
         const val = memInput.value.trim();
         memContainer.innerHTML = `<span class="dim">ECHO > </span><span class="bright">${val || '(없음)'}</span>`;
         resolve(val);
