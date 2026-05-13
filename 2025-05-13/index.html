@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stripe Generator</title>
+<link href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { cursor: pointer; user-select: none; }
+svg { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
+#text-layer {
+  position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+  pointer-events: none; z-index: 5; overflow: hidden;
+}
+#text-layer span {
+  position: absolute;
+  font-family: 'Roboto Condensed', sans-serif;
+  font-weight: 900;
+  line-height: 1;
+  mix-blend-mode: multiply;
+}
+.controls { position: fixed; bottom: 16px; right: 16px; display: flex; gap: 6px; z-index: 10; }
+.btn { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.55); padding: 7px 14px; border-radius: 4px; font-size: 11px; cursor: pointer; backdrop-filter: blur(4px); }
+.btn:hover { background: rgba(0,0,0,0.7); color: #fff; }
+.btn.active { background: rgba(255,255,255,0.15); color: #fff; }
+#counter { position: fixed; top: 12px; right: 16px; color: rgba(255,255,255,0.3); font-size: 10px; font-family: monospace; z-index: 10; mix-blend-mode: difference; }
+.hint { position: fixed; bottom: 16px; left: 16px; color: rgba(255,255,255,0.2); font-size: 10px; z-index: 10; mix-blend-mode: difference; }
+.home-btn { position: fixed; top: 12px; left: 16px; color: rgba(255,255,255,0.25); font-size: 11px; text-decoration: none; z-index: 10; mix-blend-mode: difference; transition: opacity 0.2s; }
+.home-btn:hover { opacity: 0.6; }
+@media (max-width: 768px) {
+  .controls { bottom: 12px; right: 12px; gap: 4px; }
+  .btn { padding: 8px 12px; font-size: 10px; }
+  .hint { bottom: 12px; left: 12px; font-size: 9px; }
+  #counter { top: 10px; right: 12px; font-size: 9px; }
+  #text-layer span { font-size: 60px !important; }
+}
+</style>
+</head>
+<body>
+<div class="hint">← prev / click·space·→ next</div>
+<a class="home-btn" href="../index.html">HOME</a>
+<div id="counter">#1</div>
+<svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+<div id="text-layer"></div>
+<div class="controls">
+  <button class="btn" id="btn-layer">Layer off</button>
+  <button class="btn" id="btn-svg">SVG</button>
+  <button class="btn" id="btn-png">PNG</button>
+</div>
+<script>
+const svgEl = document.getElementById('svg');
+const counterEl = document.getElementById('counter');
+let history = [], historyIndex = -1;
+
+function getSize() { return { w: window.innerWidth, h: window.innerHeight }; }
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function rand(a, b) { return a + Math.random() * (b - a); }
+function randInt(a, b) { return Math.floor(rand(a, b)); }
+
+const palettes = [
+  ['#F5C6D0','#A3B04A','#B8A9C9','#FFF8E7','#D4956A'],
+  ['#C8E6FF','#7B3F00','#FFD700','#F5F0E8'],
+  ['#00875A','#B5D333','#F5A0C0','#E8604C','#FFF5E6'],
+  ['#0000CC','#000066','#FF69B4','#FFEE88','#AABBFF'],
+  ['#B4A7D6','#FFB6D9','#8B8B00','#E8740C','#FFF5DC'],
+  ['#88DDCC','#7B68AE','#99CC66','#FFFFFF','#C5E8D5'],
+  ['#E8604C','#5B8DB8','#F5C6D0','#FFF0E8','#D4426E'],
+  ['#00A651','#FFFFFF','#2E5DA8'],
+  ['#E8A0B4','#FFF5E6','#1B3A6B','#D4A017','#800040'],
+  ['#B8E0FF','#C8B8E8','#1A1A1A','#FFFFFF','#D8ECFF'],
+  ['#0055A4','#00875A','#228B22','#FFF8DC','#4A90D9'],
+  ['#F5A0C0','#6B3A2A','#A3B04A','#FFF8DC'],
+  ['#E8740C','#5B8DB8','#F5C6D0','#B4A7D6','#FFF5E6'],
+  ['#FF0066','#FFCC00','#00CC66','#0066FF','#FF6600'],
+  ['#FFD1DC','#BAFFC9','#BAE1FF','#E8BAFF','#FFFFBA'],
+  ['#FFB6C1','#FFF8DC','#CDDC39','#5D4037','#F8BBD0'],
+  ['#008080','#FFDAB9','#6495ED','#808000','#FFB6C1'],
+  ['#C8102E','#F5A0B8','#FFF5E8','#8EAAB8'],
+  ['#FFD700','#FF8C00','#DC143C','#FF69B4','#FFF8DC'],
+  ['#7B68AE','#FFB8D0','#F0E0FF'],
+  ['#5B8DB8','#FFB6D9','#8B8B00','#F5E6E0'],
+  ['#FF6B6B','#4ECDC4','#FFE66D','#95E1D3'],
+  ['#6C5B7B','#C06C84','#F67280','#F8B500'],
+  ['#2E4057','#048A81','#54C6EB','#8EE3EF','#F7F7F7'],
+  ['#E63946','#F1FAEE','#A8DADC','#457B9D','#1D3557'],
+];
+
+function generate() {
+  const { w, h } = getSize();
+  svgEl.style.width = w + 'px';
+  svgEl.style.height = h + 'px';
+  svgEl.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svgEl.setAttribute('width', w);
+  svgEl.setAttribute('height', h);
+
+  const palette = pick(palettes);
+  const r = Math.random();
+  let inner;
+
+  if (r < 0.4)       inner = uniformStripe(palette, w, h);
+  else if (r < 0.75) inner = paulSmith(palette, w, h);
+  else if (r < 0.87) inner = checkerboard(palette, w, h);
+  else if (r < 0.95) inner = picnicCheck(palette, w, h);
+  else                inner = crossPattern(palette, w, h);
+
+  svgEl.innerHTML = inner;
+  updateTextLayer(palette);
+  if (historyIndex < history.length - 1) history = history.slice(0, historyIndex + 1);
+  history.push(inner);
+  historyIndex = history.length - 1;
+  counterEl.textContent = `#${historyIndex + 1}`;
+}
+
+// === 1. 균일 스트라이프 (같은 굵기, 2~3색 교대) ===
+function uniformStripe(palette, w, h) {
+  let inner = '';
+  const dir = Math.random() < 0.5 ? 'h' : 'v';
+  const max = dir === 'h' ? h : w;
+  const cross = dir === 'h' ? w : h;
+  const colors = palette.slice(0, randInt(2, Math.min(4, palette.length + 1)));
+  const size = rand(max * 0.03, max * 0.08);
+  let pos = 0, ci = 0;
+  while (pos < max) {
+    const s = Math.min(size, max - pos);
+    const color = colors[ci % colors.length];
+    if (dir === 'h') inner += `<rect x="0" y="${pos}" width="${cross}" height="${s}" fill="${color}"/>`;
+    else inner += `<rect x="${pos}" y="0" width="${s}" height="${cross}" fill="${color}"/>`;
+    pos += s; ci++;
+  }
+  return inner;
+}
+
+// === 2. 폴 스미스 스타일 (다양한 굵기 + 다색, 불규칙하지만 세련됨) ===
+function paulSmith(palette, w, h) {
+  let inner = '';
+  const dir = Math.random() < 0.5 ? 'h' : 'v';
+  const max = dir === 'h' ? h : w;
+  const cross = dir === 'h' ? w : h;
+  let pos = 0, lastColor = '';
+
+  while (pos < max) {
+    // 다양한 굵기: 가느다란 것부터 중간까지 자연스럽게 섞임
+    const r = Math.random();
+    let size;
+    if (r < 0.3) size = rand(max * 0.005, max * 0.015);      // 가느다란
+    else if (r < 0.6) size = rand(max * 0.015, max * 0.035);  // 좁은
+    else if (r < 0.85) size = rand(max * 0.035, max * 0.07);  // 중간
+    else size = rand(max * 0.07, max * 0.12);                  // 넓은
+
+    size = Math.min(size, max - pos);
+    let color;
+    do { color = pick(palette); } while (color === lastColor && palette.length > 1);
+    if (dir === 'h') inner += `<rect x="0" y="${pos}" width="${cross}" height="${size}" fill="${color}"/>`;
+    else inner += `<rect x="${pos}" y="0" width="${size}" height="${cross}" fill="${color}"/>`;
+    lastColor = color; pos += size;
+  }
+  return inner;
+}
+
+// === 3. 체커보드 (정사각형 격자) ===
+function checkerboard(palette, w, h) {
+  let inner = '';
+  const c1 = pick(palette);
+  const c2 = pick(palette.filter(c => c !== c1));
+  const cellSize = rand(Math.min(w, h) * 0.04, Math.min(w, h) * 0.12);
+  const cols = Math.ceil(w / cellSize);
+  const rows = Math.ceil(h / cellSize);
+
+  // 배경
+  inner += `<rect width="${w}" height="${h}" fill="${c1}"/>`;
+  // 체커 셀
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      if ((r + c) % 2 === 0) continue;
+      inner += `<rect x="${c * cellSize}" y="${r * cellSize}" width="${cellSize}" height="${cellSize}" fill="${c2}"/>`;
+    }
+  }
+  return inner;
+}
+
+// === 4. 피크닉 체크 (가로+세로 밴드 교차, 겹치는 부분 색 혼합) ===
+function picnicCheck(palette, w, h) {
+  let inner = '';
+  const bg = pick(palette);
+  const c1 = pick(palette.filter(c => c !== bg));
+  const c2 = pick(palette.filter(c => c !== bg && c !== c1)) || c1;
+
+  inner += `<rect width="${w}" height="${h}" fill="${bg}"/>`;
+
+  const bandSize = rand(Math.min(w, h) * 0.06, Math.min(w, h) * 0.14);
+  const gap = bandSize * rand(0.6, 1.2);
+
+  // 가로 밴드
+  for (let y = 0; y < h; y += bandSize + gap) {
+    inner += `<rect x="0" y="${y}" width="${w}" height="${bandSize}" fill="${c1}" opacity="0.55"/>`;
+  }
+  // 세로 밴드
+  for (let x = 0; x < w; x += bandSize + gap) {
+    inner += `<rect x="${x}" y="0" width="${bandSize}" height="${h}" fill="${c2}" opacity="0.55"/>`;
+  }
+  return inner;
+}
+
+// === 5. 밀도 전환 (같은 방향, 같은 색, 넓은/촘촘 구간이 2~3번 교대) ===
+function crossPattern(palette, w, h) {
+  let inner = '';
+  const dir = Math.random() < 0.5 ? 'h' : 'v';
+  const max = dir === 'h' ? h : w;
+  const cross = dir === 'h' ? w : h;
+
+  const c1 = pick(palette);
+  const c2 = pick(palette.filter(c => c !== c1));
+
+  const wideSize = rand(max * 0.06, max * 0.11);
+  const denseSize = rand(max * 0.012, max * 0.025);
+
+  // 넓은/촘촘 구간을 2~3번 교대
+  const sections = randInt(2, 4); // 2~3번
+  const sectionLen = max / (sections * 2); // 넓은+촘촘 한 세트 길이
+
+  let pos = 0, toggle = true;
+  let sectionCount = 0;
+  let isDense = false;
+  let nextSwitch = sectionLen;
+
+  while (pos < max) {
+    const size = Math.min(isDense ? denseSize : wideSize, max - pos);
+    const color = toggle ? c1 : c2;
+    if (dir === 'h') inner += `<rect x="0" y="${pos}" width="${cross}" height="${size}" fill="${color}"/>`;
+    else inner += `<rect x="${pos}" y="0" width="${size}" height="${cross}" fill="${color}"/>`;
+    pos += size; toggle = !toggle;
+
+    if (pos >= nextSwitch) {
+      isDense = !isDense;
+      sectionCount++;
+      nextSwitch += sectionLen;
+    }
+  }
+  return inner;
+}
+
+// === 텍스트 오버레이 ===
+const textLayer = document.getElementById('text-layer');
+let animFrame;
+
+function updateTextLayer(palette) {
+  textLayer.innerHTML = '';
+  if (animFrame) cancelAnimationFrame(animFrame);
+
+  const letters = 'STRIPE'.split('');
+  const { w, h } = getSize();
+  const spans = [];
+
+  // 8~14개 글자를 랜덤 배치
+  const count = randInt(8, 15);
+  for (let i = 0; i < count; i++) {
+    const span = document.createElement('span');
+    const letter = letters[i % letters.length];
+    span.textContent = letter;
+    const size = w < 768 ? rand(100, 250) : rand(200, 500);
+    span.style.fontSize = size + 'px';
+    span.style.color = pick(palette);
+    span.style.left = rand(-size * 0.3, w - size * 0.5) + 'px';
+    span.style.top = rand(-size * 0.3, h - size * 0.5) + 'px';
+    span.style.transform = `rotate(${rand(-30, 30)}deg)`;
+    // 애니메이션 데이터
+    span._vx = rand(-0.6, 0.6);
+    span._vy = rand(-0.6, 0.6);
+    span._x = parseFloat(span.style.left);
+    span._y = parseFloat(span.style.top);
+    textLayer.appendChild(span);
+    spans.push(span);
+  }
+
+  // 느린 떠다니기 애니메이션
+  function animate() {
+    for (const span of spans) {
+      span._x += span._vx;
+      span._y += span._vy;
+      span.style.left = span._x + 'px';
+      span.style.top = span._y + 'px';
+    }
+    animFrame = requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+// === 이벤트 ===
+function showFromHistory(i) {
+  if (i < 0 || i >= history.length) return;
+  historyIndex = i;
+  const { w, h } = getSize();
+  svgEl.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svgEl.setAttribute('width', w); svgEl.setAttribute('height', h);
+  svgEl.innerHTML = history[i];
+  counterEl.textContent = `#${i + 1}`;
+}
+
+document.body.addEventListener('click', (e) => {
+  if (e.target.closest('.controls')) return;
+  if (e.clientX < window.innerWidth * 0.2) showFromHistory(historyIndex - 1);
+  else generate();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Space' || e.code === 'ArrowRight') { e.preventDefault(); generate(); }
+  if (e.code === 'ArrowLeft') { e.preventDefault(); showFromHistory(historyIndex - 1); }
+});
+
+document.getElementById('btn-layer').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const btn = e.target;
+  const visible = textLayer.style.display !== 'none';
+  textLayer.style.display = visible ? 'none' : 'block';
+  btn.textContent = visible ? 'Layer on' : 'Layer off';
+  btn.classList.toggle('active', !visible);
+});
+
+document.getElementById('btn-svg').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const { w, h } = getSize();
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('width', w); clone.setAttribute('height', h);
+  const blob = new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = `stripe-${historyIndex+1}.svg`; a.click();
+});
+
+document.getElementById('btn-png').addEventListener('click', (e) => {
+  e.stopPropagation();
+  const { w, h } = getSize();
+  const clone = svgEl.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('width', w*2); clone.setAttribute('height', h*2);
+  const data = new XMLSerializer().serializeToString(clone);
+  const canvas = document.createElement('canvas');
+  canvas.width = w*2; canvas.height = h*2;
+  const img = new Image();
+  img.onload = () => { canvas.getContext('2d').drawImage(img, 0, 0); const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = `stripe-${historyIndex+1}.png`; a.click(); };
+  img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(data)));
+});
+
+generate();
+
+// 리사이즈 시 현재 패턴을 새 크기에 맞게 재생성
+window.addEventListener('resize', () => { generate(); });
+</script>
+</body>
+</html>
