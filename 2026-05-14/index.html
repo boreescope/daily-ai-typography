@@ -64,7 +64,8 @@ function drawTypo(canvas) {
   const ctx = canvas.getContext('2d');
   const dpr = window.devicePixelRatio || 1;
   const w = Math.min(window.innerWidth * 0.9, 1000);
-  const lines = ['FOREVE', 'RISM'];
+  const lineBreaks = [['FOREVER', 'ISM'], ['FOREVE', 'RISM'], ['FORE', 'VERISM'], ['FOREVER', 'ISM']];
+  const lines = lineBreaks[Math.floor(Math.random() * lineBreaks.length)];
   const maxCols = Math.max(getLineWidth(lines[0]), getLineWidth(lines[1]));
   const totalRows = 7 * 2 + 2;
   const maxDotSize = Math.min(w * 0.94 / maxCols, (w * 0.48) / totalRows);
