@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>1페이지 팀 가이드 작성법</title>
+<style>
+  /* 전체 리셋 — Confluence 붙여넣기 시 스타일 간섭 최소화 */
+  body {
+    font-family: -apple-system, "Helvetica Neue", Arial, sans-serif;
+    font-size: 14px;
+    color: #1A1A1A;
+    line-height: 1.7;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 24px;
+    background: #fff;
+  }
+
+  /* ── 제목 계층 ── */
+  h1 {
+    font-size: 26px;
+    font-weight: 700;
+    color: #1A1A1A;
+    border-bottom: 3px solid #2AC1BC;
+    padding-bottom: 8px;
+    margin-top: 48px;
+    margin-bottom: 16px;
+  }
+  h2 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1A1A1A;
+    margin-top: 32px;
+    margin-bottom: 10px;
+  }
+  h3 {
+    font-size: 14px;
+    font-weight: 700;
+    color: #595959;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    text-transform: none;
+  }
+
+  /* ── 문서 타이틀 블록 ── */
+  .doc-title {
+    font-size: 32px;
+    font-weight: 800;
+    color: #1A1A1A;
+    margin-bottom: 6px;
+    margin-top: 0;
+    border: none;
+  }
+  .doc-subtitle {
+    font-size: 16px;
+    color: #595959;
+    margin-bottom: 6px;
+  }
+  .doc-meta {
+    font-size: 12px;
+    color: #AAAAAA;
+    margin-bottom: 32px;
+  }
+
+  /* ── 본문 ── */
+  p { margin: 6px 0 10px; }
+
+  /* ── 목록 ── */
+  ul {
+    margin: 8px 0 12px 0;
+    padding-left: 22px;
+  }
+  ul li {
+    margin-bottom: 6px;
+  }
+  ol {
+    margin: 8px 0 12px 0;
+    padding-left: 22px;
+  }
+  ol li {
+    margin-bottom: 8px;
+  }
+
+  /* ── 표 ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 14px 0 20px;
+    font-size: 13px;
+  }
+  th {
+    background-color: #2AC1BC;
+    color: #FFFFFF;
+    font-weight: 700;
+    padding: 9px 12px;
+    text-align: left;
+    border: 1px solid #22A8A4;
+  }
+  td {
+    padding: 8px 12px;
+    border: 1px solid #DDDDDD;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background-color: #F5F5F5;
+  }
+  tr:nth-child(odd) td {
+    background-color: #FFFFFF;
+  }
+
+  /* ── 콜아웃 박스 ── */
+  .callout {
+    padding: 14px 16px 14px 20px;
+    border-radius: 4px;
+    margin: 14px 0;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .callout-mint {
+    background-color: #E8F9F8;
+    border-left: 4px solid #2AC1BC;
+  }
+  .callout-blue {
+    background-color: #EFF6FF;
+    border-left: 4px solid #2563EB;
+    color: #1e3a5f;
+  }
+  .callout-orange {
+    background-color: #FFF0E8;
+    border-left: 4px solid #FF6B2B;
+    color: #7a2f00;
+  }
+
+  /* ── 체크리스트 ── */
+  .checklist {
+    list-style: none;
+    padding-left: 0;
+    margin: 10px 0;
+  }
+  .checklist li {
+    padding: 8px 12px;
+    background: #E8F9F8;
+    border-left: 3px solid #2AC1BC;
+    margin-bottom: 6px;
+    border-radius: 0 4px 4px 0;
+    font-size: 13px;
+  }
+  .checklist li::before {
+    content: "✅  ";
+  }
+
+  /* ── Q&A ── */
+  .qa-block {
+    margin-bottom: 16px;
+  }
+  .qa-q {
+    font-weight: 700;
+    color: #1A1A1A;
+    margin-bottom: 4px;
+  }
+  .qa-a {
+    background: #F5F5F5;
+    border-left: 3px solid #BBBBBB;
+    padding: 8px 12px;
+    border-radius: 0 4px 4px 0;
+    font-size: 13px;
+    color: #333;
+  }
+
+  /* ── 구분선 ── */
+  hr {
+    border: none;
+    border-top: 1px solid #E0E0E0;
+    margin: 32px 0;
+  }
+
+  /* ── 인쇄/복사 힌트 배너 (화면 전용, 붙여넣기 시 무시됨) ── */
+  .copy-hint {
+    background: #FFFBEA;
+    border: 1px dashed #F5A623;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 12px;
+    color: #7A5700;
+    margin-bottom: 32px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── 복사 방법 안내 (화면 참고용) ── -->
+<div class="copy-hint">
+  📋 <strong>Confluence 붙여넣기 방법:</strong>
+  이 페이지에서 <strong>Cmd+A (전체선택) → Cmd+C (복사)</strong> 한 뒤,
+  Confluence 편집 화면에 <strong>Cmd+V (붙여넣기)</strong> 하세요.
+  표·제목·색상이 그대로 옮겨집니다.
+</div>
+
+<!-- ══════════════════════════════════════════
+     문서 타이틀
+════════════════════════════════════════════ -->
+<p class="doc-title">1페이지 팀 가이드 작성법</p>
+<p class="doc-subtitle">물어보새가 우리 팀 업무를 정확히 이해하도록 돕는 가이드 문서 만들기</p>
+<p class="doc-meta">v1.0 &nbsp;|&nbsp; AI프로덕트팀 &nbsp;|&nbsp; 2026.04</p>
+
+<hr>
+
+<!-- ══════════════════════════════════════════
+     1. 왜 필요한가요?
+════════════════════════════════════════════ -->
+<h1>1. 이 가이드가 왜 필요한가요?</h1>
+
+<p>물어보새는 회사 내 다양한 문서를 학습해 구성원들의 질문에 답합니다. 그런데 팀마다 고유한 용어, 원칙, 예외 사항이 있어 일반적인 문서만으로는 정확한 답변이 어렵습니다.</p>
+<p>각 팀이 <strong>'1페이지 가이드'</strong>를 작성해 제공하면 물어보새가 여러분 팀의 업무를 훨씬 정확하게 안내할 수 있습니다.</p>
+
+<div class="callout callout-mint">
+  ✅ &nbsp;<strong>목표:</strong> 반복되는 팀 내 문의를 줄이고, 구성원 누구나 빠르게 정확한 정보에 접근할 수 있는 환경 만들기
+</div>
+
+<hr>
+
+<!-- ══════════════════════════════════════════
+     2. 1페이지 가이드란?
+════════════════════════════════════════════ -->
+<h1>2. 1페이지 가이드란?</h1>
+
+<p>우리 팀 업무의 핵심을 압축한 문서입니다. 너무 길면 AI가 맥락을 놓치고, 너무 짧으면 엣지 케이스를 처리하지 못합니다. 아래 5개 섹션을 기준으로 작성하세요.</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>섹션</th>
+      <th>권장 분량</th>
+      <th>예시 (디자인실)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>① 핵심 원칙</strong></td>
+      <td>3~5개</td>
+      <td>배민 2.0 우선, IP 페이드아웃 등</td>
+    </tr>
+    <tr>
+      <td><strong>② 카테고리별 운용 가이드</strong></td>
+      <td>2~4개 카테고리</td>
+      <td>서체, 컬러, 그래픽 자산 등</td>
+    </tr>
+    <tr>
+      <td><strong>③ Q&amp;A 아카이브</strong></td>
+      <td>5~10개 Q&amp;A</td>
+      <td>실제 인입된 문의 + 의사결정 결과</td>
+    </tr>
+    <tr>
+      <td><strong>④ AI 응답 지침</strong></td>
+      <td>3~5개 규칙</td>
+      <td>답변 우선순위, 예외 처리 등</td>
+    </tr>
+    <tr>
+      <td><strong>⑤ 관련 자산 및 문의처</strong></td>
+      <td>링크 + 담당자</td>
+      <td>Slack 채널, JIRA, 위키 링크</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ══════════════════════════════════════════
+     3. 섹션별 작성 방법
+════════════════════════════════════════════ -->
+<h1>3. 섹션별 작성 방법</h1>
+
+<!-- ── ① 핵심 원칙 ── -->
+<h2>① 핵심 원칙 (Core Principles)</h2>
+
+<p>팀 업무에서 가장 중요한 기준 3~5가지를 불렛으로 정리하세요. AI가 판단이 모호할 때 이 원칙을 기준으로 답변합니다.</p>
+
+<div class="callout callout-blue">
+  💡 <strong>작성 팁:</strong> "무엇이 최우선인가?"를 먼저 생각하세요. 원칙은 판단 기준이 명확한 한 문장이어야 합니다.
+</div>
+
+<h3>예시 (디자인실)</h3>
+<ul>
+  <li><strong>배민 2.0 우선주의:</strong> 모든 로고, 컬러, 서체는 리뉴얼된 가이드 기준이며 구버전 자산 사용은 엄격히 금지</li>
+  <li><strong>IP 페이드아웃:</strong> '배달이친구들' 캐릭터 공식 사용 중단 및 신규 제작물 노출 금지</li>
+  <li><strong>서체 체계 변경:</strong> 한나체 공식 사용 종료. 배민 WORK / LOVE / PLAY체 3종 중심 운영</li>
+  <li><strong>가이드 준수:</strong> 사내용 '우아한 디자인 가이드' 및 외부용 '배같디' 최우선 참고</li>
+</ul>
+
+<!-- ── ② 카테고리별 가이드 ── -->
+<h2>② 카테고리별 운용 가이드</h2>
+
+<p>팀에서 자주 문의받는 주제를 카테고리로 나눠 상세하게 작성하세요. <strong>표 형식이 AI 파싱에 가장 효과적</strong>입니다.</p>
+
+<div class="callout callout-blue">
+  💡 <strong>작성 팁:</strong> 구분 / 권장 항목 / 용도 및 제약 사항 3열 구조로 작성하면 AI가 분류를 가장 잘 이해합니다.
+</div>
+
+<h3>예시 — 서체 가이드 표</h3>
+<table>
+  <thead>
+    <tr>
+      <th>구분</th>
+      <th>권장 서체</th>
+      <th>용도 및 제약 사항</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>타이틀</strong></td>
+      <td>배민 WORK체<br><small>[회사 내부용 자산]</small></td>
+      <td>브랜드 정체성을 대표하는 메인 서체. 타이틀 위주 사용. 본문 사용 불가.</td>
+    </tr>
+    <tr>
+      <td><strong>보조 타이틀</strong></td>
+      <td>배민 LOVE체<br><small>[회사 내부용 자산]</small></td>
+      <td>좁은 공간 및 정보 밀도가 높은 곳. 디자인 외 직군 사용 시 문의 필수.</td>
+    </tr>
+    <tr>
+      <td><strong>본문/설명</strong></td>
+      <td>프리텐다드 Pretendard<br><small>[오픈소스 폰트]</small></td>
+      <td>가독성이 중요한 일반 텍스트 및 상세 설명.</td>
+    </tr>
+    <tr>
+      <td><strong>그래픽</strong></td>
+      <td>배민 PLAY체<br><small>[회사 내부용 자산, 제작 중]</small></td>
+      <td>시각적 임팩트가 필요한 특정 그래픽 자산 전용. 디자인 외 직군 사용 시 문의 필수.</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ── ③ Q&A 아카이브 ── -->
+<h2>③ Q&amp;A 아카이브</h2>
+
+<p>실제로 채널이나 DM으로 인입된 문의와 의사결정 결과를 Q&amp;A 형식으로 기록하세요. <strong>AI 학습에서 가장 중요한 섹션</strong>입니다.</p>
+
+<div class="callout callout-orange">
+  💡 <strong>작성 팁:</strong> 실제 질문을 그대로 쓰세요. "~그래도 되나요?" 같은 구어체도 좋습니다. AI는 이런 표현을 기반으로 유사 질문을 인식합니다. 날짜와 사례를 함께 기록하면 더욱 좋습니다.
+</div>
+
+<h3>좋은 Q&amp;A vs. 피해야 할 Q&amp;A</h3>
+<table>
+  <thead>
+    <tr>
+      <th style="background:#388E3C;">✅ 좋은 Q&amp;A 예시</th>
+      <th style="background:#C62828;">❌ 피해야 할 Q&amp;A 예시</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>
+        <strong>Q:</strong> 타사 콜라보 제품에 배달이 캐릭터를 넣어도 되나요?<br>
+        <strong>A:</strong> 공식 사용이 중단되었습니다. 신규 캐릭터 활용은 지양하며, 로고와 타이포그래피 중심으로 디자인을 변경하세요. <em>(2026-03 뚜레쥬르 사례)</em>
+      </td>
+      <td style="color:#888;">
+        <strong>Q:</strong> 캐릭터 사용 가능 여부<br>
+        <strong>A:</strong> 불가.
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h3>예시 — 실제 Q&amp;A 아카이브</h3>
+
+<div class="qa-block">
+  <p class="qa-q">🟢 Q: 기존 광고 영상에 나오는 캐릭터는 어떻게 하나요?</p>
+  <div class="qa-a">기존 협의 건에 한해 한시적 노출 후 점진적으로 삭제(페이드아웃) 조치합니다.</div>
+</div>
+
+<div class="qa-block">
+  <p class="qa-q">🔵 Q: 외부 앱에 노출할 로고가 필요합니다.</p>
+  <div class="qa-a">'배달의민족' 텍스트 로고는 기존과 동일하나, 앱 아이콘은 반드시 <strong>리뉴얼된 2.0 버전</strong>을 수급하여 적용해야 합니다.</div>
+</div>
+
+<div class="qa-block">
+  <p class="qa-q">🟡 Q: '배민배달' 문구를 써도 되나요?</p>
+  <div class="qa-a">아니오. '배민배달' 명칭은 페이드아웃되었습니다. 상위 통합 개념인 <strong>'음식배달'</strong>을 기준으로 사용하세요. (2026-04 기준)</div>
+</div>
+
+<!-- ── ④ AI 응답 지침 ── -->
+<h2>④ AI 응답 지침 (Instructions for AI)</h2>
+
+<p>이 섹션은 AI가 질문에 답할 때 따라야 할 판단 기준을 명시합니다. <strong>"~할 때는 반드시 ~을 언급하세요"</strong> 형태로 작성할수록 AI가 더 잘 따릅니다.</p>
+
+<div class="callout callout-blue">
+  💡 <strong>작성 팁:</strong> 가장 자주 틀릴 수 있는 시나리오 위주로 규칙을 만드세요. "판단이 모호한 경우"에 대한 예외 처리 규칙도 반드시 포함하세요.
+</div>
+
+<h3>예시 — 디자인실 AI 응답 지침</h3>
+
+<table>
+  <thead>
+    <tr>
+      <th>시나리오</th>
+      <th>AI 응답 규칙</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>캐릭터(배달이) 관련 문의</strong></td>
+      <td>"사용해도 되나요?" 질문 시 반드시 <strong>'공식 사용 중단'</strong> 및 <strong>'페이드아웃 원칙'</strong>을 언급하며 신규 노출을 지양하도록 안내</td>
+    </tr>
+    <tr>
+      <td><strong>서체 관련 문의</strong></td>
+      <td>'한나체'는 대중용 무료 서체임을 명시하고, 브랜드 전용 자산인 <strong>'배민 WORK / LOVE / PLAY체'</strong> 사용을 권고</td>
+    </tr>
+    <tr>
+      <td><strong>서비스명 관련 문의</strong></td>
+      <td>'배민배달' 명칭은 페이드아웃되었음을 안내하고, 상위 통합 개념인 <strong>'음식배달'</strong>을 기준으로 답변</td>
+    </tr>
+    <tr>
+      <td><strong>외부 파일 요청</strong></td>
+      <td>개별 파일 전달이 아닌, 반드시 <strong>'배같디'</strong> 사이트를 통한 직접 가입 및 수급을 안내</td>
+    </tr>
+    <tr>
+      <td><strong>판단이 모호한 경우</strong></td>
+      <td>반드시 <strong>#support-브랜딩-더블체크</strong> 채널 문의를 최종 가이드로 제공</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ── ⑤ 문의처 ── -->
+<h2>⑤ 관련 자산 및 문의처</h2>
+
+<p>링크와 담당자 정보를 명확하게 기재하세요. AI가 "더 자세한 정보는 어디서 찾나요?"에 답할 수 있게 됩니다.</p>
+
+<div class="callout callout-blue">
+  💡 <strong>작성 팁:</strong> 링크는 반드시 최신 상태를 유지하고, 담당자 정보에 팀명도 함께 적으세요. 담당자가 바뀌어도 팀명으로 찾을 수 있습니다.
+</div>
+
+<h3>예시 — 디자인실 문의처</h3>
+<table>
+  <thead>
+    <tr>
+      <th>팀</th>
+      <th>담당 영역</th>
+      <th>문의 채널</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>코어그래픽팀</strong></td>
+      <td>브랜드 그래픽 시스템, 전사 디자인 지원, 디자인 자산 관리</td>
+      <td>위키 / 업무요청 JIRA</td>
+    </tr>
+    <tr>
+      <td><strong>서비스그래픽팀</strong></td>
+      <td>서비스 코어 운영, 브랜드 캠페인, 콜라보, 앱 아이콘</td>
+      <td>위키 / 업무요청 JIRA</td>
+    </tr>
+    <tr>
+      <td><strong>크리에이티브AI파트너팀</strong></td>
+      <td>AI 기반 크리에이티브 생산성 혁신, 환경 최적화, 창작 실험</td>
+      <td>위키 / 업무요청 JIRA</td>
+    </tr>
+    <tr>
+      <td><strong>컬쳐디자인팀</strong></td>
+      <td>인터널 소통, 일터와 조직문화 정보 디자인</td>
+      <td>위키 / 업무요청 JIRA</td>
+    </tr>
+  </tbody>
+</table>
+
+<hr>
+
+<!-- ══════════════════════════════════════════
+     4. 작성 전 체크리스트
+════════════════════════════════════════════ -->
+<h1>4. 작성 전 체크리스트</h1>
+
+<ul class="checklist">
+  <li>우리 팀에 자주 오는 반복 문의를 5개 이상 정리했다</li>
+  <li>"~해도 되나요?" "쓰면 안 되나요?" 형태의 실제 질문을 Q&amp;A에 반영했다</li>
+  <li>핵심 원칙에 팀만의 최우선 기준이 명확하게 담겨 있다</li>
+  <li>AI 응답 지침에 예외 상황 처리 방법 (어디로 문의할지) 이 포함되어 있다</li>
+  <li>관련 자산 링크와 담당자가 최신 상태로 기재되어 있다</li>
+  <li>최종 업데이트 날짜가 문서에 명시되어 있다</li>
+</ul>
+
+<hr>
+
+<!-- ══════════════════════════════════════════
+     5. 작성 후 등록 방법
+════════════════════════════════════════════ -->
+<h1>5. 작성 후: 가이드 등록 방법</h1>
+
+<ol>
+  <li><strong>Confluence(위키)에 페이지를 생성</strong>하세요. 공간: AIPD 또는 팀 공간.</li>
+  <li><strong>크리에이티브AI파트너팀(크에파)에 업무 요청</strong>을 넣어 물어보새 학습을 요청하세요.</li>
+  <li>가이드 내용이 변경될 때마다 <strong>업데이트 날짜를 갱신</strong>하고 크에파에 알려주세요.</li>
+</ol>
+
+<div class="callout callout-mint">
+  📌 &nbsp;<strong>문의:</strong> 크리에이티브AI파트너팀(크에파) &nbsp;|&nbsp; Slack <strong>#지원-크에파</strong> &nbsp;|&nbsp; JIRA 업무요청
+</div>
+
+</body>
+</html>

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wardrobe — Cloth Unfold</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#fff;overflow:hidden;}
+
+  .home-btn{
+    position:fixed;top:22px;left:24px;z-index:100;
+    font:500 11px/1 "Helvetica Neue",sans-serif;letter-spacing:.18em;
+    color:rgba(0,0,0,.35);text-decoration:none;
+    padding:8px 12px;border:1px solid rgba(0,0,0,.15);
+    border-radius:2px;transition:all .4s ease;
+  }
+  .home-btn:hover{color:#000;border-color:rgba(0,0,0,.5);}
+
+  .stage{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;
+    gap:6vh;
+  }
+
+  .word{
+    display:flex;
+    gap:0;
+    width:min(92vw, 1050px);
+  }
+
+  .letter{
+    flex:1;
+    position:relative;
+    overflow:visible;
+  }
+
+  /* 하단 (고정) */
+  .letter .bot-wrap{
+    position:relative;
+  }
+  .letter .bot-wrap img{
+    width:100%;
+    height:auto;
+    display:block;
+  }
+
+  /* 상단 (접혀있다가 펼쳐짐) */
+  .letter .top-wrap{
+    position:absolute;
+    bottom:100%;
+    left:0;
+    right:0;
+    transform-origin:50% 100%;
+    /* 초기: 접힌 상태 — Y축으로 납작하게 + 살짝 아래로 */
+    transform:scaleY(0.08) translateY(40%);
+    opacity:0.7;
+  }
+  .letter .top-wrap img{
+    width:100%;
+    height:auto;
+    display:block;
+  }
+
+  /* 접힌 부분의 그림자 */
+  .letter .fold-shadow{
+    position:absolute;
+    bottom:0;
+    left:0;
+    right:0;
+    height:25%;
+    background:linear-gradient(to top, rgba(0,0,0,0.15), transparent);
+    pointer-events:none;
+    opacity:1;
+    transition:opacity 0.8s ease-out;
+  }
+  .letter.open .fold-shadow{
+    opacity:0;
+  }
+
+  /* 펼쳐진 상태 */
+  .letter.open .top-wrap{
+    transform:scaleY(1) translateY(0%);
+    opacity:1;
+  }
+
+  /* 가사 */
+  .lyrics{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:0.8em;
+  }
+  .lyrics span{
+    display:block;
+    font:300 clamp(13px, 1.6vw, 18px)/1 "Noto Sans KR", sans-serif;
+    color:rgba(0,0,0,.0);
+    letter-spacing:.06em;
+    transform:translateY(12px);
+    transition:color 0.8s ease, transform 0.8s ease;
+  }
+  .lyrics span.show{
+    color:rgba(0,0,0,.55);
+    transform:translateY(0);
+  }
+
+  .credit{
+    position:fixed;bottom:20px;right:24px;
+    font:400 9px/1.4 "Helvetica Neue",sans-serif;
+    letter-spacing:.08em;color:rgba(0,0,0,.25);
+  }
+</style>
+</head>
+<body>
+<a class="home-btn" href="../index.html">HOME</a>
+
+<div class="stage">
+  <div class="word" id="word"></div>
+  <div class="lyrics" id="lyrics">
+    <span>내 옷장은 나의 꿈</span>
+    <span>내 옷장은 환상</span>
+    <span>내 옷장은 나의 사랑</span>
+  </div>
+</div>
+
+<div class="credit">2025.05.07 · Wardrobe</div>
+
+<script>
+const word = document.getElementById('word');
+const lyricLines = [...document.querySelectorAll('.lyrics span')];
+
+const letterConfig = [
+  {delay:0.3,  duration:1.4},  // W
+  {delay:0.5,  duration:1.2},  // A
+  {delay:0.2,  duration:1.5},  // R
+  {delay:0.7,  duration:1.3},  // D
+  {delay:0.4,  duration:1.4},  // R
+  {delay:0.6,  duration:1.2},  // O
+  {delay:0.35, duration:1.5},  // B
+  {delay:0.8,  duration:1.3},  // E
+];
+
+for(let i = 0; i < 8; i++){
+  const cfg = letterConfig[i];
+  const div = document.createElement('div');
+  div.className = 'letter';
+
+  // 천이 펼쳐지는 느낌의 이징: 처음엔 빠르게, 끝에서 부드럽게 착지
+  const easing = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+  div.innerHTML = `
+    <div class="top-wrap" style="transition:transform ${cfg.duration}s ${easing}, opacity ${cfg.duration * 0.6}s ease-out;">
+      <img src="c${i}_top.png">
+    </div>
+    <div class="bot-wrap">
+      <img src="c${i}_bot.png">
+      <div class="fold-shadow"></div>
+    </div>
+  `;
+
+  setTimeout(() => div.classList.add('open'), cfg.delay * 1000);
+  word.appendChild(div);
+}
+
+// 가사: 글자 다 펼쳐진 후 한 줄씩
+const lastTime = Math.max(...letterConfig.map(c => c.delay + c.duration)) * 1000;
+lyricLines.forEach((line, i) => {
+  setTimeout(() => line.classList.add('show'), lastTime + 400 + i * 600);
+});
+</script>
+</body>
+</html>

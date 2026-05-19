@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wardrobe — Test A (상하 접기)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#fff;overflow:hidden;}
+
+  .stage{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;
+    gap:5vh;
+  }
+
+  .artwork{
+    width:min(90vw, 1000px);
+    perspective:1000px;
+  }
+
+  .top-wrap{
+    transform-origin:50% 100%;
+    transform:rotateX(180deg);
+    animation:flipOpen 1.5s cubic-bezier(.4,.0,.2,1) 1s forwards;
+    animation-timing-function:steps(8);
+  }
+  .top-wrap img, .bot-wrap img{
+    width:100%;
+    height:auto;
+    display:block;
+  }
+  .top-wrap{
+    margin-bottom:-2px;
+  }
+
+  @keyframes flipOpen{
+    0%{transform:rotateX(180deg);}
+    100%{transform:rotateX(0deg);}
+  }
+
+  .lyrics{
+    text-align:center;
+    font:400 clamp(13px, 1.8vw, 17px)/2 "Helvetica Neue", sans-serif;
+    color:rgba(0,0,0,.5);
+    letter-spacing:.03em;
+    opacity:0;
+    animation:fadeIn 1s ease 3s forwards;
+  }
+  @keyframes fadeIn{to{opacity:1;}}
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="artwork">
+    <div class="top-wrap"><img src="full_top.png" alt="top"></div>
+    <div class="bot-wrap"><img src="full_bot.png" alt="bottom"></div>
+  </div>
+  <div class="lyrics">
+    내 옷장은 나의 꿈 / 내 옷장은 환상 / 내 옷장은 나의 사랑
+  </div>
+</div>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wardrobe — Test B (좌우 펼치기)</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{width:100%;height:100%;background:#fff;overflow:hidden;}
+
+  .stage{
+    position:fixed;inset:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+
+  .word{
+    display:flex;
+    gap:0.5vw;
+    perspective:1200px;
+  }
+
+  .letter{
+    width:clamp(60px, 10vw, 120px);
+    position:relative;
+    display:flex;
+  }
+
+  .letter .left, .letter .right{
+    display:block;
+    width:50%;
+    height:auto;
+  }
+
+  /* 좌측: 오른쪽으로 접혀있다가 펼쳐짐 */
+  .letter .left-wrap{
+    transform-origin:100% 50%;
+    transform:rotateY(-180deg);
+    transition:transform 0.8s cubic-bezier(.4,.0,.2,1);
+    transition-timing-function:steps(6);
+    width:50%;
+  }
+  .letter.open .left-wrap{
+    transform:rotateY(0deg);
+  }
+
+  /* 우측: 왼쪽으로 접혀있다가 펼쳐짐 */
+  .letter .right-wrap{
+    transform-origin:0% 50%;
+    transform:rotateY(180deg);
+    transition:transform 0.8s cubic-bezier(.4,.0,.2,1);
+    transition-timing-function:steps(6);
+    width:50%;
+  }
+  .letter.open .right-wrap{
+    transform:rotateY(0deg);
+  }
+
+  .info{
+    position:fixed;top:20px;left:50%;transform:translateX(-50%);
+    font:500 12px/1 "Helvetica Neue",sans-serif;color:rgba(0,0,0,.4);
+    letter-spacing:.1em;
+  }
+</style>
+</head>
+<body>
+<div class="info">TEST B: 좌우 펼치기 (책 열기)</div>
+<div class="stage">
+  <div class="word" id="word"></div>
+</div>
+
+<script>
+const word = document.getElementById('word');
+for(let i=0; i<8; i++){
+  const div = document.createElement('div');
+  div.className = 'letter';
+  div.innerHTML = `
+    <div class="left-wrap"><img class="left" src="l${i}_left.png"></div>
+    <div class="right-wrap"><img class="right" src="l${i}_right.png"></div>
+  `;
+  word.appendChild(div);
+
+  // 순차 펼침
+  setTimeout(()=> div.classList.add('open'), 1200 + i*400);
+}
+</script>
+</body>
+</html>
