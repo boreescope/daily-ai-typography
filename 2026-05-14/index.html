@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>FOREVERISM</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #fff; color: #222; font-family: -apple-system, 'Pretendard', sans-serif; overflow-x: hidden; }
+.frame { position: fixed; top: 0; left: 0; width: 100%; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; z-index: 200; mix-blend-mode: difference; }
+.frame__title { font-size: 10px; font-family: monospace; color: #fff; letter-spacing: 2px; text-decoration: none; pointer-events: auto; }
+.frame__title:hover { opacity: 0.6; }
+.loop-indicator { position: fixed; bottom: 16px; right: 24px; font-size: 10px; color: #999; font-family: monospace; z-index: 200; }
+.loop-indicator span { color: #ff0000; }
+.section { width: 100vw; height: 100vh; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+.section canvas.bg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; display: block; }
+.section .typo-wrap { position: relative; z-index: 2; }
+.section .quote { position: relative; z-index: 2; font-size: 11px; color: #555; text-align: center; margin-top: 24px; font-family: monospace; line-height: 1.7; max-width: 380px; }
+</style>
+</head>
+<body>
+
+<div class="frame"><a href="../index.html" class="frame__title">← HOME</a></div>
+<div class="loop-indicator">loop: <span id="loop-count">0</span></div>
+
+<div id="grid"></div>
+
+<script>
+const quotes = [
+  '원본을 지워도 사본들은 각자의 수명을 산다.',
+  '스크린샷은 동의를 구하지 않는다.',
+  '삭제 시도 자체가 관심을 증폭시킨다.',
+  '모델은 잊지 않는다.',
+  '생성은 순간이고, 존재는 영원이다.',
+  '삭제는 환상이다.',
+  '한번 생성된 것은 영원히 순환한다.',
+  '디지털 세계에서 망각은 불가능하다.',
+];
+function randomQuote() { return quotes[Math.floor(Math.random() * quotes.length)]; }
+
+const palette = ['#ff0000','#0000ff','#00cccc','#000000','#ff8800','#00ff00','#ff00ff','#ffcc00'];
+
+const dotGrid = {
+  'F': [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0]],
+  'O': [[0,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,1,1,0]],
+  'R': [[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,0],[1,0,1,0,0],[1,0,0,1,0],[1,0,0,0,1]],
+  'E': [[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+  'V': [[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1],[0,1,0,1,0],[0,1,0,1,0],[0,0,1,0,0]],
+  'I': [[1,1,1],[0,1,0],[0,1,0],[0,1,0],[0,1,0],[0,1,0],[1,1,1]],
+  'S': [[0,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[0,1,1,1,0],[0,0,0,0,1],[0,0,0,0,1],[1,1,1,1,0]],
+  'M': [[1,0,0,0,1],[1,1,0,1,1],[1,0,1,0,1],[1,0,1,0,1],[1,0,0,0,1],[1,0,0,0,1],[1,0,0,0,1]],
+};
+
+function getLineWidth(line) {
+  let w = 0;
+  for (let i = 0; i < line.length; i++) {
+    const ch = dotGrid[line[i]];
+    if (ch) w += ch[0].length;
+    if (i < line.length - 1) w += 1;
+  }
+  return w;
+}
+
+function drawTypo(canvas) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.min(window.innerWidth * 0.9, 1000);
+  const lines = ['FOREVE', 'RISM'];
+  const maxCols = Math.max(getLineWidth(lines[0]), getLineWidth(lines[1]));
+  const totalRows = 7 * 2 + 2;
+  const maxDotSize = Math.min(w * 0.94 / maxCols, (w * 0.48) / totalRows);
+  const gap = maxDotSize;
+  const h = totalRows * gap + 40;
+  const ps = gap * 0.72;
+
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, w, h);
+
+  const totalH = totalRows * gap;
+  const startY = (h - totalH) / 2;
+
+  lines.forEach((line, lineIndex) => {
+    const lineW = getLineWidth(line) * gap;
+    const startX = (w - lineW) / 2;
+    const baseY = startY + lineIndex * 9 * gap;
+    let col = 0;
+    for (let ci = 0; ci < line.length; ci++) {
+      const ch = dotGrid[line[ci]];
+      if (!ch) continue;
+      for (let row = 0; row < ch.length; row++) {
+        for (let c = 0; c < ch[row].length; c++) {
+          if (ch[row][c]) {
+            const x = startX + (col + c) * gap + (gap - ps) / 2;
+            const y = baseY + row * gap + (gap - ps) / 2;
+            ctx.fillStyle = Math.random() < 0.5 ? '#000' : palette[Math.floor(Math.random() * palette.length)];
+            ctx.fillRect(x, y, ps, ps);
+          }
+        }
+      }
+      col += ch[0].length + 1;
+    }
+  });
+}
+
+function createGlitchRenderer(canvas) {
+  const ctx = canvas.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  ctx.scale(dpr, dpr);
+
+  const ps = Math.max(4, Math.floor(w / 180));
+  const margin = 0.25;
+
+  function render() {
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(0, 0, w, h);
+
+    const numBlobs = 3 + Math.floor(Math.random() * 4);
+    for (let b = 0; b < numBlobs; b++) {
+      let bx, by;
+      const side = Math.floor(Math.random() * 4);
+      if (side === 0) { bx = Math.random() * w * margin; by = Math.random() * h; }
+      else if (side === 1) { bx = w - Math.random() * w * margin; by = Math.random() * h; }
+      else if (side === 2) { bx = Math.random() * w; by = Math.random() * h * margin; }
+      else { bx = Math.random() * w; by = h - Math.random() * h * margin; }
+
+      const bw = 40 + Math.random() * 200;
+      const bh = 50 + Math.random() * 250;
+      const color = palette[Math.floor(Math.random() * palette.length)];
+      const density = 0.2 + Math.random() * 0.4;
+      for (let px = bx - bw/2; px < bx + bw/2; px += ps) {
+        for (let py = by - bh/2; py < by + bh/2; py += ps) {
+          if (Math.random() < density) {
+            const dist = Math.hypot(px - bx, py - by) / Math.max(bw, bh);
+            if (Math.random() > dist * 0.6) {
+              ctx.fillStyle = Math.random() < 0.6 ? color : palette[Math.floor(Math.random() * palette.length)];
+              ctx.fillRect(px, py, ps, ps);
+            }
+          }
+        }
+      }
+    }
+
+    for (let i = 0; i < 60; i++) {
+      let sx = Math.random() * w;
+      let sy = Math.random() * h;
+      if (sx > w * 0.3 && sx < w * 0.7 && sy > h * 0.25 && sy < h * 0.75) continue;
+      ctx.fillStyle = palette[Math.floor(Math.random() * palette.length)];
+      ctx.fillRect(sx, sy, ps, ps);
+    }
+
+    for (let i = 0; i < 4; i++) {
+      const onTop = Math.random() < 0.5;
+      const ly = onTop ? Math.random() * h * 0.2 : h - Math.random() * h * 0.2;
+      const lx = Math.random() * w;
+      const lw = 20 + Math.random() * 150;
+      ctx.fillStyle = palette[Math.floor(Math.random() * palette.length)];
+      for (let px = lx; px < lx + lw; px += ps) {
+        if (Math.random() < 0.5) ctx.fillRect(px, ly, ps, ps);
+      }
+    }
+  }
+
+  render();
+  return render;
+}
+
+// Build DOM: 4 sections (typo, glitch, typo, glitch)
+const grid = document.getElementById('grid');
+const sectionTypes = ['typo', 'glitch', 'typo', 'glitch'];
+const allRenderers = [];
+const typoCanvases = [];
+const quoteEls = [];
+
+sectionTypes.forEach((type, i) => {
+  const sec = document.createElement('div');
+  sec.className = 'section';
+
+  const bgCanvas = document.createElement('canvas');
+  bgCanvas.className = 'bg';
+  sec.appendChild(bgCanvas);
+  allRenderers.push(createGlitchRenderer(bgCanvas));
+
+  if (type === 'typo') {
+    const typoCanvas = document.createElement('canvas');
+    typoCanvas.className = 'typo-wrap';
+    sec.appendChild(typoCanvas);
+    drawTypo(typoCanvas);
+    typoCanvases.push(typoCanvas);
+
+    const q = document.createElement('div');
+    q.className = 'quote';
+    q.textContent = randomQuote();
+    sec.appendChild(q);
+    quoteEls.push(q);
+  }
+
+  grid.appendChild(sec);
+});
+
+// Animate glitch backgrounds
+let lastFrame = 0;
+function animate(time) {
+  if (time - lastFrame > 140) {
+    allRenderers.forEach(fn => fn());
+    lastFrame = time;
+  }
+  requestAnimationFrame(animate);
+}
+requestAnimationFrame(animate);
+
+// Redraw typo with new colors
+setInterval(() => { typoCanvases.forEach(c => drawTypo(c)); }, 900);
+
+// Rotate quotes
+setInterval(() => { quoteEls.forEach(el => { el.textContent = randomQuote(); }); }, 4000);
+
+// Infinite scroll using window scroll
+const sectionH = window.innerHeight;
+const numSections = sectionTypes.length;
+const oneSetH = sectionH * numSections;
+const loopCountEl = document.getElementById('loop-count');
+let loops = 0;
+
+// Clone sections above and below for seamless loop
+const originalSections = grid.innerHTML;
+grid.insertAdjacentHTML('afterbegin', originalSections);
+grid.insertAdjacentHTML('beforeend', originalSections);
+
+// Init cloned canvases
+grid.querySelectorAll('.section').forEach((sec, i) => {
+  if (i < numSections || i >= numSections * 2) {
+    const bgCanvas = sec.querySelector('canvas.bg');
+    if (bgCanvas && bgCanvas.width === 0) {
+      allRenderers.push(createGlitchRenderer(bgCanvas));
+    }
+    const typoCanvas = sec.querySelector('canvas.typo-wrap');
+    if (typoCanvas && typoCanvas.width === 0) {
+      drawTypo(typoCanvas);
+    }
+  }
+});
+
+// Start in middle set
+window.scrollTo(0, oneSetH);
+
+let scrollTicking = false;
+window.addEventListener('scroll', () => {
+  if (scrollTicking) return;
+  scrollTicking = true;
+  requestAnimationFrame(() => {
+    const y = window.scrollY;
+    if (y >= oneSetH * 2) {
+      window.scrollTo(0, y - oneSetH);
+      loops++;
+      loopCountEl.textContent = loops;
+    } else if (y < oneSetH * 0.05) {
+      window.scrollTo(0, y + oneSetH);
+      loops++;
+      loopCountEl.textContent = loops;
+    }
+    scrollTicking = false;
+  });
+}, { passive: true });
+
+window.history.scrollRestoration = 'manual';
+</script>
+</body>
+</html>
