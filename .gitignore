@@ -7,3 +7,8 @@ Kapture*.gif
 # Reference images (저작권)
 **/ref/
 ref/
+node_modules/
+thumbs/
+capture-thumbs.mjs
+package.json
+package-lock.json
