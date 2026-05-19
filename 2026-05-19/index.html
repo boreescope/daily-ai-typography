@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stretch Type</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: #e8e4df;
+  overflow: hidden;
+  touch-action: none;
+}
+canvas { display: block; cursor: grab; }
+canvas:active { cursor: grabbing; }
+.home-btn {
+  position: fixed; top: 12px; left: 16px;
+  color: rgba(0,0,0,0.2); font-size: 11px; text-decoration: none; z-index: 10;
+}
+.home-btn:hover { color: rgba(0,0,0,0.5); }
+</style>
+</head>
+<body>
+<a class="home-btn" href="../index.html">HOME</a>
+<canvas id="c"></canvas>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+const FONT_FAMILY = '"Arial Black", "Helvetica Neue", Helvetica, sans-serif';
+const TARGET_HEIGHT_VH = 29;
+
+const words = [
+  { en: 'alllll', ko: '전부 다ㅏㅏㅏ' },
+  { en: 'battllle', ko: '전투' },
+  { en: 'chattllle', ko: '쫑알쫑알' },
+  { en: 'rippplllle', ko: '살랑살랑' },
+  { en: 'shimmllle', ko: '반짝반짝' },
+  { en: 'babbllle', ko: '횡설수설' },
+  { en: 'gurgllle', ko: '콸콸' },
+  { en: 'fumbllle', ko: '더듬더듬' },
+  { en: 'tumbllle', ko: '구르다' },
+  { en: 'bloooom', ko: '피어나' },
+  { en: 'gloooom', ko: '어둠' },
+  { en: 'bluuuush', ko: '홍조' },
+  { en: 'wooosh', ko: '휙' },
+  { en: 'snooooze', ko: '낮잠' },
+  { en: 'groooove', ko: '그루브' },
+  { en: 'boooost', ko: '가자앗' },
+  { en: 'shoooook', ko: '떨림' },
+  { en: 'spooook', ko: '으스스' },
+  { en: 'burrrn', ko: '타다' },
+  { en: 'purrrl', ko: '속삭임' },
+  { en: 'whirrrl', ko: '소용돌이' },
+  { en: 'grrrrowl', ko: '으르렁' },
+  { en: 'grrrrind', ko: '갈기' },
+  { en: 'grrrroan', ko: '신음' },
+  { en: 'bubbble', ko: '거품' },
+  { en: 'rippple', ko: '잔물결' },
+  { en: 'stunnnning', ko: '경이로운' },
+  { en: 'woooolfff', ko: '울부짖는' },
+  { en: 'drizzzle', ko: '이슬비' },
+  { en: 'fizzlee', ko: '지지직' },
+  { en: 'sizzzzle', ko: '치이익' },
+  { en: 'driiift', ko: '표류' },
+  { en: 'craaack', ko: '쩍' },
+  { en: 'splaassh', ko: '첨벙' },
+  { en: 'thuuump', ko: '쿵' },
+  { en: 'claaang', ko: '쨍' },
+  { en: 'swooooon', ko: '아찔' },
+  { en: 'fliiicker', ko: '깜빡' },
+  { en: 'shuuuffle', ko: '사각사각' },
+  { en: 'muuuffle', ko: '웅웅' },
+  { en: 'ruuumble', ko: '우르르' },
+  { en: 'cruuunch', ko: '우드득' },
+  { en: 'squeeeze', ko: '꽉' },
+  { en: 'streeetcch', ko: '쭈욱' },
+  { en: 'twiiist', ko: '비틀비틀' },
+  { en: 'floooat', ko: '둥실' },
+  { en: 'meeeelt', ko: '녹다' },
+  { en: 'freeeeze', ko: '꽁꽁' },
+  { en: 'breeeeathe', ko: '숨' },
+  { en: 'shiiiiver', ko: '부르르' },
+  { en: 'fluuutter', ko: '팔랑팔랑' },
+  { en: 'gliiiide', ko: '미끄러지듯' },
+  { en: 'craawwwl', ko: '기어가다' },
+  { en: 'leeeap', ko: '껑충' },
+  { en: 'swiiiing', ko: '흔들흔들' },
+  { en: 'twiiiinkle', ko: '반짝' },
+  { en: 'crummble', ko: '바스락' },
+  { en: 'ratttttle', ko: '덜컹덜컹' },
+  { en: 'jiiingle', ko: '딸랑딸랑' },
+  { en: 'hummmmm', ko: '흥얼흥얼' },
+];
+
+const colorSets = [
+  { text: '#1a6b2c', overlap: '#f0a0d8', bg: '#e8e4df' },
+  { text: '#1a1a8b', overlap: '#ffcc00', bg: '#f5f0e8' },
+  { text: '#cc2244', overlap: '#44ddaa', bg: '#faf8f5' },
+  { text: '#ff0055', overlap: '#00ccff', bg: '#fffde8' },
+  { text: '#6600cc', overlap: '#ffee00', bg: '#f0f8ff' },
+  { text: '#ff6600', overlap: '#0066ff', bg: '#f5fff0' },
+  { text: '#0088aa', overlap: '#ff4488', bg: '#fff5f0' },
+  { text: '#ee0077', overlap: '#00dd88', bg: '#f0fff8' },
+  { text: '#5c3d1e', overlap: '#7ecfc0', bg: '#fdf8f0' },
+  { text: '#2e5e4e', overlap: '#e8884c', bg: '#fff8f5' },
+  { text: '#8b4513', overlap: '#6495ed', bg: '#f0f5ff' },
+  { text: '#ffffff', overlap: '#ff3388', bg: '#1a1a2e' },
+  { text: '#00ffaa', overlap: '#ff6600', bg: '#0d0d0d' },
+  { text: '#ffee00', overlap: '#ff00aa', bg: '#1b1b3a' },
+  { text: '#88ddff', overlap: '#ff4444', bg: '#0a0a1e' },
+  { text: '#3355aa', overlap: '#ffaa55', bg: '#fff0e0' },
+  { text: '#aa3366', overlap: '#55cc88', bg: '#e8fff0' },
+  { text: '#336655', overlap: '#dd5588', bg: '#fff0f5' },
+  { text: '#000000', overlap: '#00ff66', bg: '#e8e4de' },
+  { text: '#1a1a1a', overlap: '#ff00ff', bg: '#f8f0ff' },
+  { text: '#222222', overlap: '#00ddff', bg: '#f0faff' },
+  { text: '#cc4400', overlap: '#4488cc', bg: '#eef8ff' },
+  { text: '#884422', overlap: '#44aadd', bg: '#f0fffa' },
+  { text: '#aa2255', overlap: '#55bbaa', bg: '#f5fff8' },
+  { text: '#003366', overlap: '#ff8844', bg: '#fff8e8' },
+  { text: '#224488', overlap: '#ee6633', bg: '#fffaf0' },
+  { text: '#005577', overlap: '#ffaa00', bg: '#fff5e0' },
+  { text: '#4400aa', overlap: '#88ff44', bg: '#f8ffe8' },
+  { text: '#6622cc', overlap: '#ffcc22', bg: '#fffff0' },
+  { text: '#330066', overlap: '#ff6688', bg: '#fff0f8' },
+  { text: '#cc0066', overlap: '#66ccff', bg: '#f0f8ff' },
+  { text: '#006644', overlap: '#ff4466', bg: '#fff5f5' },
+  { text: '#444444', overlap: '#ff9900', bg: '#fafafa' },
+  { text: '#0044aa', overlap: '#ffdd00', bg: '#fffff5' },
+  { text: '#880044', overlap: '#00ccaa', bg: '#f0fffc' },
+];
+
+let currentColors = colorSets[0];
+let currentWord = '';
+let currentKo = '';
+let currentSpacing = 1;
+let dpr = 2;
+
+// 애니메이션 모드: 'uniform', 'domino', 'center'
+let animMode = 'uniform';
+
+// 드래그 인터랙션
+let isDragging = false;
+let dragStartX = 0;
+let dragSpacing = 1;
+let manualMode = false;
+
+// 사운드
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playTone(freq, duration, type) {
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  gain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playCompressSound() {
+  // 부드러운 낮은 톤 — 쿠션 같은 느낌
+  playTone(120 + Math.random() * 60, 0.4, 'sine');
+}
+
+function playExpandSound() {
+  // 가벼운 팝 — 공기 빠지는 느낌
+  playTone(600 + Math.random() * 200, 0.08, 'sine');
+}
+
+// 배경 방사형 패턴
+let bgRings = [];
+let bgCenterX = 0;
+let bgCenterY = 0;
+
+function generateBgPattern() {
+  bgRings = [];
+  const w = window.innerWidth * dpr;
+  const h = window.innerHeight * dpr;
+  // 중심점을 화면 밖으로 (중심이 안 보이게)
+  const side = Math.floor(Math.random() * 4);
+  if (side === 0) { bgCenterX = -w * 0.3; bgCenterY = h * Math.random(); }
+  else if (side === 1) { bgCenterX = w * 1.3; bgCenterY = h * Math.random(); }
+  else if (side === 2) { bgCenterX = w * Math.random(); bgCenterY = -h * 0.3; }
+  else { bgCenterX = w * Math.random(); bgCenterY = h * 1.3; }
+
+  const base = currentColors.bg;
+  const tones = [base, shiftColor(base, 6), shiftColor(base, -5)];
+  const maxRadius = Math.max(w, h) * 0.9;
+  const ringWidth = maxRadius * (0.04 + Math.random() * 0.06);
+
+  let r = 0;
+  let ci = 0;
+  while (r < maxRadius) {
+    const width = ringWidth * (0.7 + Math.random() * 0.6);
+    bgRings.push({ radius: r, width, color: tones[ci % tones.length] });
+    r += width;
+    ci++;
+  }
+}
+
+function shiftColor(hex, amount) {
+  let r = parseInt(hex.slice(1, 3), 16);
+  let g = parseInt(hex.slice(3, 5), 16);
+  let b = parseInt(hex.slice(5, 7), 16);
+  r = Math.max(0, Math.min(255, r + amount));
+  g = Math.max(0, Math.min(255, g + amount));
+  b = Math.max(0, Math.min(255, b + amount));
+  return `rgb(${r},${g},${b})`;
+}
+
+function drawBgPattern(w, h) {
+  ctx.fillStyle = currentColors.bg;
+  ctx.fillRect(0, 0, w, h);
+  // 동심원 그리기 (바깥부터 안쪽으로)
+  for (let i = bgRings.length - 1; i >= 0; i--) {
+    const ring = bgRings[i];
+    ctx.beginPath();
+    ctx.arc(bgCenterX, bgCenterY, ring.radius + ring.width, 0, Math.PI * 2);
+    ctx.fillStyle = ring.color;
+    ctx.fill();
+  }
+}
+
+function resize() {
+  dpr = window.devicePixelRatio || 2;
+  canvas.width = window.innerWidth * dpr;
+  canvas.height = window.innerHeight * dpr;
+  canvas.style.width = window.innerWidth + 'px';
+  canvas.style.height = window.innerHeight + 'px';
+}
+
+function pickWord() {
+  let next;
+  do { next = words[Math.floor(Math.random() * words.length)]; }
+  while (next.en === currentWord && words.length > 1);
+  currentWord = next.en;
+  currentKo = next.ko;
+  let nextColors;
+  do { nextColors = colorSets[Math.floor(Math.random() * colorSets.length)]; }
+  while (nextColors === currentColors && colorSets.length > 1);
+  currentColors = nextColors;
+  // 배경 패턴 재생성
+  generateBgPattern();
+  // 랜덤 애니메이션 모드
+  animMode = 'uniform';
+}
+
+function getFontSize() {
+  return window.innerHeight * dpr * (TARGET_HEIGHT_VH / 100);
+}
+
+function drawFrame() {
+  const w = canvas.width;
+  const h = canvas.height;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // 배경: 방사형 동심원 패턴
+  drawBgPattern(w, h);
+
+  const fontSize = getFontSize();
+  const font = `900 ${fontSize}px ${FONT_FAMILY}`;
+  ctx.font = font;
+  ctx.textBaseline = 'middle';
+
+  const chars = currentWord.split('');
+  const charWidths = chars.map(c => ctx.measureText(c).width);
+
+  // 각 글자별 spacing 계산 (모드에 따라 다름)
+  let spacings = chars.map(() => currentSpacing);
+
+  if (animMode === 'domino' && !manualMode) {
+    // 도미노: 왼쪽부터 순서대로 겹쳐짐
+    for (let i = 0; i < chars.length; i++) {
+      const delay = i * 0.12;
+      const adjusted = Math.max(0, Math.min(1, (currentSpacing - delay) / (1 - delay)));
+      spacings[i] = 0.45 + adjusted * 0.7;
+    }
+  } else if (animMode === 'center' && !manualMode) {
+    // 양쪽에서 가운데로 모임
+    const mid = chars.length / 2;
+    for (let i = 0; i < chars.length; i++) {
+      const dist = Math.abs(i - mid) / mid;
+      const adjusted = currentSpacing * (0.6 + 0.4 * dist);
+      spacings[i] = 0.45 + adjusted * 0.7;
+    }
+  }
+
+  // 글자 위치 계산
+  let positions = [];
+  let x = 0;
+  for (let i = 0; i < chars.length; i++) {
+    positions.push(x);
+    if (i < chars.length - 1) {
+      x += charWidths[i] * spacings[i];
+    }
+  }
+  const totalWidth = x + charWidths[chars.length - 1];
+  const offsetX = (w - totalWidth) / 2;
+  const centerY = h / 2;
+
+  // 1단계: 모든 글자를 텍스트 컬러로 그리기
+  ctx.fillStyle = currentColors.text;
+  ctx.font = font;
+  for (let i = 0; i < chars.length; i++) {
+    ctx.fillText(chars[i], offsetX + positions[i], centerY);
+  }
+
+  // 2단계: 겹치는 영역을 오버랩 컬러로 그리기
+  for (let i = 0; i < chars.length - 1; i++) {
+    const ax = offsetX + positions[i];
+    const bx = offsetX + positions[i + 1];
+    const aEnd = ax + charWidths[i];
+
+    if (bx < aEnd) {
+      const off = document.createElement('canvas');
+      off.width = w;
+      off.height = h;
+      const oc = off.getContext('2d');
+
+      oc.font = font;
+      oc.textBaseline = 'middle';
+      oc.fillStyle = '#000';
+      oc.fillText(chars[i], ax, centerY);
+
+      oc.globalCompositeOperation = 'source-in';
+      oc.fillText(chars[i + 1], bx, centerY);
+
+      oc.globalCompositeOperation = 'source-in';
+      oc.fillStyle = currentColors.overlap;
+      oc.fillRect(0, 0, w, h);
+
+      ctx.drawImage(off, 0, 0);
+    }
+  }
+
+  // 3단계: 최대 겹침 시 — 블러 없이 그대로 유지 (겹침 컬러가 보이는 게 멋있으므로)
+
+  // 4단계: 하단 한글 뜻
+  ctx.font = `400 ${14 * dpr}px "Helvetica Neue", sans-serif`;
+  ctx.textBaseline = 'bottom';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = currentColors.text + '40';
+  ctx.fillText(currentKo, w / 2, h - 30 * dpr);
+  ctx.textAlign = 'left';
+}
+
+// 애니메이션 타이밍
+const COMPRESS_DURATION = 1500;
+const PAUSE_DURATION = 2500;
+const EXPAND_DURATION = 1000;
+const WAIT_DURATION = 500;
+const CYCLE = COMPRESS_DURATION + PAUSE_DURATION + EXPAND_DURATION + WAIT_DURATION;
+
+function easeInOutCubic(t) {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+let startTime = null;
+let lastCycle = -1;
+let soundPlayed = { compress: false, expand: false };
+
+pickWord();
+currentSpacing = 1;
+generateBgPattern();
+
+function loop(ts) {
+  if (!startTime) startTime = ts;
+
+  if (!manualMode) {
+    const elapsed = ts - startTime;
+    const cycle = Math.floor(elapsed / CYCLE);
+    const t = elapsed % CYCLE;
+
+    if (cycle !== lastCycle) {
+      lastCycle = cycle;
+      soundPlayed = { compress: false, expand: false };
+      if (cycle > 0) pickWord();
+    }
+
+    if (t < COMPRESS_DURATION) {
+      currentSpacing = 1 - easeInOutCubic(t / COMPRESS_DURATION) * 0.8;
+      if (!soundPlayed.compress && t > COMPRESS_DURATION * 0.8) {
+        playCompressSound();
+        soundPlayed.compress = true;
+      }
+    } else if (t < COMPRESS_DURATION + PAUSE_DURATION) {
+      currentSpacing = 0.2;
+    } else if (t < COMPRESS_DURATION + PAUSE_DURATION + EXPAND_DURATION) {
+      const p = (t - COMPRESS_DURATION - PAUSE_DURATION) / EXPAND_DURATION;
+      currentSpacing = 0.45 + easeInOutCubic(p) * 0.7;
+      if (!soundPlayed.expand && p > 0.1) {
+        playExpandSound();
+        soundPlayed.expand = true;
+      }
+    } else {
+      currentSpacing = 1;
+    }
+  }
+
+  drawFrame();
+  requestAnimationFrame(loop);
+}
+
+// === 인터랙션 ===
+
+// 클릭/엔터로 다음
+function nextSlide() {
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  manualMode = false;
+  pickWord();
+  startTime = null;
+  lastCycle = -1;
+}
+
+// 드래그로 간격 조절
+canvas.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  dragStartX = e.clientX;
+  dragSpacing = currentSpacing;
+  manualMode = true;
+});
+
+canvas.addEventListener('mousemove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - dragStartX;
+  const range = window.innerWidth * 0.4;
+  currentSpacing = Math.max(0.3, Math.min(1.2, dragSpacing + dx / range));
+});
+
+canvas.addEventListener('mouseup', () => {
+  if (isDragging) {
+    isDragging = false;
+    // 놓으면 자동 모드로 복귀
+    setTimeout(() => {
+      manualMode = false;
+      startTime = null;
+      lastCycle = -1;
+    }, 1500);
+  }
+});
+
+// 터치
+canvas.addEventListener('touchstart', (e) => {
+  isDragging = true;
+  dragStartX = e.touches[0].clientX;
+  dragSpacing = currentSpacing;
+  manualMode = true;
+});
+
+canvas.addEventListener('touchmove', (e) => {
+  if (!isDragging) return;
+  const dx = e.touches[0].clientX - dragStartX;
+  const range = window.innerWidth * 0.4;
+  currentSpacing = Math.max(0.3, Math.min(1.2, dragSpacing + dx / range));
+});
+
+canvas.addEventListener('touchend', () => {
+  if (isDragging) {
+    isDragging = false;
+    setTimeout(() => {
+      manualMode = false;
+      startTime = null;
+      lastCycle = -1;
+    }, 1500);
+  }
+});
+
+// 더블클릭/더블탭으로 다음
+canvas.addEventListener('dblclick', (e) => {
+  e.preventDefault();
+  nextSlide();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.code === 'Enter' || e.code === 'Space') {
+    e.preventDefault();
+    nextSlide();
+  }
+});
+
+resize();
+window.addEventListener('resize', resize);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
