@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cat Village</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+body { background: #f5f2ed; }
+canvas { display: block; }
+.home-btn {
+  position: fixed; top: 12px; left: 16px;
+  color: rgba(0,0,0,0.25); font-size: 11px; text-decoration: none; z-index: 10;
+}
+.home-btn:hover { color: rgba(0,0,0,0.6); }
+.hint {
+  position: fixed; bottom: 16px; left: 16px;
+  color: rgba(0,0,0,0.2); font-size: 10px; z-index: 10;
+}
+#loading {
+  position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: rgba(0,0,0,0.3); font-size: 13px; font-family: -apple-system, sans-serif;
+}
+</style>
+</head>
+<body>
+<a class="home-btn" href="../index.html">HOME</a>
+<div class="hint">click floor → move cat · click house → light on/off · double-click → day/night</div>
+<div id="loading">loading...</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf5f2ed);
+
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 5, 8);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// 조명 — 노르스름한 따뜻한 톤, 밝게
+scene.add(new THREE.AmbientLight(0xfff8e8, 1.8));
+const dirLight = new THREE.DirectionalLight(0xfff0c0, 2.5);
+dirLight.position.set(5, 10, 5);
+dirLight.castShadow = true;
+dirLight.shadow.mapSize.set(1024, 1024);
+scene.add(dirLight);
+const fillLight = new THREE.DirectionalLight(0xffe8b0, 1.2);
+fillLight.position.set(-4, 5, -3);
+scene.add(fillLight);
+
+// 바닥 — 훨씬 아래에 배치
+const floorGeo = new THREE.CircleGeometry(8, 64);
+const floorMat = new THREE.MeshStandardMaterial({ color: 0xfaf7f2, roughness: 0.8 });
+const floor = new THREE.Mesh(floorGeo, floorMat);
+floor.rotation.x = -Math.PI / 2;
+floor.position.y = 0;
+floor.receiveShadow = true;
+scene.add(floor);
+
+// 컨트롤
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.target.set(0, 0.5, 0);
+controls.minDistance = 3;
+controls.maxDistance = 15;
+
+// 모델 로드
+const loader = new GLTFLoader();
+let cat = null;
+const houses = [];
+const housePositions = [
+  new THREE.Vector3(-3, 0, 0),
+  new THREE.Vector3(1.5, 0, -2.8),
+  new THREE.Vector3(1.5, 0, 2.8),
+  new THREE.Vector3(4.0, 0, 0),
+  new THREE.Vector3(-0.5, 0, -1.5),
+];
+
+const houseFiles = [
+  './3D/Meshy_AI_Pastel_Patchwork_Hous_0521074345_texture.glb',
+  './3D/Meshy_AI_Miniature_Sanctuaries_0521070916_texture.glb',
+  './3D/Meshy_AI_White_Studio_with_Min_0521070842_texture.glb',
+  './3D/Meshy_AI_Dollhouse_Kitchen_and_0521160414_texture.glb',
+  './3D/Meshy_AI_MI_CASA_SU_CASA_0521161326_texture.glb',
+];
+
+const houseSizes = [2.7, 1.8, 1.26, 3.0, 2.0];
+
+let loadedCount = 0;
+const totalToLoad = 6;
+
+function onLoaded() {
+  loadedCount++;
+  document.getElementById('loading').textContent = `loading... ${Math.round(loadedCount / totalToLoad * 100)}%`;
+  if (loadedCount >= totalToLoad) {
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function normalizeAndGround(model, targetSize) {
+  // 스케일
+  const box = new THREE.Box3().setFromObject(model);
+  const size = box.getSize(new THREE.Vector3());
+  const maxDim = Math.max(size.x, size.y, size.z);
+  model.scale.setScalar(targetSize / maxDim);
+  // y 보정: 모델 바닥이 y=0에 오도록
+  model.updateMatrixWorld(true);
+  const box2 = new THREE.Box3().setFromObject(model);
+  model.position.y = -box2.min.y;
+}
+
+// 고양이 로드
+let catBaseY = 0;
+loader.load('./3D/Meshy_AI_Blue_Eyed_Ceramic_Cat_0521062327_texture.glb', (gltf) => {
+  cat = gltf.scene;
+  normalizeAndGround(cat, 0.8);
+  cat.position.x = 0;
+  cat.position.z = 0;
+  catBaseY = cat.position.y; // 바닥에 맞춘 y값 저장
+  cat.traverse(c => { if (c.isMesh) { c.castShadow = true; } });
+  scene.add(cat);
+  onLoaded();
+});
+
+// 집들 로드
+houseFiles.forEach((file, i) => {
+  loader.load(file, (gltf) => {
+    const house = gltf.scene;
+    normalizeAndGround(house, houseSizes[i]);
+    const pos = housePositions[i];
+    house.position.x = pos.x;
+    house.position.z = pos.z;
+    // 가운데를 바라보게 (y축만)
+    house.rotation.y = Math.atan2(-pos.x, -pos.z);
+    house.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+    house.userData.index = i;
+    scene.add(house);
+    houses.push(house);
+    onLoaded();
+  });
+});
+
+// 고양이 이동 애니메이션
+let catTarget = new THREE.Vector3(0, 0, 0);
+let catMoving = false;
+const catSpeed = 1.5;
+
+function moveCatTo(pos) {
+  catTarget = pos.clone();
+  catTarget.y = catBaseY;
+  catMoving = true;
+}
+
+// 자동 이동 (일정 시간마다 랜덤 집으로)
+let autoMoveTimer = 0;
+const autoMoveInterval = 4; // 초
+
+// 집 포인트 라이트 (불 켜짐 효과)
+const houseLights = [];
+housePositions.forEach(pos => {
+  const light = new THREE.PointLight(0xffaa44, 0, 3);
+  light.position.set(pos.x, 1.0, pos.z);
+  scene.add(light);
+  houseLights.push(light);
+});
+
+// 낮/밤 상태
+let isNight = false;
+const dayBg = 0xfaf7f2;
+const nightBg = 0x0a0e1a;
+
+function toggleDayNight() {
+  isNight = !isNight;
+  if (isNight) {
+    scene.background.set(nightBg);
+    floor.material.color.set(0x0d1220);
+    // 메인 조명 어둡게
+    dirLight.intensity = 0.3;
+    dirLight.color.set(0x4466aa);
+    fillLight.intensity = 0.1;
+    scene.children.find(c => c.isAmbientLight).intensity = 0.15;
+    scene.children.find(c => c.isAmbientLight).color.set(0x223355);
+    // 집 불 켜기
+    houseLights.forEach(l => { l.intensity = 2.5; });
+  } else {
+    scene.background.set(dayBg);
+    floor.material.color.set(0xfaf7f2);
+    dirLight.intensity = 2.0;
+    dirLight.color.set(0xffe8a0);
+    fillLight.intensity = 0.6;
+    scene.children.find(c => c.isAmbientLight).intensity = 1.0;
+    scene.children.find(c => c.isAmbientLight).color.set(0xfff5e0);
+    // 집 불 끄기
+    houseLights.forEach(l => { l.intensity = 0; });
+  }
+}
+
+// 클릭: 바닥 → 고양이 이동, 집 → 불 켜기/끄기
+renderer.domElement.addEventListener('click', (e) => {
+  mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+  mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+  raycaster.setFromCamera(mouse, camera);
+  
+  // 집 클릭 확인
+  const allHouseMeshes = [];
+  houses.forEach(h => h.traverse(c => { if (c.isMesh) allHouseMeshes.push(c); }));
+  const houseHits = raycaster.intersectObjects(allHouseMeshes);
+  
+  if (houseHits.length > 0) {
+    // 클릭한 집의 인덱스 찾기
+    let obj = houseHits[0].object;
+    while (obj.parent && obj.userData.index === undefined) obj = obj.parent;
+    const idx = houses.findIndex(h => h === obj || h.getObjectById(houseHits[0].object.id));
+    if (idx >= 0) {
+      // 해당 집 불 토글
+      const light = houseLights[idx];
+      light.intensity = light.intensity > 0 ? 0 : 2.5;
+    }
+    // 고양이도 그 집으로 이동
+    moveCatTo(housePositions[houses.indexOf(obj) >= 0 ? houses.indexOf(obj) : 0]);
+    autoMoveTimer = 0;
+    return;
+  }
+  
+  // 바닥 클릭 → 고양이 이동
+  const floorPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+  const intersectPoint = new THREE.Vector3();
+  raycaster.ray.intersectPlane(floorPlane, intersectPoint);
+  
+  if (intersectPoint) {
+    moveCatTo(intersectPoint);
+    autoMoveTimer = 0;
+  }
+});
+
+// 더블클릭: 낮/밤 전환
+renderer.domElement.addEventListener('dblclick', (e) => {
+  e.preventDefault();
+  toggleDayNight();
+});
+
+// 애니메이션 루프
+const clock = new THREE.Clock();
+
+function animate() {
+  requestAnimationFrame(animate);
+  const delta = clock.getDelta();
+  const elapsed = clock.getElapsedTime();
+
+  // 자동 이동
+  autoMoveTimer += delta;
+  if (autoMoveTimer > autoMoveInterval && !catMoving) {
+    const randomIdx = Math.floor(Math.random() * housePositions.length);
+    const target = housePositions[randomIdx].clone().multiplyScalar(0.4); // 집과 가운데 사이
+    target.y = catBaseY;
+    moveCatTo(target);
+    autoMoveTimer = 0;
+  }
+
+  // 고양이 이동
+  if (cat && catMoving) {
+    const dir = catTarget.clone().sub(cat.position);
+    dir.y = 0; // y축 이동 무시
+    const dist = dir.length();
+    if (dist < 0.05) {
+      catMoving = false;
+    } else {
+      // 집 근처에 도달하면 멈추기
+      let nearHouse = false;
+      for (const pos of housePositions) {
+        const hDist = Math.sqrt(
+          Math.pow(cat.position.x - pos.x, 2) + Math.pow(cat.position.z - pos.z, 2)
+        );
+        if (hDist < 0.6) {
+          // 타겟이 이 집 근처면 여기서 멈춤
+          const tDist = Math.sqrt(
+            Math.pow(catTarget.x - pos.x, 2) + Math.pow(catTarget.z - pos.z, 2)
+          );
+          if (tDist < 1.0) {
+            nearHouse = true;
+            catMoving = false;
+            break;
+          }
+        }
+      }
+      if (!nearHouse) {
+        dir.normalize();
+        const step = Math.min(catSpeed * delta, dist);
+        cat.position.x += dir.x * step;
+        cat.position.z += dir.z * step;
+        // 이동 방향으로 y축만 회전
+        const angle = Math.atan2(catTarget.x - cat.position.x, catTarget.z - cat.position.z);
+        cat.rotation.y = angle;
+      }
+    }
+  }
+
+  // 고양이 위아래 떠다니기
+  if (cat && !catMoving) {
+    cat.position.y = catBaseY + Math.sin(elapsed * 1.5) * 0.03;
+  }
+
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+animate();
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+</script>
+</body>
+</html>
