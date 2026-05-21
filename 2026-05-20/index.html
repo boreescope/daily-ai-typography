@@ -1,0 +1,1077 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이 포스터, 그럴듯한가요?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:     #f3efe6;
+    --paper:  #ffffff;
+    --ink:    #0f0f0f;
+    --yellow: #f0c93a;
+    --blue:   #2547b8;
+    --red:    #d8392b;
+    --muted:  #585858;
+    /* very light quadrant tints */
+    --tint-best:  #fff9e0;   /* high P + high F */
+    --tint-true:  #fdebe6;   /* low P + high F */
+    --tint-coh:   #e8eef9;   /* high P + low F */
+    --tint-poor:  #f1ece0;   /* low P + low F */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: 'Pretendard', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    padding: 28px 24px 60px;
+  }
+  .frame {
+    max-width: 980px;
+    margin: 0 auto;
+    background: var(--paper);
+    border: 2px solid var(--ink);
+    overflow: hidden;
+  }
+
+  /* ===== HEADER ===== */
+  .header {
+    background: var(--yellow);
+    padding: 44px 56px 50px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .header h1 {
+    font-family: 'Archivo', 'Pretendard', sans-serif;
+    font-weight: 800;
+    font-size: 80px;
+    line-height: 1.02;
+    letter-spacing: 0;
+    color: var(--ink);
+    word-break: keep-all;
+  }
+  .header .sub {
+    font-weight: 500;
+    font-size: 14.5px;
+    margin-top: 22px;
+    max-width: 560px;
+    line-height: 1.6;
+  }
+  .header .sub strong { font-weight: 800; }
+
+  /* ===== POSTER PICKER ===== */
+  .picker-section {
+    padding: 32px 56px 32px;
+    border-bottom: 2px solid var(--ink);
+  }
+  .picker {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+  }
+  .picker-card {
+    cursor: pointer;
+    background: none;
+    border: 2px solid var(--ink);
+    padding: 0;
+    text-align: left;
+    font-family: inherit;
+    color: var(--ink);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .picker-card:hover { transform: translateY(-3px); box-shadow: 4px 4px 0 var(--ink); }
+  .picker-card.active {
+    box-shadow: 6px 6px 0 var(--ink);
+    transform: translateY(-3px);
+  }
+  .picker-card.active .picker-thumb-wrap::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 4px solid var(--red);
+    pointer-events: none;
+  }
+  .picker-thumb-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 3;
+    border-bottom: 2px solid var(--ink);
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+  .picker-thumb-wrap > img,
+  .picker-thumb-wrap > svg {
+    width: 100%; height: 100%; display: block; object-fit: cover;
+  }
+  .picker-thumb-wrap .fallback-svg { display: none; }
+  .picker-thumb-wrap.has-fallback img { display: none; }
+  .picker-thumb-wrap.has-fallback .fallback-svg { display: block; }
+  .picker-meta { padding: 12px 13px 14px; background: var(--paper); }
+  .picker-title {
+    font-weight: 800;
+    font-size: 15px;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .picker-sub {
+    font-weight: 500;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 5px;
+    letter-spacing: 0.04em;
+  }
+  .picker-card.upload .picker-thumb-wrap {
+    display: flex; align-items: center; justify-content: center;
+    background: repeating-linear-gradient(45deg, var(--paper) 0, var(--paper) 8px, var(--bg) 8px, var(--bg) 16px);
+  }
+  .picker-card.upload .plus {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 72px;
+    color: var(--ink);
+    line-height: 1;
+  }
+  .picker-card.upload img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+
+  /* ===== PLOT SECTION ===== */
+  .plot-section {
+    padding: 30px 56px 36px;
+    border-bottom: 2px solid var(--ink);
+    background: var(--paper);
+  }
+  .plot-kicker {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 18px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+  }
+  .plot-kicker .kr {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    font-size: 14px;
+  }
+  .plot-kicker .dash { color: #c8c2b1; font-weight: 700; }
+  .plot-kicker .tail {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: none;
+  }
+  .plot-stage {
+    position: relative;
+    width: 100%;
+    max-width: 620px;
+    margin: 0 auto;
+    aspect-ratio: 1 / 1;
+    user-select: none;
+    touch-action: none;
+  }
+  .plot-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .plot-points {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .point {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    width: 9%;            /* small thumbnail */
+    aspect-ratio: 2 / 3;
+    cursor: grab;
+    pointer-events: auto;
+    transition: width 0.25s ease, filter 0.25s ease, box-shadow 0.25s ease;
+    will-change: left, top;
+  }
+  .point:active { cursor: grabbing; }
+  .point.dragging { transition: none; }
+  .point .frame-ring {
+    position: absolute;
+    inset: -4px;
+    border: 2px solid var(--ink);
+    background: var(--paper);
+    pointer-events: none;
+  }
+  .point .thumb {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    background: #0a0a0a;
+  }
+  .point .thumb img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .point .thumb svg {
+    width: 100%; height: 100%; display: block;
+  }
+  .point .label {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: 0.02em;
+    color: var(--ink);
+    background: var(--paper);
+    padding: 2px 6px;
+    border: 1.5px solid var(--ink);
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .point.selected {
+    width: 14%;
+    z-index: 5;
+    filter: drop-shadow(4px 4px 0 var(--ink));
+  }
+  .point.selected .frame-ring {
+    border-color: var(--red);
+    border-width: 3px;
+    inset: -6px;
+  }
+  .point:not(.selected) { opacity: 0.92; }
+  .point:not(.selected):hover { opacity: 1; filter: drop-shadow(2px 2px 0 var(--ink)); }
+
+  /* ===== QUESTIONS (compact) ===== */
+  .questions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-bottom: 2px solid var(--ink);
+  }
+  .q {
+    padding: 26px 30px 28px;
+    background: var(--paper);
+  }
+  .q + .q { border-left: 2px solid var(--ink); }
+  .q-kicker {
+    display: flex;
+    align-items: baseline;
+    gap: 9px;
+    margin-bottom: 8px;
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    flex-wrap: wrap;
+  }
+  .q-kicker .kr {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    font-size: 13px;
+  }
+  .q-kicker .dash { color: #c8c2b1; font-weight: 700; }
+  .q-kicker .tail {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 500;
+    font-size: 11.5px;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-transform: none;
+  }
+  .q1 .q-kicker .kr { color: var(--red); }
+  .q2 .q-kicker .kr { color: var(--blue); }
+  .q-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .q-id {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .q1 .q-id { color: var(--red); }
+  .q2 .q-id { color: var(--blue); }
+  .q-text {
+    font-weight: 800;
+    font-size: 17px;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
+  }
+  .q-hint {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    line-height: 1.55;
+  }
+  .slider-row { margin-top: 18px; }
+  .slider-row input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 3px;
+    background: var(--ink);
+    outline: none;
+    cursor: pointer;
+    border-radius: 0;
+  }
+  .q1 .slider-row input[type=range] {
+    background: linear-gradient(to right, var(--red) 0%, var(--red) var(--p, 60%), var(--ink) var(--p, 60%));
+  }
+  .q2 .slider-row input[type=range] {
+    background: linear-gradient(to right, var(--blue) 0%, var(--blue) var(--p, 60%), var(--ink) var(--p, 60%));
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px; height: 20px;
+    background: var(--paper);
+    border: 2.5px solid var(--ink);
+    cursor: pointer;
+    border-radius: 0;
+    transform: rotate(45deg);
+  }
+  .slider-row input[type=range]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    background: var(--paper);
+    border: 2.5px solid var(--ink);
+    cursor: pointer;
+    border-radius: 0;
+  }
+  .ends {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    font-size: 10.5px;
+    letter-spacing: 0.2em;
+    color: var(--ink);
+    margin-top: 12px;
+  }
+  .ends .e-low { color: var(--muted); }
+
+  /* ===== VERDICT ===== */
+  .verdict {
+    background: var(--blue);
+    color: var(--paper);
+    padding: 46px 56px 50px;
+    position: relative;
+    border-bottom: 2px solid var(--ink);
+  }
+  .verdict-headline {
+    font-family: 'Archivo', 'Pretendard', sans-serif;
+    font-weight: 800;
+    font-size: 54px;
+    line-height: 1.06;
+    letter-spacing: 0;
+    transition: opacity 0.28s ease;
+    word-break: keep-all;
+    text-wrap: balance;
+  }
+  .verdict-sub {
+    font-weight: 500;
+    font-size: 14.5px;
+    line-height: 1.7;
+    margin-top: 22px;
+    max-width: 580px;
+    opacity: 0.92;
+    transition: opacity 0.28s ease;
+  }
+  .verdict.fading .verdict-headline,
+  .verdict.fading .verdict-sub { opacity: 0; }
+  .verdict.loading .verdict-headline::after {
+    content: '';
+    display: inline-block;
+    width: 1.2em;
+    text-align: left;
+    animation: dots 1.4s steps(4) infinite;
+  }
+  @keyframes dots {
+    0% { content: ''; }
+    25% { content: '.'; }
+    50% { content: '..'; }
+    75% { content: '...'; }
+    100% { content: ''; }
+  }
+
+  /* ===== FOOTNOTE ===== */
+  .footnote { padding: 26px 56px 32px; background: var(--paper); }
+  .footnote summary {
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.18em;
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .footnote summary::-webkit-details-marker { display: none; }
+  .footnote summary::before {
+    content: '+';
+    width: 28px; height: 28px;
+    background: var(--ink); color: var(--paper);
+    font-family: 'Archivo', sans-serif;
+    font-weight: 900;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 22px; line-height: 1;
+  }
+  .footnote[open] summary::before { content: '–'; }
+  .footnote-body {
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--ink);
+    margin-top: 18px;
+    padding: 18px 22px;
+    background: var(--bg);
+    border: 1.5px solid var(--ink);
+  }
+  .footnote-body strong { font-weight: 800; }
+  .footnote-body em { font-style: normal; font-weight: 700; }
+  .footnote-body p + p,
+  .footnote-body p + .defn { margin-top: 14px; }
+  .footnote-body .defn + .defn { margin-top: 12px; }
+  .footnote-body .defn + p { margin-top: 14px; }
+  .defn {
+    padding: 12px 14px;
+    background: var(--paper);
+    border: 1.5px solid var(--ink);
+  }
+  .defn-term {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+  }
+  .defn-kr {
+    font-weight: 800;
+    font-size: 16px;
+    letter-spacing: 0.04em;
+  }
+  .defn-red { color: var(--red); }
+  .defn-blue { color: var(--blue); }
+  .defn-en {
+    font-family: 'Archivo', sans-serif;
+    font-weight: 800;
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    color: var(--ink);
+  }
+  .defn-tail {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+  }
+  .defn-body {
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--ink);
+  }
+
+  .alt-link {
+    padding: 22px 56px 28px;
+    background: var(--bg);
+    border-top: 2px solid var(--ink);
+    font-size: 13px;
+    letter-spacing: 0.04em;
+  }
+  .alt-link a {
+    color: var(--ink);
+    text-decoration: none;
+    border-bottom: 1.5px solid var(--ink);
+    padding-bottom: 2px;
+    font-weight: 500;
+  }
+  .alt-link a:hover { background: var(--yellow); }
+  .alt-link strong { font-weight: 800; }
+
+  @media (max-width: 760px) {
+    body { padding: 12px 8px 40px; }
+    .header { padding: 30px 24px 36px; }
+    .header h1 { font-size: 44px; line-height: 1.05; }
+    .picker-section, .plot-section, .footnote { padding-left: 24px; padding-right: 24px; }
+    .picker { grid-template-columns: repeat(2, 1fr); }
+    .questions { grid-template-columns: 1fr; }
+    .q + .q { border-left: none; border-top: 2px solid var(--ink); }
+    .verdict { padding: 32px 24px 36px; }
+    .verdict-headline { font-size: 34px; }
+    .point { width: 13%; }
+    .point.selected { width: 18%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="frame">
+
+  <!-- HEADER -->
+  <header class="header">
+    <h1>이 포스터,<br>그럴듯한가요?</h1>
+    <p class="sub">한 장의 포스터를 <strong>개연성</strong>과 <strong>핍진성</strong>, 두 직교축 위의 한 점으로 봅니다. 포스터를 직접 끌어 다른 사분면으로 옮겨볼 수도 있어요.</p>
+  </header>
+
+  <!-- POSTER PICKER -->
+  <section class="picker-section">
+    <div class="picker" id="picker"></div>
+  </section>
+
+  <!-- PLOT -->
+  <section class="plot-section">
+    <div class="plot-kicker">
+      <span class="kr">그럴듯함 지도</span>
+      <span>PLAUSIBILITY MAP</span>
+      <span class="dash">—</span>
+      <span class="tail">포스터를 끌어서 위치를 다시 정해도 됩니다</span>
+    </div>
+
+    <div class="plot-stage" id="plotStage">
+      <svg class="plot-svg" viewBox="0 0 720 720" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <!-- ===== quadrant tints ===== -->
+        <!-- inner plot area: x=100..650, y=80..630 -->
+        <rect x="375"  y="80"  width="275" height="275" fill="#fff9e0"/>   <!-- ↑→ best -->
+        <rect x="100"  y="80"  width="275" height="275" fill="#fdebe6"/>   <!-- ↑← true-but-broken -->
+        <rect x="375"  y="355" width="275" height="275" fill="#e8eef9"/>   <!-- ↓→ coh-but-false -->
+        <rect x="100"  y="355" width="275" height="275" fill="#f1ece0"/>   <!-- ↓← poor -->
+
+        <!-- ===== grid lines (light) ===== -->
+        <g stroke="#cfc8b6" stroke-width="1">
+          <!-- vertical -->
+          <line x1="237.5" y1="80" x2="237.5" y2="630"/>
+          <line x1="512.5" y1="80" x2="512.5" y2="630"/>
+          <!-- horizontal -->
+          <line x1="100" y1="217.5" x2="650" y2="217.5"/>
+          <line x1="100" y1="492.5" x2="650" y2="492.5"/>
+        </g>
+
+        <!-- ===== center cross (dashed, darker) ===== -->
+        <g stroke="#0f0f0f" stroke-width="1.2" stroke-dasharray="4 5" opacity="0.55">
+          <line x1="375" y1="80" x2="375" y2="630"/>
+          <line x1="100" y1="355" x2="650" y2="355"/>
+        </g>
+
+        <!-- ===== quadrant labels (faded, in corners) ===== -->
+        <g font-family="Pretendard" font-weight="800" fill="#aea48a" letter-spacing="0.02em">
+          <text x="640" y="110" text-anchor="end" font-size="22">그럴듯하다</text>
+          <text x="640" y="132" text-anchor="end" font-size="10" letter-spacing="0.28em" font-family="Archivo" fill="#b8ad90">COHERENT &amp; TRUE</text>
+
+          <text x="110" y="110" text-anchor="start" font-size="18">진짜 같은데</text>
+          <text x="110" y="132" text-anchor="start" font-size="18">앞뒤가 어긋난다</text>
+          <text x="110" y="152" text-anchor="start" font-size="10" letter-spacing="0.28em" font-family="Archivo" fill="#b8ad90">TRUE BUT BROKEN</text>
+
+          <text x="640" y="582" text-anchor="end" font-size="18">잘 짜였지만</text>
+          <text x="640" y="604" text-anchor="end" font-size="18">진짜 같지 않다</text>
+          <text x="640" y="624" text-anchor="end" font-size="10" letter-spacing="0.28em" font-family="Archivo" fill="#b8ad90">COHERENT BUT FALSE</text>
+
+          <text x="110" y="600" text-anchor="start" font-size="18">그럴듯하지 않다</text>
+          <text x="110" y="620" text-anchor="start" font-size="10" letter-spacing="0.28em" font-family="Archivo" fill="#b8ad90">INCOHERENT &amp; FALSE</text>
+        </g>
+
+        <!-- ===== axes (bold black) ===== -->
+        <line x1="100" y1="630" x2="650" y2="630" stroke="#0f0f0f" stroke-width="2"/>
+        <line x1="100" y1="80"  x2="100" y2="630" stroke="#0f0f0f" stroke-width="2"/>
+        <!-- arrow heads -->
+        <polygon points="650,630 642,626 642,634" fill="#0f0f0f"/>
+        <polygon points="100,80 96,88 104,88" fill="#0f0f0f"/>
+
+        <!-- ===== axis titles ===== -->
+        <!-- X axis: 개연성 (centered below plot) -->
+        <text x="375" y="670" text-anchor="middle" font-family="Pretendard" font-weight="800" font-size="18" fill="#d8392b" letter-spacing="0.02em">개연성</text>
+        <text x="375" y="690" text-anchor="middle" font-family="Archivo" font-weight="800" font-size="10" letter-spacing="0.3em" fill="#585858">PROBABILITY</text>
+        <!-- X axis end markers -->
+        <text x="100" y="670" text-anchor="start" font-family="Pretendard" font-weight="500" font-size="11" fill="#585858" letter-spacing="0.16em">← 어긋난다</text>
+        <text x="650" y="670" text-anchor="end"   font-family="Pretendard" font-weight="500" font-size="11" fill="#585858" letter-spacing="0.16em">들어맞는다 →</text>
+
+        <!-- Y axis: 핍진성 (rotated, centered on plot vertically) -->
+        <g transform="rotate(-90, 38, 355)">
+          <text x="38" y="355" text-anchor="middle" font-family="Pretendard" font-weight="800" font-size="18" fill="#2547b8" letter-spacing="0.02em">핍진성</text>
+          <text x="38" y="376" text-anchor="middle" font-family="Archivo" font-weight="800" font-size="10" letter-spacing="0.3em" fill="#585858">FIDELITY</text>
+        </g>
+        <!-- Y axis end markers (horizontal, near axis ends) -->
+        <text x="92" y="72"  text-anchor="end" font-family="Pretendard" font-weight="500" font-size="11" fill="#585858" letter-spacing="0.16em">↑ 진짜 같다</text>
+        <text x="92" y="646" text-anchor="end" font-family="Pretendard" font-weight="500" font-size="11" fill="#585858" letter-spacing="0.16em">↓ 가짜 같다</text>
+
+        <!-- ===== tick marks (subtle) ===== -->
+        <g stroke="#0f0f0f" stroke-width="1.5">
+          <line x1="237.5" y1="630" x2="237.5" y2="636"/>
+          <line x1="375"   y1="630" x2="375"   y2="638"/>
+          <line x1="512.5" y1="630" x2="512.5" y2="636"/>
+          <line x1="100" y1="217.5" x2="94"  y2="217.5"/>
+          <line x1="100" y1="355"   x2="92"  y2="355"/>
+          <line x1="100" y1="492.5" x2="94"  y2="492.5"/>
+        </g>
+      </svg>
+
+      <!-- HTML poster points (draggable) -->
+      <div class="plot-points" id="plotPoints"></div>
+    </div>
+  </section>
+
+  <!-- QUESTIONS (concept cards + fine-tune sliders) -->
+  <section class="questions">
+    <div class="q q1">
+      <div class="q-kicker">
+        <span class="kr">개연성</span>
+        <span>PROBABILITY</span>
+        <span class="dash">—</span>
+        <span class="tail">이야기 안쪽의 논리</span>
+      </div>
+      <div class="q-head">
+        <span class="q-id">01</span>
+        <span class="q-text">안쪽이 똑바로 맞아떨어지나요?</span>
+      </div>
+      <div class="q-hint">설정·사건·인물의 행동에 모순이 없고, 구도·색·타이포가 한 방향으로 흐르는지.</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" value="60" id="s1">
+        <div class="ends"><span class="e-low">어긋난다</span><span class="e-high">들어맞는다</span></div>
+      </div>
+    </div>
+    <div class="q q2">
+      <div class="q-kicker">
+        <span class="kr">핍진성</span>
+        <span>FIDELITY</span>
+        <span class="dash">—</span>
+        <span class="tail">이야기 바깥의 진실</span>
+      </div>
+      <div class="q-head">
+        <span class="q-id">02</span>
+        <span class="q-text">내가 사는 세상에 진짜처럼 닿나요?</span>
+      </div>
+      <div class="q-hint">청중의 상식·도덕·시대 정서·인간적 가치관과 부합해, 진짜처럼 느껴지는지.</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" value="60" id="s2">
+        <div class="ends"><span class="e-low">가짜 같다</span><span class="e-high">진짜 같다</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- VERDICT -->
+  <section class="verdict" id="verdict">
+    <div class="verdict-headline" id="headline">포스터를 한 장 골라 지도에 올려보세요</div>
+    <div class="verdict-sub" id="sub">기존 영화 포스터를 누르면 두 축 위의 한 점으로 떨어집니다. 포스터를 직접 끌어 사분면을 옮기거나, 슬라이더로 미세 조정해도 됩니다.</div>
+  </section>
+
+  <!-- FOOTNOTE -->
+  <details class="footnote">
+    <summary>이건 어떤 분석이에요?</summary>
+    <div class="footnote-body">
+      <p>커뮤니케이션 학자 <strong>월터 피셔(Walter Fisher)</strong>는 어떤 이야기가 '그럴듯하다'고 느껴지려면 두 축이 함께 받쳐주어야 한다고 보았습니다. 이 두 축은 서로 상쇄하는 관계가 아니라, <em>직교하는 독립된 잣대</em>입니다.</p>
+      <div class="defn">
+        <div class="defn-term"><span class="defn-kr defn-red">개연성</span> <span class="defn-en">PROBABILITY</span> <span class="defn-tail">— 이야기 안쪽의 논리</span></div>
+        <div class="defn-body">이야기 속 설정·사건·인물의 행동에 모순이 없고, 앞뒤가 똑바로 맞아떨어지는지 판단하는 기준입니다.</div>
+      </div>
+      <div class="defn">
+        <div class="defn-term"><span class="defn-kr defn-blue">핍진성</span> <span class="defn-en">FIDELITY</span> <span class="defn-tail">— 이야기 바깥의 진실</span></div>
+        <div class="defn-body">그 이야기가 청중이 실제 살아가는 세상의 상식·도덕·인간적 가치관과 부합하여, 진짜처럼 느껴지는지 판단하는 기준입니다.</div>
+      </div>
+      <p>두 축이 함께 만족될 때 우리는 그 이야기를 <em>그럴듯하다(verisimilitude)</em>고 느낍니다. 한쪽이 높다고 다른 쪽이 만회되지 않습니다 — 그래서 저울이 아니라 평면입니다.</p>
+      <p><strong>업로드 분석에 대해.</strong> 업로드된 이미지는 색감 분포·명도 대비·요소 밀도 같은 기본 정보만으로 두 축의 첫 점수를 추정하는 시범 판독입니다. 실제로는 장르 약속·시대 정서·도덕 코드 같은 의미층까지 읽어야 하므로, 후속 연구에서는 비전 AI가 이 휴리스틱을 대체할 예정입니다. 포스터를 직접 끌어서 자기 판단을 덮어 쓰는 것도 정당한 사용 방식입니다.</p>
+    </div>
+  </details>
+
+  <div class="alt-link">
+    <a href="balance-scale.html">이 분석을 <strong>저울 메타포</strong>로도 볼 수 있어요 →</a>
+  </div>
+
+</div>
+
+<input type="file" id="fileInput" accept="image/*" style="display:none">
+
+<script>
+  // ============================================================
+  // Essence SVG fallbacks
+  // ============================================================
+  const essenceParasite = `<rect width="180" height="270" fill="#ede4d1"/><rect width="180" height="30" fill="#000"/><text x="90" y="20" text-anchor="middle" font-family="Archivo" font-size="9" font-weight="700" fill="#ede4d1" letter-spacing="3">BONG JOON HO</text><text x="90" y="100" text-anchor="middle" font-family="Archivo" font-size="34" font-weight="900" fill="#000" letter-spacing="-1">PARASITE</text><text x="90" y="125" text-anchor="middle" font-family="Pretendard" font-size="11" font-weight="700" fill="#000" letter-spacing="6">기 생 충</text>`;
+  const essenceBlade = `<rect width="180" height="270" fill="#3a2418"/><text x="90" y="140" text-anchor="middle" font-family="Archivo" font-size="22" font-weight="900" fill="#f1e6d2" letter-spacing="2">BLADE RUNNER</text><text x="90" y="180" text-anchor="middle" font-family="Archivo" font-size="36" font-weight="900" fill="#d8612a" letter-spacing="6">2049</text>`;
+  const essenceSunshine = `<rect width="180" height="270" fill="#f5d142"/><text x="90" y="120" text-anchor="middle" font-family="Archivo" font-size="22" font-weight="900" fill="#1a1410" letter-spacing="-1">LITTLE MISS</text><text x="90" y="148" text-anchor="middle" font-family="Archivo" font-size="22" font-weight="900" fill="#d8392b" letter-spacing="-1">SUNSHINE</text>`;
+
+  function essenceToDataURI(fragment) {
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 270" preserveAspectRatio="xMidYMid slice">${fragment}</svg>`;
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(svg);
+  }
+
+  // ============================================================
+  // Posters
+  // ============================================================
+  const posters = [
+    { id:'parasite', title:'기생충',         sub:'Parasite · 2019',          s1:78, s2:74, url:'https://image.tmdb.org/t/p/w500/7IiTTgloJzvGI1TAYymCfbfl3vT.jpg', essence:essenceParasite },
+    { id:'blade',    title:'블레이드 러너 2049', sub:'Blade Runner 2049 · 2017', s1:84, s2:36, url:'https://image.tmdb.org/t/p/w500/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg', essence:essenceBlade },
+    { id:'sunshine', title:'리틀 미스 선샤인',  sub:'Little Miss Sunshine · 2006', s1:38, s2:70, url:'https://upload.wikimedia.org/wikipedia/en/4/4d/Little_Miss_Sunshine_promo.png', essence:essenceSunshine },
+  ];
+  // mutable user state per poster
+  posters.forEach(p => { p.cs1 = p.s1; p.cs2 = p.s2; });
+
+  // Picker
+  const pickerEl = document.getElementById('picker');
+  posters.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'picker-card';
+    btn.dataset.id = p.id;
+    const thumbInner = p.url
+      ? `<img src="${p.url}" alt="${p.title} 포스터" crossorigin="anonymous">
+         <svg class="fallback-svg" viewBox="0 0 180 270" preserveAspectRatio="xMidYMid slice">${p.essence}</svg>`
+      : `<svg viewBox="0 0 180 270" preserveAspectRatio="xMidYMid slice">${p.essence}</svg>`;
+    btn.innerHTML = `
+      <div class="picker-thumb-wrap" data-id="${p.id}">${thumbInner}</div>
+      <div class="picker-meta">
+        <div class="picker-title">${p.title}</div>
+        <div class="picker-sub">${p.sub}</div>
+      </div>
+    `;
+    btn.addEventListener('click', () => selectPoster(p.id));
+    pickerEl.appendChild(btn);
+    if (p.url) {
+      const img = btn.querySelector('img');
+      img.addEventListener('error', () => {
+        btn.querySelector('.picker-thumb-wrap').classList.add('has-fallback');
+        p.useFallback = true;
+        // also update plot point if it's already rendered
+        const pt = document.querySelector(`.point[data-id="${p.id}"] img`);
+        if (pt) pt.src = essenceToDataURI(p.essence);
+      });
+    } else {
+      p.useFallback = true;
+    }
+  });
+
+  // Upload card
+  const uploadBtn = document.createElement('button');
+  uploadBtn.className = 'picker-card upload';
+  uploadBtn.id = 'uploadCard';
+  uploadBtn.innerHTML = `
+    <div class="picker-thumb-wrap" id="uploadThumb"><span class="plus">+</span></div>
+    <div class="picker-meta">
+      <div class="picker-title">내 포스터</div>
+      <div class="picker-sub">UPLOAD · 시범 판독</div>
+    </div>
+  `;
+  uploadBtn.addEventListener('click', () => document.getElementById('fileInput').click());
+  pickerEl.appendChild(uploadBtn);
+
+  // ============================================================
+  // Plot — geometry
+  // ============================================================
+  // SVG viewBox is 720x720. Inner plot region: x=100..650, y=80..630
+  const PLOT = { x0:100, y0:80, x1:650, y1:630, w:550, h:550, vbW:720, vbH:720 };
+
+  function scoreToPercent(s1, s2) {
+    const x = PLOT.x0 + (s1 / 100) * PLOT.w;
+    const y = PLOT.y0 + ((100 - s2) / 100) * PLOT.h;
+    return { left: (x / PLOT.vbW) * 100, top: (y / PLOT.vbH) * 100 };
+  }
+
+  function clientToScore(clientX, clientY) {
+    const rect = document.getElementById('plotStage').getBoundingClientRect();
+    // Convert client to viewBox coords
+    const normX = (clientX - rect.left) / rect.width;   // 0..1
+    const normY = (clientY - rect.top) / rect.height;   // 0..1
+    const vbX = normX * PLOT.vbW;
+    const vbY = normY * PLOT.vbH;
+    let s1 = ((vbX - PLOT.x0) / PLOT.w) * 100;
+    let s2 = (1 - (vbY - PLOT.y0) / PLOT.h) * 100;
+    s1 = Math.max(0, Math.min(100, s1));
+    s2 = Math.max(0, Math.min(100, s2));
+    return { s1, s2 };
+  }
+
+  // ============================================================
+  // Render plot points (one per poster)
+  // ============================================================
+  const plotPointsEl = document.getElementById('plotPoints');
+
+  function thumbInnerHTML(p) {
+    if (p.dataURL) {
+      // uploaded image — direct
+      return `<img src="${p.dataURL}" alt="${p.title}">`;
+    } else if (p.url && !p.useFallback) {
+      return `<img src="${p.url}" alt="${p.title}" crossorigin="anonymous"
+                onerror="this.onerror=null;this.src='${essenceToDataURI(p.essence).replace(/'/g, '&apos;')}';">`;
+    } else {
+      return `<img src="${essenceToDataURI(p.essence)}" alt="${p.title}">`;
+    }
+  }
+
+  function renderAllPoints() {
+    plotPointsEl.innerHTML = '';
+    posters.forEach(p => {
+      const div = document.createElement('div');
+      div.className = 'point';
+      div.dataset.id = p.id;
+      if (p.id === selectedId) div.classList.add('selected');
+      const { left, top } = scoreToPercent(p.cs1, p.cs2);
+      div.style.left = left + '%';
+      div.style.top  = top + '%';
+      div.innerHTML = `
+        <div class="frame-ring"></div>
+        <div class="thumb">${thumbInnerHTML(p)}</div>
+        <div class="label">${p.title}</div>
+      `;
+      attachDrag(div, p.id);
+      plotPointsEl.appendChild(div);
+    });
+  }
+
+  function updatePointPosition(id) {
+    const p = posters.find(x => x.id === id);
+    if (!p) return;
+    const el = plotPointsEl.querySelector(`.point[data-id="${id}"]`);
+    if (!el) return;
+    const { left, top } = scoreToPercent(p.cs1, p.cs2);
+    el.style.left = left + '%';
+    el.style.top  = top + '%';
+  }
+
+  function setSelectedClass() {
+    plotPointsEl.querySelectorAll('.point').forEach(el => {
+      el.classList.toggle('selected', el.dataset.id === selectedId);
+    });
+  }
+
+  // ============================================================
+  // Drag
+  // ============================================================
+  let dragState = null;  // { id, pointerId }
+  function attachDrag(el, id) {
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      dragState = { id, pointerId: e.pointerId };
+      selectPoster(id, /*skipResetPosition*/ true);
+      el.classList.add('dragging');
+      try { el.setPointerCapture(e.pointerId); } catch(_) {}
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!dragState || dragState.id !== id) return;
+      const { s1, s2 } = clientToScore(e.clientX, e.clientY);
+      const p = posters.find(x => x.id === id);
+      p.cs1 = s1;
+      p.cs2 = s2;
+      updatePointPosition(id);
+      syncSlidersFrom(p);
+      updateVerdict();
+    });
+    el.addEventListener('pointerup', (e) => {
+      if (dragState && dragState.id === id) {
+        try { el.releasePointerCapture(e.pointerId); } catch(_) {}
+        el.classList.remove('dragging');
+        dragState = null;
+      }
+    });
+    el.addEventListener('pointercancel', () => {
+      if (dragState && dragState.id === id) {
+        el.classList.remove('dragging');
+        dragState = null;
+      }
+    });
+  }
+
+  // ============================================================
+  // Sliders ↔ selected poster
+  // ============================================================
+  const s1Input = document.getElementById('s1');
+  const s2Input = document.getElementById('s2');
+
+  function syncSlidersFrom(p) {
+    s1Input.value = p.cs1;
+    s2Input.value = p.cs2;
+    s1Input.style.setProperty('--p', p.cs1 + '%');
+    s2Input.style.setProperty('--p', p.cs2 + '%');
+  }
+
+  s1Input.addEventListener('input', () => {
+    const p = posters.find(x => x.id === selectedId);
+    if (!p) return;
+    p.cs1 = parseFloat(s1Input.value);
+    s1Input.style.setProperty('--p', p.cs1 + '%');
+    updatePointPosition(p.id);
+    updateVerdict();
+  });
+  s2Input.addEventListener('input', () => {
+    const p = posters.find(x => x.id === selectedId);
+    if (!p) return;
+    p.cs2 = parseFloat(s2Input.value);
+    s2Input.style.setProperty('--p', p.cs2 + '%');
+    updatePointPosition(p.id);
+    updateVerdict();
+  });
+
+  // ============================================================
+  // Selection
+  // ============================================================
+  let selectedId = null;
+
+  function selectPoster(id, skipReset) {
+    const p = posters.find(x => x.id === id);
+    if (!p) return;
+    selectedId = id;
+    // picker active state
+    document.querySelectorAll('.picker-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.id === id);
+    });
+    // plot selected
+    setSelectedClass();
+    // sliders
+    syncSlidersFrom(p);
+    updateVerdict();
+  }
+
+  // ============================================================
+  // Upload
+  // ============================================================
+  const fileInput = document.getElementById('fileInput');
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => handleUploadedImage(ev.target.result);
+    reader.readAsDataURL(file);
+  });
+
+  function handleUploadedImage(dataURL) {
+    // upload thumb in picker
+    document.getElementById('uploadThumb').innerHTML = `<img src="${dataURL}" alt="">`;
+    uploadBtn.classList.add('has-image');
+    // Find or create the "upload" poster entry
+    let p = posters.find(x => x.id === 'upload');
+    if (!p) {
+      p = { id:'upload', title:'내 포스터', sub:'YOUR POSTER', useFallback:true,
+            essence: `<rect width="180" height="270" fill="#0a0a0a"/>` , dataURL };
+      posters.push(p);
+    } else {
+      p.dataURL = dataURL;
+    }
+    p.cs1 = 50; p.cs2 = 50; p.s1 = 50; p.s2 = 50;
+    // analyze
+    const img = new Image();
+    img.onload = () => {
+      const { s1: ns1, s2: ns2 } = analyzeImage(img);
+      p.s1 = ns1; p.s2 = ns2; p.cs1 = ns1; p.cs2 = ns2;
+      renderAllPoints();
+      selectPoster('upload');
+      document.querySelectorAll('.picker-card').forEach(c => c.classList.remove('active'));
+      uploadBtn.classList.add('active');
+    };
+    img.src = dataURL;
+    // Render immediately with placeholder coords so user sees something
+    renderAllPoints();
+    selectPoster('upload');
+    document.querySelectorAll('.picker-card').forEach(c => c.classList.remove('active'));
+    uploadBtn.classList.add('active');
+    // analyzing UI
+    document.getElementById('verdict').classList.add('loading');
+    document.getElementById('headline').textContent = '포스터를 읽고 있어요';
+    document.getElementById('sub').textContent = '색감과 짜임새부터 살펴 첫 점수를 잡고 있습니다.';
+  }
+
+  function analyzeImage(img) {
+    const W = 80, H = 120;
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, W, H);
+    const data = ctx.getImageData(0, 0, W, H).data;
+    const n = W * H;
+    let rSum=0, gSum=0, bSum=0, brightSum=0;
+    for (let i = 0; i < data.length; i += 4) {
+      rSum += data[i]; gSum += data[i+1]; bSum += data[i+2];
+      brightSum += (data[i] + data[i+1] + data[i+2]) / 3;
+    }
+    const rMean = rSum/n, gMean = gSum/n, bMean = bSum/n;
+    const brightMean = brightSum/n;
+    let colorVar = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      colorVar += (data[i]-rMean)**2 + (data[i+1]-gMean)**2 + (data[i+2]-bMean)**2;
+    }
+    colorVar = Math.sqrt(colorVar / n);
+    let edgeCount = 0;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W-1; x++) {
+        const i = (y * W + x) * 4, j = i + 4;
+        const d = Math.sqrt((data[i]-data[j])**2 + (data[i+1]-data[j+1])**2 + (data[i+2]-data[j+2])**2);
+        if (d > 50) edgeCount++;
+      }
+    }
+    const edgeRate = edgeCount / (W * H);
+    const paletteScore = 1 - Math.min(1, colorVar / 90);
+    const edgeScore = Math.max(0, 1 - Math.abs(edgeRate - 0.22) * 3.2);
+    let s1Val = (paletteScore * 0.55 + edgeScore * 0.45) * 65 + 22;
+    const warmth = (rMean - bMean) / 255;
+    const warmthScore = Math.max(0, Math.min(1, (warmth + 0.25) / 0.55));
+    const brightScore = Math.max(0, 1 - Math.abs(brightMean - 130) / 130);
+    let s2Val = (warmthScore * 0.5 + brightScore * 0.5) * 65 + 22;
+    s1Val = Math.max(20, Math.min(90, s1Val + (Math.random()*8 - 4)));
+    s2Val = Math.max(20, Math.min(90, s2Val + (Math.random()*8 - 4)));
+    setTimeout(() => {
+      document.getElementById('verdict').classList.remove('loading');
+      updateVerdict();
+    }, 800);
+    return { s1: s1Val, s2: s2Val };
+  }
+
+  // ============================================================
+  // Verdict (quadrant-based)
+  // ============================================================
+  const verdictBox = document.getElementById('verdict');
+  const headline = document.getElementById('headline');
+  const subEl = document.getElementById('sub');
+
+  function getQuadrantVerdict(s1, s2) {
+    const P = s1 >= 50, F = s2 >= 50;
+    const nearCenter = Math.abs(s1 - 50) < 8 && Math.abs(s2 - 50) < 8;
+    if (nearCenter) return ['딱 가운데에 떠 있어요', '개연성도 핍진성도 아직 결정적이지 않습니다. 어느 사분면으로든 옮길 수 있는 미정의 상태예요.'];
+    if (P && F)   return ['그럴듯하다',           '안쪽 논리가 단단하고, 바깥 세상에도 닿습니다. 개연성과 핍진성이 함께 받쳐주는 사분면이에요.'];
+    if (!P && F)  return ['진짜 같지만, 앞뒤가 어긋나요', '핍진성은 살아있는데, 개연성이 흔들립니다. 와닿는 감각은 있지만 내부 논리가 모순 없이 맞아떨어지지는 않아요.'];
+    if (P && !F)  return ['잘 짜였지만, 진짜 같지 않아요', '개연성은 정돈됐는데, 핍진성이 약합니다. 안쪽 논리는 맞지만, 내가 사는 세상과 거리가 있어요.'];
+    return ['그럴듯하지 않다', '개연성도 핍진성도 모두 약합니다. 안쪽 논리와 바깥 진실, 두 축 모두 손볼 여지가 큰 상태예요.'];
+  }
+
+  function updateVerdict() {
+    const p = posters.find(x => x.id === selectedId);
+    if (verdictBox.classList.contains('loading')) return;
+    let h, s;
+    if (!p) {
+      h = '포스터를 한 장 골라 지도에 올려보세요';
+      s = '기존 영화 포스터를 누르면 두 축 위의 한 점으로 떨어집니다. 포스터를 직접 끌어 사분면을 옮기거나, 슬라이더로 미세 조정해도 됩니다.';
+    } else {
+      [h, s] = getQuadrantVerdict(p.cs1, p.cs2);
+    }
+    if (headline.textContent !== h) {
+      verdictBox.classList.add('fading');
+      setTimeout(() => {
+        headline.textContent = h;
+        subEl.textContent = s;
+        verdictBox.classList.remove('fading');
+      }, 200);
+    } else if (subEl.textContent !== s) {
+      subEl.textContent = s;
+    }
+  }
+
+  // ============================================================
+  // Init
+  // ============================================================
+  renderAllPoints();
+  // Background click on plot stage (not on a point) → no-op (don't accidentally move)
+  // Initial state: no selection
+  updateVerdict();
+</script>
+</body>
+</html>
