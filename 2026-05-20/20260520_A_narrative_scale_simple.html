@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이 포스터, 그럴듯한가요? — 간소화 목업</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f1ead7;
+    --paper: #f8f2e1;
+    --ink: #1a1614;
+    --gold: #ad8a3a;
+    --left: #8a2e2e;
+    --right: #2e4a7a;
+    --muted: #7a716a;
+    --rule: #c8bca5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: 'Noto Serif KR', Georgia, serif;
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.65;
+    background-image:
+      radial-gradient(ellipse at top, rgba(0,0,0,0.04), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.012) 2px, rgba(0,0,0,0.012) 3px);
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 60px 28px 60px;
+  }
+
+  /* Hero */
+  .hero {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .hero h1 {
+    font-weight: 500;
+    font-size: 38px;
+    letter-spacing: 0.02em;
+    line-height: 1.35;
+  }
+  .hero p {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Scale */
+  .scale-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+  .scale {
+    width: 100%;
+    max-width: 460px;
+    height: auto;
+    overflow: visible;
+  }
+  .beam {
+    transform-origin: 280px 110px;
+    transform-box: view-box;
+    transition: transform 0.9s cubic-bezier(0.34, 1.28, 0.64, 1);
+  }
+
+  /* Questions */
+  .questions {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 32px 32px 24px;
+    margin-top: 24px;
+  }
+  .question {
+    padding: 18px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .question:last-child { border-bottom: none; }
+  .q-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .q1 .dot { background: var(--left); }
+  .q2 .dot { background: var(--right); }
+  .q-text {
+    font-size: 19px;
+    font-weight: 500;
+  }
+  .q-hint {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-left: 19px;
+    margin-bottom: 12px;
+  }
+  .slider-row {
+    margin-left: 19px;
+    margin-top: 4px;
+  }
+  .slider-row input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--rule);
+    outline: none;
+    cursor: pointer;
+  }
+  .q1 .slider-row input[type=range] { background: linear-gradient(to right, var(--left) 0%, var(--left) var(--p, 60%), var(--rule) var(--p, 60%)); }
+  .q2 .slider-row input[type=range] { background: linear-gradient(to right, var(--right) 0%, var(--right) var(--p, 60%), var(--rule) var(--p, 60%)); }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+  .slider-row input[type=range]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  .ends {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.02em;
+  }
+
+  /* Verdict */
+  .verdict {
+    margin-top: 28px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 32px 30px;
+    text-align: center;
+    border-top: 3px solid var(--gold);
+  }
+  .verdict-label {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.45em;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 16px;
+  }
+  .verdict-headline {
+    font-size: 28px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: 0.01em;
+    transition: opacity 0.3s;
+  }
+  .verdict-sub {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13.5px;
+    color: rgba(247, 241, 224, 0.7);
+    margin-top: 14px;
+    line-height: 1.7;
+  }
+
+  /* Footnote */
+  .footnote {
+    margin-top: 36px;
+    text-align: center;
+  }
+  .footnote summary {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    padding: 8px 12px;
+    display: inline-block;
+    list-style: none;
+    border-bottom: 1px dotted var(--muted);
+  }
+  .footnote summary::-webkit-details-marker { display: none; }
+  .footnote summary:hover { color: var(--ink); }
+  .footnote[open] summary { color: var(--ink); }
+  .footnote-body {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.85;
+    max-width: 560px;
+    margin: 22px auto 0;
+    text-align: left;
+    padding: 22px 24px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .footnote-body strong {
+    color: var(--ink);
+    font-weight: 500;
+  }
+
+  footer.credit {
+    text-align: center;
+    margin-top: 32px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+  }
+
+  @media (max-width: 600px) {
+    .container { padding: 36px 18px; }
+    .hero h1 { font-size: 28px; }
+    .questions { padding: 22px 20px 16px; }
+    .verdict { padding: 26px 20px; }
+    .verdict-headline { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <h1>이 포스터, 그럴듯한가요?</h1>
+    <p>두 가지 질문으로 알아봅니다</p>
+  </div>
+
+  <div class="scale-wrap">
+    <svg class="scale" viewBox="0 0 580 360" xmlns="http://www.w3.org/2000/svg">
+      <!-- base -->
+      <rect x="232" y="298" width="96" height="6" fill="#1a1614"/>
+      <rect x="252" y="120" width="56" height="178" fill="#1a1614"/>
+      <circle cx="280" cy="110" r="7" fill="#ad8a3a"/>
+      <!-- beam group -->
+      <g class="beam" id="beam">
+        <rect x="40" y="106" width="480" height="8" fill="#1a1614"/>
+        <!-- left chain + pan -->
+        <line x1="60"  y1="110" x2="60"  y2="176" stroke="#1a1614" stroke-width="1.5"/>
+        <ellipse cx="60" cy="188" rx="58" ry="8" fill="#1a1614"/>
+        <path d="M 6 182 Q 60 232 114 182" fill="none" stroke="#1a1614" stroke-width="1.5"/>
+        <!-- left dot label color -->
+        <circle cx="60" cy="220" r="5" fill="#8a2e2e"/>
+        <!-- right chain + pan -->
+        <line x1="500" y1="110" x2="500" y2="176" stroke="#1a1614" stroke-width="1.5"/>
+        <ellipse cx="500" cy="188" rx="58" ry="8" fill="#1a1614"/>
+        <path d="M 446 182 Q 500 232 554 182" fill="none" stroke="#1a1614" stroke-width="1.5"/>
+        <circle cx="500" cy="220" r="5" fill="#2e4a7a"/>
+      </g>
+      <!-- poster on top of pivot column (always visible) -->
+      <g>
+        <rect x="244" y="14" width="72" height="100" fill="#f7f1e0" stroke="#1a1614" stroke-width="1"/>
+        <rect x="249" y="19" width="62" height="60" fill="#1a1614"/>
+        <circle cx="280" cy="50" r="13" fill="#f7f1e0"/>
+        <rect x="251" y="84"  width="58" height="3" fill="#8a2e2e"/>
+        <rect x="251" y="91"  width="40" height="2" fill="#1a1614"/>
+        <rect x="251" y="95"  width="48" height="2" fill="#1a1614"/>
+        <rect x="251" y="105" width="22" height="2" fill="#ad8a3a"/>
+      </g>
+    </svg>
+  </div>
+
+  <div class="questions">
+    <div class="question q1">
+      <div class="q-label">
+        <span class="dot"></span>
+        <span class="q-text">이야기가 잘 짜여 있나요?</span>
+      </div>
+      <div class="q-hint">구도·색·인물 표현이 한 방향으로 흐르고, 어색한 충돌 없이 정돈되어 있는지</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" value="65" id="s1">
+        <div class="ends"><span>엉성하다</span><span>꽉 짜였다</span></div>
+      </div>
+    </div>
+
+    <div class="question q2">
+      <div class="q-label">
+        <span class="dot"></span>
+        <span class="q-text">내가 아는 세상과 닿나요?</span>
+      </div>
+      <div class="q-hint">내 경험·상식·시대 정서와 부드럽게 어울리고, 어딘가 낯설지 않은지</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" value="50" id="s2">
+        <div class="ends"><span>낯설다</span><span>와닿는다</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-label">RESULT</div>
+    <div class="verdict-headline" id="headline">두 슬라이더를 움직여 보세요</div>
+    <div class="verdict-sub" id="sub">이야기의 짜임새와 마음에 닿는 정도, 두 가지가 모두 충분할 때 우리는 어떤 이야기를 '그럴듯하다'고 느낍니다.</div>
+  </div>
+
+  <details class="footnote">
+    <summary>이건 어떤 분석이에요?</summary>
+    <div class="footnote-body">
+      커뮤니케이션 학자 <strong>월터 피셔</strong>는 어떤 이야기가 그럴듯하려면 두 가지가 필요하다고 보았습니다.
+      첫째, 이야기 안쪽이 모순 없이 <strong>잘 짜여 있는가</strong> (일관성, Coherence).
+      둘째, 그 이야기가 듣는 사람의 <strong>경험·도덕·시대와 닿는가</strong> (충실성, Fidelity).
+      이 두 가지가 함께 만족될 때, 우리는 그 이야기를 '그럴듯하다(verisimilitude)'고 느낍니다.
+      영화 포스터도 한 장에 압축된 이야기이기 때문에, 같은 두 잣대로 살펴볼 수 있습니다.
+    </div>
+  </details>
+
+  <footer class="credit">
+    A · 이야기 저울 · SIMPLIFIED MOCKUP · 2026.05.20
+  </footer>
+</div>
+
+<script>
+  const s1 = document.getElementById('s1');  // 잘 짜였나
+  const s2 = document.getElementById('s2');  // 와닿나
+  const beam = document.getElementById('beam');
+  const headline = document.getElementById('headline');
+  const sub = document.getElementById('sub');
+
+  function update() {
+    const v1 = parseInt(s1.value, 10);  // 일관성
+    const v2 = parseInt(s2.value, 10);  // 충실성
+    const diff = v1 - v2;
+    const abs = Math.abs(diff);
+    const avg = (v1 + v2) / 2;
+
+    // 슬라이더 트랙 진행 표시
+    s1.style.setProperty('--p', v1 + '%');
+    s2.style.setProperty('--p', v2 + '%');
+
+    // 저울 기울기 — 일관성이 크면 시계방향(왼쪽 접시 하강)
+    const angle = Math.max(-13, Math.min(13, diff * 0.32));
+    beam.style.transform = `rotate(${angle}deg)`;
+
+    // 한 줄 평가
+    let h = '', s = '';
+    if (avg < 32) {
+      h = '아직 그럴듯하지 않아요';
+      s = '이야기 짜임새도, 마음에 닿는 정도도 모두 약합니다.';
+    } else if (avg > 78 && abs < 14) {
+      h = '아주 그럴듯해요';
+      s = '잘 짜였고, 마음에도 닿습니다. 두 축이 함께 받쳐주고 있어요.';
+    } else if (abs < 10) {
+      h = '균형이 잡혀 있어요';
+      s = '두 축이 비슷한 무게로 맞물려, 어느 한쪽으로도 기울지 않습니다.';
+    } else if (diff > 0) {
+      h = '잘 짜였지만, 마음엔 덜 닿아요';
+      s = '구성은 정돈되어 있는데, 내가 아는 세상과는 조금 거리감이 있습니다.';
+    } else {
+      h = '마음엔 닿지만, 어딘가 어색해요';
+      s = '와닿는 감각은 있지만, 안쪽 짜임새가 조금 흔들리고 있습니다.';
+    }
+    headline.textContent = h;
+    sub.textContent = s;
+  }
+
+  s1.addEventListener('input', update);
+  s2.addEventListener('input', update);
+  update();
+</script>
+</body>
+</html>

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>이 포스터, 그럴듯한가요? — v3 (포스터 3종)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f1ead7;
+    --paper: #f8f2e1;
+    --ink: #1a1614;
+    --gold: #ad8a3a;
+    --left: #8a2e2e;
+    --right: #2e4a7a;
+    --muted: #7a716a;
+    --rule: #c8bca5;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg); }
+  body {
+    font-family: 'Noto Serif KR', Georgia, serif;
+    color: var(--ink);
+    min-height: 100vh;
+    line-height: 1.65;
+    background-image:
+      radial-gradient(ellipse at top, rgba(0,0,0,0.04), transparent 70%),
+      repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.012) 2px, rgba(0,0,0,0.012) 3px);
+    -webkit-font-smoothing: antialiased;
+  }
+  .container {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 56px 28px 60px;
+  }
+
+  /* Hero */
+  .hero { text-align: center; margin-bottom: 30px; }
+  .hero h1 {
+    font-weight: 500;
+    font-size: 38px;
+    letter-spacing: 0.02em;
+    line-height: 1.35;
+  }
+  .hero p {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    color: var(--muted);
+    margin-top: 12px;
+  }
+
+  /* Picker */
+  .picker-label {
+    text-align: center;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+  .picker {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    margin-bottom: 30px;
+  }
+  .picker-card {
+    width: 92px;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.2s;
+    background: none;
+    border: none;
+    padding: 6px;
+    font-family: 'Noto Serif KR', serif;
+  }
+  .picker-card:hover { transform: translateY(-2px); }
+  .picker-thumb {
+    width: 80px;
+    height: 110px;
+    margin: 0 auto;
+    box-shadow: 0 1px 0 var(--rule), 0 3px 8px rgba(0,0,0,0.08);
+    transition: box-shadow 0.2s, outline 0.2s;
+    overflow: hidden;
+    display: block;
+  }
+  .picker-card.active .picker-thumb {
+    outline: 2px solid var(--gold);
+    outline-offset: 3px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+  }
+  .picker-title {
+    font-size: 12px;
+    margin-top: 10px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .picker-genre {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 1px;
+    letter-spacing: 0.05em;
+  }
+
+  /* Scale */
+  .scale-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+  .scale {
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    overflow: visible;
+  }
+  .beam {
+    transform-origin: 280px 270px;
+    transform-box: view-box;
+    transition: transform 0.9s cubic-bezier(0.34, 1.28, 0.64, 1);
+  }
+  .poster-host {
+    transition: opacity 0.35s ease;
+  }
+  .poster-host.swapping { opacity: 0; }
+
+  /* Questions */
+  .questions {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    padding: 30px 32px 22px;
+    margin-top: 22px;
+  }
+  .question {
+    padding: 16px 0;
+    border-bottom: 1px dashed var(--rule);
+  }
+  .question:last-child { border-bottom: none; }
+  .q-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+  }
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .q1 .dot { background: var(--left); }
+  .q2 .dot { background: var(--right); }
+  .q-text { font-size: 18px; font-weight: 500; }
+  .q-hint {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12.5px;
+    color: var(--muted);
+    margin-left: 19px;
+    margin-bottom: 12px;
+  }
+  .slider-row { margin-left: 19px; margin-top: 4px; }
+  .slider-row input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 2px;
+    background: var(--rule);
+    outline: none;
+    cursor: pointer;
+  }
+  .q1 .slider-row input[type=range] {
+    background: linear-gradient(to right, var(--left) 0%, var(--left) var(--p, 60%), var(--rule) var(--p, 60%));
+  }
+  .q2 .slider-row input[type=range] {
+    background: linear-gradient(to right, var(--right) 0%, var(--right) var(--p, 60%), var(--rule) var(--p, 60%));
+  }
+  .slider-row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    background: var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid var(--paper);
+    box-shadow: 0 0 0 1px var(--ink);
+  }
+  .slider-row input[type=range]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--ink);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+  }
+  .ends {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 11.5px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+
+  /* Verdict */
+  .verdict {
+    margin-top: 26px;
+    background: var(--ink);
+    color: var(--paper);
+    padding: 30px 28px;
+    text-align: center;
+    border-top: 3px solid var(--gold);
+  }
+  .verdict-label {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.45em;
+    color: var(--gold);
+    font-weight: 500;
+    margin-bottom: 14px;
+  }
+  .verdict-headline {
+    font-size: 26px;
+    font-weight: 500;
+    line-height: 1.4;
+  }
+  .verdict-sub {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13.5px;
+    color: rgba(247, 241, 224, 0.75);
+    margin-top: 14px;
+    line-height: 1.75;
+  }
+
+  /* Footnote */
+  .footnote {
+    margin-top: 34px;
+    text-align: center;
+  }
+  .footnote summary {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.15em;
+    cursor: pointer;
+    padding: 8px 12px;
+    display: inline-block;
+    list-style: none;
+    border-bottom: 1px dotted var(--muted);
+  }
+  .footnote summary::-webkit-details-marker { display: none; }
+  .footnote summary:hover { color: var(--ink); }
+  .footnote[open] summary { color: var(--ink); }
+  .footnote-body {
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.85;
+    max-width: 560px;
+    margin: 22px auto 0;
+    text-align: left;
+    padding: 22px 24px;
+    border: 1px solid var(--rule);
+    background: var(--paper);
+  }
+  .footnote-body strong { color: var(--ink); font-weight: 500; }
+
+  footer.credit {
+    text-align: center;
+    margin-top: 30px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 10.5px;
+    letter-spacing: 0.3em;
+    color: var(--muted);
+  }
+
+  @media (max-width: 600px) {
+    .container { padding: 32px 16px; }
+    .hero h1 { font-size: 26px; }
+    .picker { gap: 12px; }
+    .picker-card { width: 80px; }
+    .picker-thumb { width: 68px; height: 94px; }
+    .questions { padding: 22px 18px 14px; }
+    .verdict { padding: 24px 18px; }
+    .verdict-headline { font-size: 22px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <h1>이 포스터, 그럴듯한가요?</h1>
+    <p>세 편의 포스터를 골라 두 질문에 답해보세요</p>
+  </div>
+
+  <div class="picker-label">분석할 포스터 고르기</div>
+  <div class="picker" id="picker"><!-- JS populates --></div>
+
+  <div class="scale-wrap">
+    <svg class="scale" viewBox="0 0 580 510" xmlns="http://www.w3.org/2000/svg">
+      <!-- base -->
+      <rect x="232" y="450" width="96" height="6" fill="#1a1614"/>
+      <rect x="252" y="280" width="56" height="170" fill="#1a1614"/>
+      <circle cx="280" cy="270" r="7" fill="#ad8a3a"/>
+      <!-- beam group (rotates) -->
+      <g class="beam" id="beam">
+        <rect x="40" y="266" width="480" height="8" fill="#1a1614"/>
+        <line x1="60"  y1="270" x2="60"  y2="336" stroke="#1a1614" stroke-width="1.5"/>
+        <ellipse cx="60" cy="348" rx="58" ry="8" fill="#1a1614"/>
+        <path d="M 6 342 Q 60 392 114 342" fill="none" stroke="#1a1614" stroke-width="1.5"/>
+        <circle cx="60" cy="378" r="5" fill="#8a2e2e"/>
+        <line x1="500" y1="270" x2="500" y2="336" stroke="#1a1614" stroke-width="1.5"/>
+        <ellipse cx="500" cy="348" rx="58" ry="8" fill="#1a1614"/>
+        <path d="M 446 342 Q 500 392 554 342" fill="none" stroke="#1a1614" stroke-width="1.5"/>
+        <circle cx="500" cy="378" r="5" fill="#2e4a7a"/>
+      </g>
+      <!-- poster host (large detailed poster on top of column) -->
+      <g class="poster-host" id="poster-host" transform="translate(200, 18)"></g>
+    </svg>
+  </div>
+
+  <div class="questions">
+    <div class="question q1">
+      <div class="q-label">
+        <span class="dot"></span>
+        <span class="q-text">이야기가 잘 짜여 있나요?</span>
+      </div>
+      <div class="q-hint">구도·색·타이포·인물 표현이 한 방향으로 흐르고, 어색한 충돌 없이 정돈되어 있는지</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" value="60" id="s1">
+        <div class="ends"><span>엉성하다</span><span>꽉 짜였다</span></div>
+      </div>
+    </div>
+
+    <div class="question q2">
+      <div class="q-label">
+        <span class="dot"></span>
+        <span class="q-text">내가 아는 세상과 닿나요?</span>
+      </div>
+      <div class="q-hint">내 경험·상식·시대 정서와 부드럽게 어울리고, 어딘가 낯설지 않은지</div>
+      <div class="slider-row">
+        <input type="range" min="0" max="100" value="60" id="s2">
+        <div class="ends"><span>낯설다</span><span>와닿는다</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="verdict">
+    <div class="verdict-label">RESULT</div>
+    <div class="verdict-headline" id="headline">포스터를 골라보세요</div>
+    <div class="verdict-sub" id="sub">위의 세 포스터 중 하나를 누르면, AI가 두 질문에 대한 첫 판단을 슬라이더 위에 올려둡니다. 마음에 들지 않으면 직접 슬라이더를 움직여 다시 평가해도 됩니다.</div>
+  </div>
+
+  <details class="footnote">
+    <summary>이건 어떤 분석이에요?</summary>
+    <div class="footnote-body">
+      커뮤니케이션 학자 <strong>월터 피셔</strong>는 어떤 이야기가 그럴듯하려면 두 가지가 필요하다고 보았습니다.
+      첫째, 이야기 안쪽이 모순 없이 <strong>잘 짜여 있는가</strong> (일관성, Coherence).
+      둘째, 그 이야기가 듣는 사람의 <strong>경험·도덕·시대와 닿는가</strong> (충실성, Fidelity).
+      이 두 가지가 함께 만족될 때, 우리는 그 이야기를 '그럴듯하다(verisimilitude)'고 느낍니다.
+      영화 포스터도 한 장에 압축된 이야기이기 때문에, 같은 두 잣대로 살펴볼 수 있습니다.
+    </div>
+  </details>
+
+  <footer class="credit">
+    A · 이야기 저울 · CONCRETE POSTER MOCKUP · 2026.05.20
+  </footer>
+</div>
+
+<script>
+  // ============================================================
+  // 가상의 포스터 3종 — 각자 다른 평가가 나오도록 의도 설계
+  // ============================================================
+  // 포스터 본체는 160 x 240 좌표계로 그려져 있고, 큰 화면에서는
+  // poster-host(g)의 translate(200, 18)로 위치잡힘 (저울 위)
+  // 썸네일은 같은 SVG를 viewBox 0 0 160 240으로 80x110에 맞춤
+
+  const posterA_body = `
+    <defs>
+      <linearGradient id="skyA" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#f0d4a8"/>
+        <stop offset="55%" stop-color="#d99a6c"/>
+        <stop offset="100%" stop-color="#7a4a2e"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="160" height="240" fill="url(#skyA)"/>
+    <!-- horizon ground -->
+    <rect x="0" y="178" width="160" height="62" fill="#3a2018"/>
+    <!-- sun -->
+    <circle cx="118" cy="92" r="20" fill="#f8e8c8" opacity="0.6"/>
+    <!-- tree trunk -->
+    <path d="M 108 178 L 108 110 Q 102 92 112 78 Q 122 84 118 110 L 118 178 Z" fill="#1f120a"/>
+    <!-- tree canopy -->
+    <ellipse cx="113" cy="74" rx="22" ry="16" fill="#1f120a"/>
+    <ellipse cx="100" cy="80" rx="14" ry="10" fill="#1f120a"/>
+    <ellipse cx="126" cy="80" rx="14" ry="10" fill="#1f120a"/>
+    <!-- two figures (silhouettes embracing) -->
+    <g fill="#1f120a">
+      <ellipse cx="42" cy="158" rx="6" ry="8"/>
+      <path d="M 36 165 L 36 178 L 48 178 L 48 165 Q 42 162 36 165 Z"/>
+      <ellipse cx="54" cy="158" rx="6" ry="8"/>
+      <path d="M 48 165 L 48 178 L 60 178 L 60 165 Q 54 162 48 165 Z"/>
+    </g>
+    <!-- title -->
+    <text x="80" y="36" text-anchor="middle" font-family="'Noto Serif KR', serif" font-size="22" font-weight="600" fill="#2a1408" letter-spacing="2">마지막 정원</text>
+    <text x="80" y="55" text-anchor="middle" font-family="'Noto Sans KR', sans-serif" font-size="7" font-weight="400" fill="#2a1408" letter-spacing="3.5" opacity="0.85">사라지는 것들 사이에서</text>
+    <!-- bottom credits -->
+    <g fill="#f0d4a8" opacity="0.6">
+      <rect x="40" y="208" width="80" height="1.5"/>
+      <rect x="48" y="214" width="64" height="1"/>
+      <rect x="54" y="219" width="52" height="1"/>
+      <rect x="62" y="224" width="36" height="1"/>
+    </g>
+  `;
+
+  const posterB_body = `
+    <rect x="0" y="0" width="160" height="240" fill="#0a1028"/>
+    <!-- vertical glitch lines -->
+    <g stroke="#0fc2c0" stroke-width="0.4" opacity="0.35">
+      <line x1="8"  y1="60" x2="8"  y2="220"/>
+      <line x1="18" y1="60" x2="18" y2="200"/>
+      <line x1="28" y1="60" x2="28" y2="215"/>
+      <line x1="132" y1="60" x2="132" y2="210"/>
+      <line x1="142" y1="60" x2="142" y2="220"/>
+      <line x1="152" y1="60" x2="152" y2="200"/>
+    </g>
+    <!-- magenta band -->
+    <rect x="0" y="120" width="160" height="2" fill="#e91e63" opacity="0.7"/>
+    <!-- cyborg silhouette -->
+    <circle cx="80" cy="84" r="14" fill="#161e44"/>
+    <rect x="62" y="98" width="36" height="64" fill="#161e44"/>
+    <rect x="58" y="100" width="44" height="3" fill="#e91e63"/>
+    <rect x="58" y="116" width="44" height="1.5" fill="#0fc2c0"/>
+    <rect x="70" y="162" width="8" height="38" fill="#161e44"/>
+    <rect x="82" y="162" width="8" height="38" fill="#161e44"/>
+    <!-- eye glow -->
+    <circle cx="76" cy="83" r="1.5" fill="#0fc2c0"/>
+    <circle cx="84" cy="83" r="1.5" fill="#0fc2c0"/>
+    <!-- title -->
+    <text x="80" y="34" text-anchor="middle" font-family="'Noto Sans KR', sans-serif" font-size="22" font-weight="700" fill="#f0f0f0" letter-spacing="3">PROTOCOL</text>
+    <text x="80" y="54" text-anchor="middle" font-family="'Noto Sans KR', sans-serif" font-size="14" font-weight="700" fill="#0fc2c0" letter-spacing="6">/ 1 3 /</text>
+    <!-- tagline -->
+    <text x="80" y="218" text-anchor="middle" font-family="'Noto Sans KR', sans-serif" font-size="7" font-weight="500" fill="#0fc2c0" letter-spacing="2.5">기계는 잠들지 않는다</text>
+    <!-- bottom credits -->
+    <g fill="#0fc2c0" opacity="0.4">
+      <rect x="50" y="226" width="60" height="1"/>
+    </g>
+  `;
+
+  const posterC_body = `
+    <defs>
+      <linearGradient id="skyC" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#a8c8e8"/>
+        <stop offset="100%" stop-color="#e0c8d8"/>
+      </linearGradient>
+    </defs>
+    <rect x="0" y="0" width="160" height="240" fill="url(#skyC)"/>
+    <!-- stars (sloppy distribution) -->
+    <g fill="#fff8d4">
+      <circle cx="20"  cy="50" r="1.2"/>
+      <circle cx="100" cy="60" r="1.5"/>
+      <circle cx="140" cy="92" r="1"/>
+      <circle cx="38"  cy="200" r="1"/>
+      <circle cx="120" cy="194" r="1.2"/>
+      <circle cx="70"  cy="40" r="0.8"/>
+      <circle cx="150" cy="160" r="0.9"/>
+    </g>
+    <!-- planets -->
+    <circle cx="34" cy="118" r="14" fill="#e89aae"/>
+    <ellipse cx="34" cy="118" rx="20" ry="3" fill="none" stroke="#c47390" stroke-width="1" opacity="0.6"/>
+    <circle cx="125" cy="158" r="18" fill="#8bb0d8"/>
+    <circle cx="22" cy="172" r="6" fill="#d4a07a"/>
+    <!-- rocket -->
+    <g transform="translate(80, 120)">
+      <path d="M 0 -22 L 8 8 L 0 14 L -8 8 Z" fill="#d94e3a"/>
+      <rect x="-3" y="-8" width="6" height="10" fill="#fff" rx="1"/>
+      <path d="M -8 4 L -14 14 L -6 10 Z" fill="#f5a142"/>
+      <path d="M 8 4 L 14 14 L 6 10 Z" fill="#f5a142"/>
+      <path d="M -3 14 L 0 22 L 3 14 Z" fill="#f5a142"/>
+    </g>
+    <!-- chocolate bar floating -->
+    <g transform="translate(48, 78) rotate(-12)">
+      <rect width="22" height="12" fill="#5a3220" rx="1"/>
+      <rect x="2" y="2" width="6" height="3" fill="#7a4a32"/>
+      <rect x="10" y="2" width="6" height="3" fill="#7a4a32"/>
+      <rect x="2" y="7" width="6" height="3" fill="#7a4a32"/>
+      <rect x="10" y="7" width="6" height="3" fill="#7a4a32"/>
+    </g>
+    <!-- title -->
+    <text x="80" y="38" text-anchor="middle" font-family="'Noto Serif KR', serif" font-size="17" font-weight="700" fill="#3a2855" letter-spacing="1">초콜릿 우주여행</text>
+    <text x="80" y="216" text-anchor="middle" font-family="'Noto Sans KR', sans-serif" font-size="7" font-weight="500" fill="#3a2855" letter-spacing="2" opacity="0.85">달콤한 위기의 시작</text>
+    <!-- credits -->
+    <g fill="#3a2855" opacity="0.4">
+      <rect x="48" y="226" width="64" height="1"/>
+    </g>
+  `;
+
+  const posters = [
+    {
+      id: 'garden',
+      title: '마지막 정원',
+      genre: '드라마',
+      s1: 78, s2: 74,
+      body: posterA_body,
+      note: '장르의 표준 약속을 충실히 따르고 정서가 익숙해, 두 축 모두 단단하다.'
+    },
+    {
+      id: 'protocol',
+      title: '프로토콜 13',
+      genre: 'SF · 사이버펑크',
+      s1: 84, s2: 36,
+      body: posterB_body,
+      note: '구성은 매우 정연하다. 다만 시각 기호가 일상 경험에서 멀어, 마음에 닿는 거리가 멀다.'
+    },
+    {
+      id: 'choco',
+      title: '초콜릿 우주여행',
+      genre: '코미디 · 판타지',
+      s1: 38, s2: 70,
+      body: posterC_body,
+      note: '정서적으로 친근하고 사랑스럽지만, 요소들이 흩어져 한 방향의 결을 만들지 못한다.'
+    }
+  ];
+
+  // ============================================================
+  // 피커 (썸네일) 렌더링
+  // ============================================================
+  const pickerEl = document.getElementById('picker');
+  posters.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'picker-card';
+    btn.dataset.id = p.id;
+    btn.innerHTML = `
+      <svg class="picker-thumb" viewBox="0 0 160 240" preserveAspectRatio="xMidYMid meet">
+        ${p.body}
+      </svg>
+      <div class="picker-title">${p.title}</div>
+      <div class="picker-genre">${p.genre}</div>
+    `;
+    btn.addEventListener('click', () => selectPoster(p.id));
+    pickerEl.appendChild(btn);
+  });
+
+  // ============================================================
+  // 큰 포스터 / 슬라이더 / 저울 / 평가 동기화
+  // ============================================================
+  const posterHost = document.getElementById('poster-host');
+  const beam = document.getElementById('beam');
+  const s1 = document.getElementById('s1');
+  const s2 = document.getElementById('s2');
+  const headline = document.getElementById('headline');
+  const sub = document.getElementById('sub');
+  let currentPoster = null;
+
+  function setBigPoster(id) {
+    const p = posters.find(x => x.id === id);
+    if (!p) return;
+    posterHost.classList.add('swapping');
+    setTimeout(() => {
+      posterHost.innerHTML = p.body;
+      posterHost.classList.remove('swapping');
+    }, 300);
+  }
+
+  // ============================================================
+  // 슬라이더 값을 부드럽게 이동 (AI가 읽는 느낌)
+  // ============================================================
+  let tweenAbort = null;
+  function tween(from1, to1, from2, to2, duration) {
+    if (tweenAbort) tweenAbort.cancel = true;
+    const handle = { cancel: false };
+    tweenAbort = handle;
+    const start = performance.now();
+    function ease(t) { return t < 0.5 ? 2*t*t : -1 + (4 - 2*t)*t; }
+    function frame(now) {
+      if (handle.cancel) return;
+      const t = Math.min(1, (now - start) / duration);
+      const e = ease(t);
+      s1.value = from1 + (to1 - from1) * e;
+      s2.value = from2 + (to2 - from2) * e;
+      updateAll();
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function selectPoster(id) {
+    const p = posters.find(x => x.id === id);
+    if (!p) return;
+    currentPoster = p;
+    // 활성 카드 표시
+    document.querySelectorAll('.picker-card').forEach(c => {
+      c.classList.toggle('active', c.dataset.id === id);
+    });
+    setBigPoster(id);
+    const v1from = parseFloat(s1.value);
+    const v2from = parseFloat(s2.value);
+    tween(v1from, p.s1, v2from, p.s2, 950);
+  }
+
+  // ============================================================
+  // 저울 + 슬라이더 트랙 + 평가 한 줄 텍스트 갱신
+  // ============================================================
+  function update() {
+    const v1 = parseFloat(s1.value);  // 일관성
+    const v2 = parseFloat(s2.value);  // 충실성
+    const diff = v1 - v2;
+    const abs = Math.abs(diff);
+    const avg = (v1 + v2) / 2;
+
+    s1.style.setProperty('--p', v1 + '%');
+    s2.style.setProperty('--p', v2 + '%');
+
+    const angle = Math.max(-13, Math.min(13, diff * 0.32));
+    beam.style.transform = `rotate(${angle}deg)`;
+
+    let h = '', s = '';
+    if (!currentPoster) {
+      h = '포스터를 골라보세요';
+      s = '위의 세 포스터 중 하나를 누르면, AI가 두 질문에 대한 첫 판단을 슬라이더 위에 올려둡니다.';
+    } else if (avg < 32) {
+      h = '아직 그럴듯하지 않아요';
+      s = '이야기 짜임새도, 마음에 닿는 정도도 모두 약합니다.';
+    } else if (avg > 78 && abs < 14) {
+      h = '아주 그럴듯해요';
+      s = '잘 짜였고, 마음에도 닿습니다. 두 축이 함께 받쳐주고 있어요.';
+    } else if (abs < 10) {
+      h = '균형이 잡혀 있어요';
+      s = '두 축이 비슷한 무게로 맞물려, 어느 한쪽으로도 기울지 않습니다.';
+    } else if (diff > 0) {
+      h = '잘 짜였지만, 마음엔 덜 닿아요';
+      s = '구성은 정돈되어 있는데, 내가 아는 세상과는 조금 거리감이 있습니다.';
+    } else {
+      h = '마음엔 닿지만, 어딘가 어색해요';
+      s = '와닿는 감각은 있지만, 안쪽 짜임새가 조금 흔들리고 있습니다.';
+    }
+    headline.textContent = h;
+    sub.textContent = s;
+  }
+
+  function updateAll() { update(); }
+
+  s1.addEventListener('input', () => { update(); });
+  s2.addEventListener('input', () => { update(); });
+
+  // 초기 빈 상태로 표시 (포스터 없음)
+  update();
+</script>
+</body>
+</html>
