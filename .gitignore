@@ -12,3 +12,7 @@ thumbs/
 capture-thumbs.mjs
 package.json
 package-lock.json
+
+# 레퍼런스 이미지
+**/ref/
+**/무제 폴더/
