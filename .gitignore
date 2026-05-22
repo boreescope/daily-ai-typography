@@ -16,3 +16,5 @@ package-lock.json
 # 레퍼런스 이미지
 **/ref/
 **/무제 폴더/
+.claude/
+**/.claude/
