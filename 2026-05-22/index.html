@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>모두의 종착지가 다른 시대 — Copy Shop Tribute</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@500;700;900&family=Inter:wght@800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:  #F2EAD3;
+  --paper-deep: #E8DFC2;
+  --ink:    #1A1612;
+  --ink-soft: #2A2520;
+  --glyph:  96px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  height: 100vh;
+  overflow: hidden;
+  color: var(--ink);
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Cream paper warmth */
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 28%, rgba(0,0,0,0.045), transparent 55%),
+    radial-gradient(circle at 80% 72%, rgba(0,0,0,0.04), transparent 60%);
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Photocopy halftone speckle */
+body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(0,0,0,0.55) 0.45px, transparent 0.9px);
+  background-size: 3.5px 3.5px;
+  opacity: 0.09;
+  pointer-events: none;
+  z-index: 0;
+  mix-blend-mode: multiply;
+}
+
+.topmark {
+  position: fixed;
+  top: 22px;
+  left: 28px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: var(--ink);
+  opacity: 0.72;
+  z-index: 5;
+}
+.topmark::before { content: "✦ "; }
+
+.credit {
+  position: fixed;
+  bottom: 26px;
+  left: 28px;
+  z-index: 5;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.24em;
+  color: var(--ink);
+  opacity: 0.6;
+}
+
+.music-link {
+  position: fixed;
+  top: 22px;
+  right: 28px;
+  z-index: 5;
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+  opacity: 0.55;
+  text-decoration: none;
+  border-bottom: 1px solid currentColor;
+  padding-bottom: 1px;
+  transition: opacity 0.2s ease;
+}
+.music-link:hover { opacity: 1; }
+.music-link .note { font-style: normal; margin-right: 5px; }
+.music-link .arrow { margin-left: 4px; font-style: normal; }
+
+.stage-wrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stage {
+  position: relative;
+  width: 1180px;
+  height: 480px;
+  filter: url(#rough);
+}
+
+.glyph {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: var(--glyph);
+  height: calc(var(--glyph) * 1.18);
+  margin-left: calc(var(--glyph) / -2);
+  margin-top: calc(var(--glyph) * -0.59);
+  transform-origin: 50% 50%;
+  transform:
+    translate(var(--tx, 0), var(--ty, 0))
+    rotate(var(--rot, 0deg))
+    scale(var(--scale, 1));
+  transition: transform var(--dur, 0.6s) cubic-bezier(.5, .05, .35, 1.05) var(--delay, 0s);
+  will-change: transform;
+}
+
+.glyph svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  display: block;
+}
+
+/* Tagline below */
+.tagline {
+  position: relative;
+  z-index: 1;
+  margin-top: 24px;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.42em;
+  color: var(--ink);
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity .9s ease, transform .9s ease;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.tagline.show { opacity: 0.78; transform: translateY(0); }
+.tagline .bolt {
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 900;
+}
+
+.subtitle {
+  position: relative;
+  z-index: 1;
+  margin-top: 6px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  color: var(--ink);
+  opacity: 0;
+  transition: opacity .9s ease .15s;
+}
+.subtitle.show { opacity: 0.5; }
+
+.controls {
+  position: fixed;
+  bottom: 22px;
+  right: 26px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+.controls button {
+  background: transparent;
+  border: 2.5px solid var(--ink);
+  color: var(--ink);
+  padding: 9px 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-style: italic;
+  cursor: pointer;
+  transition: background .2s, color .2s;
+}
+.controls button:hover { background: var(--ink); color: var(--paper); }
+</style>
+</head>
+<body>
+
+<!-- Global SVG defs: rough hand-drawn filter -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <filter id="rough" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="7" result="noise"/>
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G"/>
+    </filter>
+  </defs>
+</svg>
+
+<div class="topmark">REPRODUCTION / NO. 0522</div>
+
+<a class="music-link" href="https://www.youtube.com/watch?v=QyP0N8KeZW4" target="_blank" rel="noopener noreferrer">
+  <span class="note">♪</span>NOW PLAYING<span class="arrow">↗</span>
+</a>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage"></div>
+  <div class="tagline" id="tagline">
+    <span class="bolt">⚡</span>
+    <span>모 두 의 종 착 지 가 다 른 시 대</span>
+    <span class="bolt">⚡</span>
+  </div>
+  <div class="subtitle" id="subtitle">A TIME WHEN EVERYONE ARRIVES SOMEWHERE ELSE</div>
+</div>
+
+<div class="credit">2026—05—22 / DAILY VIBE EDITION</div>
+
+<div class="controls">
+  <button id="replay">REPLAY</button>
+</div>
+
+<script>
+const CHARS = ['모','두','의','종','착','지','가','다','른','시','대'];
+const stage = document.getElementById('stage');
+const tagline = document.getElementById('tagline');
+const subtitle = document.getElementById('subtitle');
+
+const G = 96;
+const N = CHARS.length;
+
+// Per-character LANDING positions — ALD-style overlapping clusters
+const FINAL = [
+  // Cluster 1: 모두의
+  { x: -380, y:  30, rot: -11, scale: 1.04 }, // 모
+  { x: -348, y:  -4, rot:   5, scale: 1.02 }, // 두
+  { x: -312, y: -38, rot: -14, scale: 1.07 }, // 의
+  // Cluster 2: 종착지가
+  { x: -160, y:  34, rot:  13, scale: 1.00 }, // 종
+  { x: -122, y:   2, rot:  -7, scale: 1.05 }, // 착
+  { x:  -80, y: -22, rot:  16, scale: 1.02 }, // 지
+  { x:  -38, y: -48, rot: -13, scale: 1.06 }, // 가
+  // Cluster 3: 다른
+  { x:  126, y:  16, rot:   8, scale: 1.03 }, // 다
+  { x:  168, y: -22, rot: -15, scale: 1.05 }, // 른
+  // Cluster 4: 시대
+  { x:  310, y:  22, rot:  -9, scale: 1.05 }, // 시
+  { x:  348, y: -16, rot:  14, scale: 1.01 }, // 대
+];
+
+// Per-character FALL profile — each drops from above its own landing spot
+// with different start height, rotation, fall duration, ease, arrival time.
+// Variance is the whole point: weight, speed, rhythm all differ per glyph.
+const FALL = [
+  // Cluster 1: 모두의 — 탁 . 탁 . 탁 (180 / 150ms 간격)
+  { startY: -270, startRot: -36, dur: 520, ease: 'cubic-bezier(.55,.04,.82,.26)', arrive:  500 }, // 모
+  { startY: -330, startRot:  28, dur: 600, ease: 'cubic-bezier(.48,.04,.85,.25)', arrive:  680 }, // 두 (높은 데서 무겁게)
+  { startY: -210, startRot: -48, dur: 420, ease: 'cubic-bezier(.7,.03,.9,.2)',    arrive:  830 }, // 의 (낮은 데서 빨리)
+  // 휴지 400ms
+  // Cluster 2: 종착지가 — 4글자 우르르
+  { startY: -300, startRot:  38, dur: 560, ease: 'cubic-bezier(.55,.04,.87,.23)', arrive: 1230 }, // 종
+  { startY: -250, startRot: -26, dur: 460, ease: 'cubic-bezier(.65,.04,.88,.22)', arrive: 1430 }, // 착 (빠름)
+  { startY: -350, startRot:  52, dur: 620, ease: 'cubic-bezier(.46,.05,.85,.25)', arrive: 1610 }, // 지 (무거움)
+  { startY: -220, startRot: -38, dur: 440, ease: 'cubic-bezier(.7,.03,.9,.2)',    arrive: 1850 }, // 가
+  // 휴지 320ms
+  // Cluster 3: 다른
+  { startY: -280, startRot:  30, dur: 540, ease: 'cubic-bezier(.55,.04,.87,.23)', arrive: 2170 }, // 다
+  { startY: -240, startRot: -46, dur: 480, ease: 'cubic-bezier(.62,.04,.87,.22)', arrive: 2400 }, // 른
+  // 휴지 280ms
+  // Cluster 4: 시대 — 마지막 한 박
+  { startY: -310, startRot:  22, dur: 580, ease: 'cubic-bezier(.5,.05,.85,.25)',  arrive: 2680 }, // 시
+  { startY: -230, startRot: -34, dur: 460, ease: 'cubic-bezier(.7,.03,.9,.2)',    arrive: 2920 }, // 대
+];
+
+// Build glyphs — geometric 3D extrusion.
+// For each character, the side wall area is filled with intermediate
+// outlines (stroke-only at progressively offset positions). This means
+// every VERTEX of the character traces a visible diagonal line through
+// depth — exactly the COPY SHOP "lines from each corner" feel.
+function buildGlyphSVG(ch, i) {
+  const FX = 47, FY = 62;
+  const BX = 56, BY = 71;          // 9px diagonal extrusion (tight to character)
+  const FONT = "'Noto Sans KR', sans-serif";
+  const FW = 700;
+  const FS = 72;
+  const FRONT_STROKE = 2.6;
+  const BACK_STROKE = 1.3;
+  const N_RIBS = 3;                // fewer ribs since depth is tighter
+
+  // Build intermediate "rib" outlines at evenly spaced depth positions
+  const ribs = [];
+  for (let n = 1; n <= N_RIBS; n++) {
+    const t  = n / (N_RIBS + 1);   // 1/6, 2/6, ... 5/6
+    const ox = FX + (BX - FX) * t;
+    const oy = FY + (BY - FY) * t;
+    ribs.push(
+      `<text x="${ox.toFixed(2)}" y="${oy.toFixed(2)}" ` +
+      `fill="none" stroke="#1A1612" stroke-width="0.9" ` +
+      `stroke-linejoin="round" ` +
+      `font-family="${FONT}" font-weight="${FW}" font-size="${FS}" ` +
+      `text-anchor="middle" dominant-baseline="middle">${ch}</text>`
+    );
+  }
+
+  return `
+    <svg viewBox="0 0 100 122" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <!-- Outer depth mask: back face MINUS front face = side wall region -->
+        <mask id="sideMask${i}">
+          <rect width="100" height="122" fill="black"/>
+          <text x="${BX}" y="${BY}" fill="white" stroke="white" stroke-width="${BACK_STROKE * 1.6}"
+                font-family="${FONT}" font-weight="${FW}" font-size="${FS}"
+                stroke-linejoin="round"
+                text-anchor="middle" dominant-baseline="middle">${ch}</text>
+          <text x="${FX}" y="${FY}" fill="black" stroke="black" stroke-width="${FRONT_STROKE * 1.7}"
+                font-family="${FONT}" font-weight="${FW}" font-size="${FS}"
+                stroke-linejoin="round"
+                text-anchor="middle" dominant-baseline="middle">${ch}</text>
+        </mask>
+      </defs>
+
+      <!-- Side wall region: paper bg + GEOMETRIC DEPTH LINES (intermediate outlines) -->
+      <g mask="url(#sideMask${i})">
+        <rect width="100" height="122" fill="#F2EAD3"/>
+        ${ribs.join('\n        ')}
+      </g>
+
+      <!-- Back-edge outline (visible only where it extends beyond front face) -->
+      <text x="${BX}" y="${BY}" fill="none" stroke="#1A1612" stroke-width="${BACK_STROKE}"
+            stroke-linejoin="round"
+            font-family="${FONT}" font-weight="${FW}" font-size="${FS}"
+            text-anchor="middle" dominant-baseline="middle">${ch}</text>
+
+      <!-- Front face -->
+      <text x="${FX}" y="${FY}"
+            font-family="${FONT}" font-weight="${FW}" font-size="${FS}"
+            fill="#F2EAD3" stroke="#1A1612" stroke-width="${FRONT_STROKE}"
+            stroke-linejoin="round"
+            paint-order="stroke fill"
+            text-anchor="middle" dominant-baseline="middle">${ch}</text>
+
+      <!-- © mark -->
+      <g transform="translate(86 18)">
+        <circle cx="0" cy="0" r="5.5" fill="none" stroke="#1A1612" stroke-width="1.2"/>
+        <text x="0" y="0" font-family="'Inter',sans-serif" font-size="6.5" font-weight="900"
+              fill="#1A1612" text-anchor="middle" dominant-baseline="central">c</text>
+      </g>
+    </svg>
+  `;
+}
+
+CHARS.forEach((ch, i) => {
+  const f = FINAL[i];
+  const p = FALL[i];
+  const g = document.createElement('div');
+  g.className = 'glyph';
+  g.style.setProperty('--tx', f.x + 'px');
+  g.style.setProperty('--ty', p.startY + 'px');
+  g.style.setProperty('--rot', p.startRot + 'deg');
+  g.style.setProperty('--scale', f.scale);
+  g.innerHTML = buildGlyphSVG(ch, i);
+  stage.appendChild(g);
+});
+
+const glyphs = [...document.querySelectorAll('.glyph')];
+
+function resetAll() {
+  glyphs.forEach((el, i) => {
+    const f = FINAL[i];
+    const p = FALL[i];
+    el.style.transition = 'none';
+    el.style.setProperty('--tx', f.x + 'px');
+    el.style.setProperty('--ty', p.startY + 'px');
+    el.style.setProperty('--rot', p.startRot + 'deg');
+    el.style.setProperty('--scale', f.scale);
+  });
+  tagline.classList.remove('show');
+  subtitle.classList.remove('show');
+  void stage.offsetWidth;
+}
+
+// Free-fall sequence — each glyph has its own start height, rotation,
+// duration, ease, and arrival time. Variance creates natural rhythm.
+function fall() {
+  glyphs.forEach((el, i) => {
+    const f = FINAL[i];
+    const p = FALL[i];
+    const fallStart = Math.max(0, p.arrive - p.dur);
+    const wobble = (Math.random() - 0.5) * 2.4;  // per-character wobble
+
+    // Step 1: fall to slight overshoot below final, unwinding rotation
+    timers.push(setTimeout(() => {
+      el.style.transition = `transform ${p.dur}ms ${p.ease}`;
+      el.style.setProperty('--ty', (f.y + 7) + 'px');   // 7px past landing
+      el.style.setProperty('--rot', f.rot + 'deg');
+    }, fallStart));
+
+    // Step 2: bounce up briefly (탁! impact rebound)
+    timers.push(setTimeout(() => {
+      el.style.transition = 'transform 150ms cubic-bezier(.3, .65, .4, 1)';
+      el.style.setProperty('--ty', (f.y - 4) + 'px');
+    }, p.arrive));
+
+    // Step 3: settle to final position
+    timers.push(setTimeout(() => {
+      el.style.transition = 'transform 220ms cubic-bezier(.35, .1, .4, 1)';
+      el.style.setProperty('--ty', f.y + 'px');
+      el.style.setProperty('--rot', (f.rot + wobble * 0.5) + 'deg');
+    }, p.arrive + 150));
+
+    // Step 4: tiny final rotation settle (per-glyph wobble varies)
+    timers.push(setTimeout(() => {
+      el.style.transition = 'transform 380ms cubic-bezier(.3, .1, .35, 1)';
+      el.style.setProperty('--rot', f.rot + 'deg');
+    }, p.arrive + 370));
+  });
+}
+
+let timers = [];
+function clearAll() { timers.forEach(t => clearTimeout(t)); timers = []; }
+
+function play() {
+  clearAll();
+  resetAll();
+
+  // Single fall phase — all glyphs handle their own timing internally
+  timers.push(setTimeout(fall, 200));
+
+  // Tagline after last arrival + settle
+  const lastArrive = Math.max(...FALL.map(p => p.arrive));
+  timers.push(setTimeout(() => {
+    tagline.classList.add('show');
+    subtitle.classList.add('show');
+  }, 200 + lastArrive + 900));
+}
+
+let loopTimer;
+function loop() {
+  clearTimeout(loopTimer);
+  loopTimer = setTimeout(() => { play(); loop(); }, 9500);
+}
+
+window.addEventListener('load', () => {
+  setTimeout(play, 250);
+  loop();
+});
+
+document.getElementById('replay').addEventListener('click', () => {
+  play();
+  loop();
+});
+</script>
+
+</body>
+</html>
