@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>사람이 할 수 있는 건 사람이 하게 두고 — 2026.05.26</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper:      #FFFFFF;
+  --paper-deep: #F8FBFF;
+  --ink:        #0D0E14;
+  --ink-soft:   #1B1D26;
+  --grid:       rgba(160, 200, 235, 0.35);
+  --grid-bold:  rgba(130, 180, 220, 0.5);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--paper);
+  height: 100vh;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Graph paper grid */
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(var(--grid-bold) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-bold) 1px, transparent 1px),
+    linear-gradient(var(--grid) 0.5px, transparent 0.5px),
+    linear-gradient(90deg, var(--grid) 0.5px, transparent 0.5px);
+  background-size:
+    100px 100px,
+    100px 100px,
+    20px 20px,
+    20px 20px;
+  pointer-events: none;
+  z-index: 0;
+}
+body::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: transparent;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.topmark {
+  position: fixed;
+  top: 22px; left: 28px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.24em;
+  color: var(--ink);
+  opacity: 0.65;
+  z-index: 5;
+}
+.topmark::before { content: "✶ "; }
+
+.credit {
+  position: fixed;
+  bottom: 26px; left: 28px;
+  z-index: 5;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.26em;
+  color: var(--ink);
+  opacity: 0.55;
+}
+
+.hint {
+  position: fixed;
+  bottom: 26px; right: 26px;
+  z-index: 5;
+  font-family: 'Inter', sans-serif;
+  font-style: italic;
+  font-weight: 800;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+  opacity: 0.5;
+}
+
+.stage-wrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+}
+
+.stage {
+  width: 600px;
+  height: 670px;
+  position: relative;
+  cursor: crosshair;
+}
+
+.stage svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Per-stroke subtle wiggle for the letter mask */
+.stroke {
+  transform-box: fill-box;
+  transform-origin: center center;
+  will-change: transform;
+}
+
+@keyframes wiggle {
+  0%   { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(var(--dx, 0.8px), var(--dy, -0.6px)) rotate(var(--dr, 0.3deg)); }
+}
+
+/* Decorative stars */
+.star {
+  transform-box: fill-box;
+  transform-origin: center center;
+  animation: starPulse 3.6s ease-in-out infinite alternate;
+}
+.star:nth-of-type(2n) { animation-duration: 5.2s; animation-delay: -1.4s; }
+.star:nth-of-type(3n) { animation-duration: 4.4s; animation-delay: -2.6s; }
+
+@keyframes starPulse {
+  0%   { transform: scale(0.92) rotate(-6deg); }
+  100% { transform: scale(1.12) rotate(8deg); }
+}
+
+.tagline {
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.32em;
+  color: var(--ink);
+  opacity: 0.55;
+  text-align: center;
+}
+
+.controls {
+  position: fixed;
+  top: 22px;
+  right: 26px;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
+}
+.controls button {
+  background: transparent;
+  border: 2px solid var(--ink);
+  color: var(--ink);
+  padding: 9px 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  font-style: italic;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+.controls button:hover {
+  background: var(--ink);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+
+<div class="topmark">MANIFESTO / 0526 / BIRO PEN</div>
+
+<div class="stage-wrap">
+  <div class="stage" id="stage">
+    <svg viewBox="0 0 336 375.5" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+      <defs>
+        <mask id="letteringMask" maskUnits="userSpaceOnUse">
+          <rect width="336" height="375.5" fill="black"/>
+          <g id="strokes" fill="white">
+            <path class="stroke" d="M75.29,188.61l29.64-.36.06,9.7c-12.37.08-23.68-.1-36.32-.91l-.1-19.91c1.17-1,2.87-1.58,4.39-1.53l20.02.59.05-5.71c-6.1.43-11.43.34-17.62-.55l-.02-6.08,19.13-.96.29-25.86.82-31.09h6.8s.57,19.99.57,19.99l18.46-.53v7.55s-18.32.37-18.32.37l.4,31.69c.03,2.27-.04,5.06-1.05,6.87-.83,1.5-1.28,2.34-1.23,4.23.06,2.24.12,6.15-2.24,7.32-3.29,1.64-7.41.78-10.97.78l-10.62.02-2.12,4.39Z"/>
+            <path class="stroke" d="M164.53,336.33c1.23-2.67,2.28-4.11,3.81-6.04l5.44-10.93c1.76-3.53,1.13-8.34,1.88-12.14l-12.95-.25.04-8.38,14.08-.39c1.7-.05,3.56-.27,4.95.75,1.16.85,1.78,2.73,1.94,4.39l.79,8.1c1.07-.45,2.66-.97,3.81-1.11l9.04-1.06.79-15.17h8.16s.66,13.9.66,13.9l.63,24.49-10.88-.02.27-13.51-6.51-.27c-2.13-.09-4.43-.55-6.43-1.21-.38,2.92-1.39,5.75-2.64,8.35l-5.09,10.51-11.78-.02Z"/>
+            <path class="stroke" d="M165.87,323.7l-19.44.27.11,44.02h-9.5s.32-54.46.32-54.46l.59-29.03h7.93s.29,17.38.29,17.38l.28,14.13,19.23-.25c2.01-.03,3.25,1.98,3.42,3.5.15,1.35-.9,4.41-3.24,4.44Z"/>
+            <path class="stroke" d="M129.21,232.87l.33,12.58c.99,4.64.44,9.15-.91,13.55,1.01,3.67,1.23,7.13.92,11.07l-9.56-.02v-64.51c0-.77.53-2.2.88-2.67l7.86.03c-.32,7.31-.09,14.44.39,21.88l14.89-.18-.02,9.13-14.78-.86Z"/>
+            <polygon class="stroke" points="148.17 165.26 148.47 190.9 139.42 190.83 139.72 165.3 120.98 164.56 120.96 156.34 135.65 155.63 168.39 155.59 170.91 156.52 170.9 164.48 168.04 165.2 148.17 165.26"/>
+            <path class="stroke" d="M173.43,277.9c-2.32-.09-4.48-2.14-4.5-4.43l-.13-14.43c0-.96-1.22-2.92-.64-4s1.61-2.1,2.8-3.22l5.92-.49,20.87-.28.02,26.17c-1.32,2.13-3.9,1.45-5.81,1.38l-18.54-.69ZM189.9,267.96l.49-7.13-12.42-.02v7.57s11.93-.42,11.93-.42Z"/>
+            <path class="stroke" d="M80.61,42h-13.94s0,37.89,0,37.89l-9.12.08V14.11c3.04-.59,5.87-.56,9.1-.14l.02,21.57,13.89-.1.05,6.55Z"/>
+            <path class="stroke" d="M179.94,238.29l-13.44-.77c-4.41-.25-8.6-.21-13.04.55-.87.15-3.2-.76-3.2-1.69l-.06-21.81c.66-.63,2.24-1.24,3.22-1.26l11.06-.22.04-5.39c-5.13.01-9.77-.36-14.81-.88l.11-6.56,9.75.53c6.93.38,12.25-1.88,12.28,2.16l.1,17.09-14.66,1.29.35,7.58,15.37.44,7.02.21-.07,8.73Z"/>
+            <path class="stroke" d="M100.42,245.88c-3.1-2.18-6.22-3.46-8.74-6.45-5.23,3.82-9.61,8.48-13.13,14.08l-3.19,3.97-6.76-6.59,6.1-8.2c3.64-4.89,8.67-8.22,13.49-12.16.63-4.08,1.5-8.3,1.74-12.48.2-3.35,0-6.34,1.06-9.44h7.46s.22,10.59.22,10.59c.09,4.48-.44,8.66-.98,13.28,4.29,3.95,10.44,5.2,15.62,10.41l-6.78,7.29-6.12-4.31Z"/>
+            <polygon class="stroke" points="251.9 366.13 252.12 349.47 252.51 343.16 237.1 342.04 237.17 333.55 254.58 332.7 278.92 332.53 278.93 343.23 261.48 343.24 262.04 366.06 251.9 366.13"/>
+            <path class="stroke" d="M232.13,246.48c-5.41,1.39-10.75.99-15.31-1.7-4.98-2.93-7.03-7.75-6.64-13.35s4.06-10.13,10.07-10.56c4.18-3.12,9.11-3.03,13.65-.8,3.5,1.73,7.07,3.76,8.28,7.73s-.47,7.52-1.76,11.04c-1.42,3.89-4.01,6.54-8.29,7.64ZM230.57,237.36c1.34-1.77,1.98-4.2,2.36-6.25-2.38-1.77-4.99-3.21-7.71-3.11-2.9.1-4.59,1.29-5.4,3.94-.59,1.92-.05,4.19,2.31,5.02s5.58,1.12,8.44.4Z"/>
+            <polygon class="stroke" points="212.61 220.61 196.96 220.47 196.99 244.6 186.45 244.63 186.61 215.01 187.23 195.19 196.22 195.2 196.69 212.33 212.6 212.08 212.61 220.61"/>
+            <path class="stroke" d="M327.1,338.32h-29.94s-10.53-.86-10.53-.86l-.07-8.61,7.65-.92.92-17.42,9.3-.08c-.58,5.87-.48,11.29-.08,17.06l25.07.12.12,9.98c-.35.18-1.84.73-2.45.73Z"/>
+            <path class="stroke" d="M213.67,353.66l.15-10.75.33-37.39.34-8.07c.06-1.45.44-3.09.89-4.34l8.07.05.49,4.9.57,55.52-10.84.1Z"/>
+            <path class="stroke" d="M116.14,46.37h-28.15c-.84-1.45-1.56-3.5-1.59-5.3l-.22-11.54c-.05-2.78,1.12-5.37,4.42-5.43l11.82-.19.14-5.36-15.68.03.03-7.74c6.41-.19,12.04.53,18.65.36.76-.02,1.95.2,2.91.42v19.39s-14.06.63-14.06.63l.29,7.75,21.26.09.19,6.89Z"/>
+            <path class="stroke" d="M42.86,59.43c-4.16-4.01-9.56-5.23-13.54-9.85-3.41,3.14-7.45,6.11-10.22,9.94l-5.98,8.25-5.99-6.89c3.75-6.23,8.64-11.23,14.24-16l4.93-4.19c.61-4.07,1.37-8.02,1.65-12.14.22-3.19-.04-6.08.91-9.07h6.71s.18,8.75.18,8.75c.1,4.94-.31,9.74-.88,14.84.81,1.09,2.31,2.35,3.58,2.94,4.12,1.94,7.54,4.08,11.06,6.86l-6.65,6.56Z"/>
+            <path class="stroke" d="M173.3,55.52c-6.1,2.89-12.88,2.83-18.31-.36s-7.27-7.92-6.72-13.67c.5-5.3,3.71-9.58,9.37-9.79,3.66-2.83,8.18-3.15,12.39-1.22,2.41,1.11,4.91,2.31,6.84,4.14,5.04,4.81,2.3,12.04-.91,18.28l-2.65,2.62ZM168.44,47.71c1.58-1.41,2.26-4.17,2.44-6.12-1.28-1.38-3.49-2.68-5.55-2.86-3.5-.29-8.18,2.54-8.31,6.17-.14,4,9.44,4.58,11.42,2.8Z"/>
+            <path class="stroke" d="M308.43,320.51l.15-24.01c.01-2.09-.82-3.8-.05-5.87-4.04-.33-7.56.18-11.33.94-3.25.65-6.78-.11-10.11-.53l-.02-8.14c2.97-.33,6.05.1,8.82-.48,3.63-.76,6.89-1.58,10.62-1.31l6.58.48,5.28,1.22-.44,8.24.34,5.68.7,23.77-10.54.02Z"/>
+            <path class="stroke" d="M215.21,152.5l6.43,8.6-5.84,5.84-6.7-10.07-6.62,12.46-6.33-7.48c-1.16-1.37-2.3-2.9-3.67-3.36l-7.73,9.59-5.64-4.04,9.02-11.12.74-15.69,5.29.12.24,13.28,7.72,5.21c1.77-3.05,4.34-6.01,4.61-9.34l.73-8.93,6.55-.03.16,10.85c.02,1.6-.07,2.63,1.02,4.1Z"/>
+            <polygon class="stroke" points="148.34 31.07 134.02 30.68 134.03 55.95 124.49 55.95 124.67 24.53 125.19 7.5 133.36 7.51 133.86 23.2 148.33 22.91 148.34 31.07"/>
+            <path class="stroke" d="M197.17,42.77l.26,32.82-9.28.04V15.14s8.09-.01,8.09-.01c.74,9.18.84,17.99.92,27.65Z"/>
+            <path class="stroke" d="M269.37,324.21c-.9.33-2.46.67-3.15.56-3.57-.57-6.32.33-9.8.68l-6.47.65c-1.95.19-4.27-.63-5.61-2.01l.06-19.61c0-.42.24-1.76-.14-1.9l-1.85-.65.08-7.2c3.88-1.95,7.52-.89,11.47-.84l13.39.18.05,7.81-15.23,1.29,1.05,12.48c2.69-.46,4.91.17,6.92,1.07l9.08-.7.15,8.18Z"/>
+            <path class="stroke" d="M135.38,86.63l-26.92.05v-24.1c3.86-.37,7.33-.55,11.04-.56l15.86-.03.03,24.64ZM127.28,79.97l-.09-9.63-11.04-.23.06,9.81,11.08.04Z"/>
+            <polygon class="stroke" points="258.74 264.79 249.61 264.81 249.61 203.93 258.74 203.86 258.74 264.79"/>
+            <path class="stroke" d="M153.69,144.85c-4.3-3.66-6.3-8.11-11.62-11.54l-5.06,7.21-4.91,7.11-6.91-5.09,8.86-11.01,3.25-4.25c-.42-4.66-.02-9.34.37-14.05l.44-5.35,5.63-.1c.45,2.55.58,4.8.59,7.32l.06,9.84c4.79,2.68,8.69,5.58,12.23,9.47l4.43,4.87-7.37,5.57Z"/>
+            <path class="stroke" d="M117.96,345.24c-4.74,1.45-8.51.54-12.49-1.66-4.89-2.7-7.29-7.15-6.26-12.76,1.16-6.33,6.21-10.74,12.82-10.5,4.7.17,9.39,1.38,12.27,5.42,2,2.8,2.12,6.38,1.8,9.71-.47,4.98-3.43,8.36-8.14,9.81ZM117.81,334.5c.58-2.84-.69-5.25-3.59-5.79-2.03-.38-4.32-.27-6.69-.13-.45,1.77-1.03,4.41-.05,5.89,2.07,3.12,7.69,4.47,9.5,2.71.43-.42.61-1.63.82-2.68Z"/>
+            <path class="stroke" d="M73.9,151.07c-4.36,2.48-8.11,3.09-12.78,1.84-3-.81-5.61-2.66-7.07-4.9-2.05-3.15-1.75-6.26-.75-9.74.63-2.19,2.06-3.77,3.71-5.25,2.48-2.22,4.9-3.88,8.56-3.63,2.65.18,5.94.22,8.22,1.84,2.15,1.53,4.42,4.07,5.46,6.39,2.4,5.33-.71,10.8-5.35,13.44ZM61.88,144.84c3.82,1.76,8.67.34,10.22-3.17-.5-2.47-2.59-3.98-4.37-4.2-2.29-.29-4.49.5-5.97,2.46-.74.98-.49,3.59.13,4.92Z"/>
+            <path class="stroke" d="M193.76,118.89c-5.03,6.97-16.3,6.56-19.97,2.55-2.13-2.33-2.84-5.18-2.33-8.49.78-5,3.84-10.16,9.14-11.23,5.84-1.18,11.45,2.67,13.75,7.9,1.29,2.94,1.31,6.63-.59,9.27ZM179.61,115.32c1.86.48,5.22.71,6.47-.65,1.58-2.11-1.67-5.56-3.53-4.78l-3.11,2.18c-.69.48-.46,2.59.18,3.25Z"/>
+            <path class="stroke" d="M295.69,180.73l-.03,6.29-32.19.02c-.74-.71-1.3-2.37-1.27-3.49l.57-20.52h7s.43,16.48.43,16.48l23.14-.43c.53.09,2.36.98,2.36,1.65Z"/>
+            <polygon class="stroke" points="282.94 150.56 283.14 134.85 276.01 134.55 276.04 126.83 283.4 126.43 284 114.04 290.68 114.05 291.21 123.96 291.91 150.51 282.94 150.56"/>
+            <path class="stroke" d="M253.7,149.08l5.62-6.76,2.94-3.62c.78-1.11-.07-4.2.03-5.55l.39-5.3-7.77.43.04-7.25,5.95-.78,5.14.27c2.14.11,4.22,1.24,4.22,3.67v15.81c0,4.7-2.47,3.6-5.53,7.73l-5.18,6.97-5.86-5.62Z"/>
+            <path class="stroke" d="M216.1,130.7l-8.37.11.43-31.81c.04-2.79.68-5.58.96-8.46l6.27-.08c.4,1.85.51,3.97.26,6.09l.45,34.15Z"/>
+            <path class="stroke" d="M254.29,163.82l.21,7.82h-26.07c-.84-.52-1.65-2.01-1.6-3.06l.75-16.12,7.11.02.8,11.62,18.81-.27Z"/>
+            <polygon class="stroke" points="126.7 314.81 94.54 314.21 94.62 307.2 105.01 306.93 126.65 306.54 126.7 314.81"/>
+            <path class="stroke" d="M57.75,126.13c-3.28-.01-6.12-.35-9.25-.69l-.08-7.25c2.41-.42,4.97-.79,7.57-.8l20.32-.09v8.89s-18.57-.06-18.57-.06Z"/>
+            <path class="stroke" d="M247.13,120.33l.08,7.04c-5.28-.04-10.19-.22-15.39.53-1.4.2-2.73.82-4.04.09-.88-.5-1.94-2.18-1.92-3.39l.25-13.9,6.84-.02.45,9.67h13.72Z"/>
+            <polygon class="stroke" points="246.26 145.05 225.15 144.84 225.13 136.64 234 136.33 246.28 136.55 246.26 145.05"/>
+            <path class="stroke" d="M70.53,112.12l-9.59-.75-7.19-.14v-6.84c3.56-.83,6.73-1.47,10.11-1.2l6.66.53v8.4Z"/>
+            <polygon class="stroke" points="115.65 301 102.66 301.11 102.73 295.05 115.6 294.97 115.65 301"/>
+          </g>
+        </mask>
+      </defs>
+
+      <!-- Scribble container: everything drawn here is clipped by the letter mask -->
+      <g mask="url(#letteringMask)" id="scribbleStage"></g>
+
+      <!-- Overshoot layer: pen strokes that bleed outside the letters -->
+      <g id="overshootStage" opacity="0.55"></g>
+
+      <!-- Stars (outside mask) -->
+      <g id="stars" fill="#0D0E14">
+      </g>
+    </svg>
+  </div>
+  <div class="tagline">LET HUMANS DO WHAT HUMANS CAN — 2026.05.26</div>
+</div>
+
+<div class="topmark">MANIFESTO / 0526 / BIRO PEN</div>
+<div class="credit">DAILY VIBE / 26 MAY 2026</div>
+<div class="hint">↑ move &amp; click to scribble</div>
+
+<div class="controls">
+  <a href="../index.html" style="text-decoration:none"><button>HOME</button></a>
+  <button id="clear">CLEAR</button>
+  <button id="reshuffle">RESHUFFLE</button>
+</div>
+
+<script>
+const SVG_NS = 'http://www.w3.org/2000/svg';
+const stage = document.getElementById('stage');
+const svg = stage.querySelector('svg');
+const scribbleStage = document.getElementById('scribbleStage');
+const overshootStage = document.getElementById('overshootStage');
+
+const strokeElems = Array.from(document.querySelectorAll('.stroke'));
+const strokeData = strokeElems.map(el => {
+  const bbox = el.getBBox();
+  return { elem: el, bbox, area: Math.max(1, bbox.width * bbox.height) };
+});
+const TOTAL_AREA = strokeData.reduce((s, d) => s + d.area, 0);
+
+function isInside(elem, x, y) {
+  const pt = svg.createSVGPoint();
+  pt.x = x; pt.y = y;
+  try { return elem.isPointInFill(pt); }
+  catch (e) { return false; }
+}
+
+function isInsideAny(x, y) {
+  for (const s of strokeData) {
+    const b = s.bbox;
+    if (x < b.x - 0.5 || x > b.x + b.width + 0.5) continue;
+    if (y < b.y - 0.5 || y > b.y + b.height + 0.5) continue;
+    if (isInside(s.elem, x, y)) return true;
+  }
+  return false;
+}
+
+function findInsideNear(cx, cy, radius) {
+  for (let i = 0; i < 30; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = Math.random() * radius;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (isInsideAny(x, y)) return { x, y };
+  }
+  return null;
+}
+
+function findRandomInside() {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    let r = Math.random() * TOTAL_AREA;
+    let chosen = strokeData[0];
+    for (const d of strokeData) {
+      r -= d.area;
+      if (r <= 0) { chosen = d; break; }
+    }
+    for (let i = 0; i < 25; i++) {
+      const x = chosen.bbox.x + Math.random() * chosen.bbox.width;
+      const y = chosen.bbox.y + Math.random() * chosen.bbox.height;
+      if (isInside(chosen.elem, x, y)) return { x, y };
+    }
+  }
+  return null;
+}
+
+// === Per-stroke wiggle ===
+function applyWiggle() {
+  strokeElems.forEach((p) => {
+    const dx  = (Math.random() * 1.8 - 0.9).toFixed(2);
+    const dy  = (Math.random() * 1.8 - 0.9).toFixed(2);
+    const dr  = (Math.random() * 1.2 - 0.6).toFixed(2);
+    const dur = (5.0 + Math.random() * 3.0).toFixed(2);
+    const dly = (-Math.random() * 4).toFixed(2);
+    p.style.setProperty('--dx', dx + 'px');
+    p.style.setProperty('--dy', dy + 'px');
+    p.style.setProperty('--dr', dr + 'deg');
+    p.style.animation = 'none';
+    void p.offsetWidth;
+    p.style.animation = `wiggle ${dur}s ease-in-out ${dly}s infinite alternate`;
+  });
+}
+applyWiggle();
+
+// === Ballpoint pen hatching — thin, straight, dense, with micro-tremor ===
+function pickAngle(dirAngle) {
+  if (dirAngle !== undefined) {
+    return dirAngle + (Math.random() - 0.5) * 0.25;
+  }
+  const r = Math.random();
+  if (r < 0.72) return -Math.PI / 4 + (Math.random() - 0.5) * 0.18;
+  if (r < 0.90) return -Math.PI / 4 + Math.PI / 2 + (Math.random() - 0.5) * 0.18;
+  return -Math.PI / 4 + (Math.random() - 0.5) * 0.4;
+}
+
+function generateHatchLine(cx, cy, lenMin, lenMax, dirAngle) {
+  const angle = pickAngle(dirAngle);
+  const length = lenMin + Math.random() * (lenMax - lenMin);
+  const halfL = length / 2;
+  let x = cx - Math.cos(angle) * halfL;
+  let y = cy - Math.sin(angle) * halfL;
+
+  const segments = Math.max(4, Math.floor(length / 8));
+  let d = `M ${x.toFixed(2)} ${y.toFixed(2)}`;
+
+  for (let i = 1; i <= segments; i++) {
+    const step = length / segments;
+    x += Math.cos(angle) * step + (Math.random() - 0.5) * 0.6;
+    y += Math.sin(angle) * step + (Math.random() - 0.5) * 0.6;
+    d += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }
+  return d;
+}
+
+// === Hatch line pool — thin, dense, ballpoint pen ===
+const MAX_LINES = 1800;
+const linePool = [];
+
+function addHatchLine(cx, cy, opts = {}) {
+  while (linePool.length >= MAX_LINES) {
+    const oldest = linePool.shift();
+    if (oldest && oldest.parentNode) oldest.parentNode.removeChild(oldest);
+  }
+
+  const lenMin = opts.lenMin ?? 18;
+  const lenMax = opts.lenMax ?? 55;
+  const dirAngle = opts.dirAngle;
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', generateHatchLine(cx, cy, lenMin, lenMax, dirAngle));
+  const sw = (0.3 + Math.random() * 0.45).toFixed(2);
+  path.setAttribute('stroke', '#0D0E14');
+  path.setAttribute('stroke-width', sw);
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('fill', 'none');
+  path.style.opacity = (0.75 + Math.random() * 0.25).toFixed(2);
+
+  scribbleStage.appendChild(path);
+  linePool.push(path);
+
+  const len = path.getTotalLength();
+  path.style.strokeDasharray = len;
+  path.style.strokeDashoffset = len;
+  const drawDur = Math.max(0.03, Math.min(0.08, len * 0.0008)).toFixed(3);
+  path.style.transition = `stroke-dashoffset ${drawDur}s linear`;
+  requestAnimationFrame(() => { path.style.strokeDashoffset = '0'; });
+}
+
+// === Overshoot lines — bleed outside the letter mask ===
+const MAX_OVERSHOOTS = 120;
+const overshootPool = [];
+
+function addOvershoot(cx, cy, dirAngle) {
+  while (overshootPool.length >= MAX_OVERSHOOTS) {
+    const oldest = overshootPool.shift();
+    if (oldest && oldest.parentNode) oldest.parentNode.removeChild(oldest);
+  }
+
+  const angle = (dirAngle ?? pickAngle()) + (Math.random() - 0.5) * 0.3;
+  const length = 8 + Math.random() * 18;
+  let x = cx;
+  let y = cy;
+  const segments = 3 + Math.floor(Math.random() * 3);
+  let d = `M ${x.toFixed(2)} ${y.toFixed(2)}`;
+
+  for (let i = 1; i <= segments; i++) {
+    const step = length / segments;
+    x += Math.cos(angle) * step + (Math.random() - 0.5) * 0.5;
+    y += Math.sin(angle) * step + (Math.random() - 0.5) * 0.5;
+    d += ` L ${x.toFixed(2)} ${y.toFixed(2)}`;
+  }
+
+  const path = document.createElementNS(SVG_NS, 'path');
+  path.setAttribute('d', d);
+  path.setAttribute('stroke', '#0D0E14');
+  path.setAttribute('stroke-width', (0.25 + Math.random() * 0.35).toFixed(2));
+  path.setAttribute('stroke-linecap', 'round');
+  path.setAttribute('fill', 'none');
+  path.style.opacity = (0.3 + Math.random() * 0.3).toFixed(2);
+
+  overshootStage.appendChild(path);
+  overshootPool.push(path);
+
+  const len = path.getTotalLength();
+  path.style.strokeDasharray = len;
+  path.style.strokeDashoffset = len;
+  path.style.transition = `stroke-dashoffset 0.06s linear`;
+  requestAnimationFrame(() => { path.style.strokeDashoffset = '0'; });
+}
+
+// === Pen position tracking ===
+let penPos = { x: 168, y: 188 };
+
+function spawnNext(forceJump = false) {
+  if (!forceJump && Math.random() < 0.75) {
+    const near = findInsideNear(penPos.x, penPos.y, 14);
+    if (near) {
+      penPos = near;
+      addHatchLine(near.x, near.y);
+      return;
+    }
+  }
+  const fresh = findRandomInside();
+  if (fresh) {
+    penPos = fresh;
+    addHatchLine(fresh.x, fresh.y);
+  }
+}
+
+// === Mouse velocity + drag tracking ===
+let mouseX = -1, mouseY = -1, mouseInside = false, lastMouseMove = 0;
+let prevMouseX = -1, prevMouseY = -1, prevMouseTime = 0;
+let mouseVelocity = 0, mouseAngle = 0;
+let velocitySmooth = 0;
+let isDragging = false;
+
+// Freehand pen drawing state
+let penPath = null;
+let penPathOver = null;
+let penPoints = [];
+let penStrokeCount = 0;
+
+function clientToSvg(clientX, clientY) {
+  const pt = svg.createSVGPoint();
+  pt.x = clientX; pt.y = clientY;
+  const ctm = svg.getScreenCTM();
+  if (!ctm) return { x: 168, y: 187 };
+  const out = pt.matrixTransform(ctm.inverse());
+  return { x: out.x, y: out.y };
+}
+
+stage.addEventListener('mousedown', (e) => {
+  isDragging = true;
+  const p = clientToSvg(e.clientX, e.clientY);
+  penPoints = [p];
+
+  // Main pen path — inside the letter mask (fills the letters)
+  penPath = document.createElementNS(SVG_NS, 'path');
+  penPath.setAttribute('stroke', '#0D0E14');
+  penPath.setAttribute('stroke-width', (0.5 + Math.random() * 0.3).toFixed(2));
+  penPath.setAttribute('stroke-linecap', 'round');
+  penPath.setAttribute('stroke-linejoin', 'round');
+  penPath.setAttribute('fill', 'none');
+  penPath.style.opacity = (0.85 + Math.random() * 0.15).toFixed(2);
+  penPath.setAttribute('d', `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`);
+  scribbleStage.appendChild(penPath);
+  linePool.push(penPath);
+
+  // Overshoot pen path — outside the mask (bleeds out naturally)
+  penPathOver = document.createElementNS(SVG_NS, 'path');
+  penPathOver.setAttribute('stroke', '#0D0E14');
+  penPathOver.setAttribute('stroke-width', (0.3 + Math.random() * 0.2).toFixed(2));
+  penPathOver.setAttribute('stroke-linecap', 'round');
+  penPathOver.setAttribute('stroke-linejoin', 'round');
+  penPathOver.setAttribute('fill', 'none');
+  penPathOver.style.opacity = (0.4 + Math.random() * 0.2).toFixed(2);
+  penPathOver.setAttribute('d', `M ${p.x.toFixed(2)} ${p.y.toFixed(2)}`);
+  overshootStage.appendChild(penPathOver);
+  overshootPool.push(penPathOver);
+
+  penStrokeCount++;
+});
+
+window.addEventListener('mouseup', () => {
+  isDragging = false;
+  penPath = null;
+  penPathOver = null;
+  penPoints = [];
+});
+
+stage.addEventListener('mousemove', (e) => {
+  const p = clientToSvg(e.clientX, e.clientY);
+  const now = Date.now();
+  const dt = now - prevMouseTime;
+
+  if (dt > 0 && prevMouseX >= 0) {
+    const dx = p.x - prevMouseX;
+    const dy = p.y - prevMouseY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    mouseVelocity = dist / dt * 16;
+    mouseAngle = Math.atan2(dy, dx);
+    velocitySmooth = velocitySmooth * 0.5 + mouseVelocity * 0.5;
+  }
+
+  prevMouseX = mouseX;
+  prevMouseY = mouseY;
+  prevMouseTime = now;
+  mouseX = p.x; mouseY = p.y;
+  mouseInside = true;
+  lastMouseMove = now;
+
+  // Freehand drawing: actual pen trajectory
+  if (isDragging && penPath) {
+    const jx = (Math.random() - 0.5) * 0.4;
+    const jy = (Math.random() - 0.5) * 0.4;
+    const np = { x: p.x + jx, y: p.y + jy };
+    penPoints.push(np);
+
+    if (penPoints.length >= 3) {
+      const pts = penPoints;
+      const len = pts.length;
+      const p1 = pts[len - 2];
+      const p2 = pts[len - 1];
+      const seg = ` Q ${p1.x.toFixed(2)} ${p1.y.toFixed(2)} ${((p1.x + p2.x) / 2).toFixed(2)} ${((p1.y + p2.y) / 2).toFixed(2)}`;
+      penPath.setAttribute('d', penPath.getAttribute('d') + seg);
+      if (penPathOver) {
+        penPathOver.setAttribute('d', penPathOver.getAttribute('d') + seg);
+      }
+    }
+
+    // Velocity-scaled hatching: faster = more lines, longer, wider spread
+    const spawnChance = Math.min(0.95, 0.25 + velocitySmooth * 0.12);
+    const count = Math.min(8, Math.max(1, Math.floor(velocitySmooth / 1.5)));
+    const spread = 5 + velocitySmooth * 2.5;
+    const lenBoost = Math.min(30, velocitySmooth * 3);
+
+    for (let i = 0; i < count; i++) {
+      if (Math.random() < spawnChance) {
+        const near = findInsideNear(p.x, p.y, spread);
+        if (near) addHatchLine(near.x, near.y, {
+          dirAngle: mouseAngle + Math.PI / 2 + (Math.random() - 0.5) * 0.4,
+          lenMin: 10 + lenBoost * 0.5,
+          lenMax: 25 + lenBoost
+        });
+      }
+    }
+  }
+});
+stage.addEventListener('mouseleave', () => { mouseInside = false; velocitySmooth = 0; });
+
+stage.addEventListener('click', (e) => {
+  const p = clientToSvg(e.clientX, e.clientY);
+  for (let i = 0; i < 25; i++) {
+    setTimeout(() => {
+      const near = findInsideNear(p.x, p.y, 20);
+      if (near) addHatchLine(near.x, near.y, { lenMin: 20, lenMax: 50 });
+    }, i * 10);
+  }
+});
+
+// === Initial dense fill ===
+function initialDraw() {
+  const TOTAL = 400;
+  const DURATION = 2000;
+  for (let i = 0; i < TOTAL; i++) {
+    setTimeout(() => {
+      const jump = (i % (3 + Math.floor(Math.random() * 2)) === 0);
+      spawnNext(jump);
+      // Occasional overshoot during initial fill for natural look
+      if (Math.random() < 0.06) {
+        const pt = findRandomInside();
+        if (pt) addOvershoot(pt.x, pt.y);
+      }
+    }, i * (DURATION / TOTAL));
+  }
+}
+
+// === Ambient — slow continuous hatching ===
+let ambientInterval;
+function startAmbient() {
+  ambientInterval = setInterval(() => {
+    const now = Date.now();
+    const recent = mouseInside && (now - lastMouseMove) < 500;
+
+    if (recent && !isDragging && velocitySmooth > 1.0) {
+      const count = Math.min(3, Math.floor(velocitySmooth / 3));
+      for (let i = 0; i < count; i++) {
+        const near = findInsideNear(mouseX, mouseY, 12 + velocitySmooth * 2);
+        if (near) addHatchLine(near.x, near.y, {
+          dirAngle: mouseAngle + Math.PI / 2,
+          lenMin: 15,
+          lenMax: 40
+        });
+      }
+    } else if (!isDragging) {
+      if (Math.random() < 0.25) spawnNext(Math.random() < 0.3);
+    }
+  }, 100);
+}
+
+window.requestAnimationFrame(() => {
+  setTimeout(() => {
+    initialDraw();
+    setTimeout(startAmbient, 2200);
+  }, 100);
+});
+
+// === Controls ===
+document.getElementById('clear').addEventListener('click', () => {
+  while (linePool.length) {
+    const p = linePool.shift();
+    p.style.transition = 'opacity 0.25s ease-out';
+    p.style.opacity = '0';
+    setTimeout(() => p.parentNode && p.parentNode.removeChild(p), 250);
+  }
+  while (overshootPool.length) {
+    const p = overshootPool.shift();
+    p.style.transition = 'opacity 0.25s ease-out';
+    p.style.opacity = '0';
+    setTimeout(() => p.parentNode && p.parentNode.removeChild(p), 250);
+  }
+  setTimeout(initialDraw, 350);
+});
+
+document.getElementById('reshuffle').addEventListener('click', () => {
+  applyWiggle();
+});
+</script>
+
+</body>
+</html>
