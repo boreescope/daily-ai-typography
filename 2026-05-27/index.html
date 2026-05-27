@@ -1,0 +1,425 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>GreenGreen → RedRed</title>
+
+  <style>
+    :root {
+      --green: #00B96B;
+      --red: #FF403E;
+      --paper: #0B0B0C;
+      --ink: #f6f3ea;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: "Spoqa Han Sans Neo", system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+      min-height: 100vh;
+    }
+
+    /* paper grain overlay — subtle bright noise on the dark surface */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='420' height='420'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0.95 0 0 0 0 0.94 0 0 0 0 0.88 0 0 0 0.3 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      mix-blend-mode: screen;
+      opacity: 0.18;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(ellipse at 50% 30%, rgba(255,240,210,0.04) 0%, transparent 55%);
+    }
+
+    #root {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+    }
+
+    .stage {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 48px;
+    }
+
+    .word-stack {
+      position: relative;
+      width: min(1100px, 88vw);
+      aspect-ratio: 16 / 9;
+      cursor: pointer;
+      user-select: none;
+      isolation: isolate;
+      perspective: 1400px;
+      transform-style: preserve-3d;
+    }
+
+    .word-layer {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      transform-origin: 50% 50%;
+      will-change: transform;
+    }
+    .word-layer.green { color: var(--green); }
+    .word-layer.red {
+      color: var(--red);
+      mix-blend-mode: screen;
+    }
+
+    .word-layer svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+  </style>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js"></script>
+</head>
+<body>
+  <a style="position:fixed;top:12px;left:16px;color:rgba(255,255,255,0.25);font-size:11px;text-decoration:none;z-index:100;" href="../index.html">HOME</a>
+  <!-- 배경 영상 (블러 처리) -->
+  <div id="video-bg" style="position:fixed; top:0; left:0; width:100vw; height:100vh; z-index:0; overflow:hidden; filter:blur(12px); transform:scale(1.1);">
+    <div id="yt-player" style="position:absolute; top:50%; left:50%; width:120vw; height:120vh; transform:translate(-50%,-50%);"></div>
+  </div>
+  <div id="root" style="position:relative; z-index:1;"></div>
+
+  <script>
+    // YouTube IFrame API
+    var tag = document.createElement('script');
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.head.appendChild(tag);
+
+    var player;
+    function onYouTubeIframeAPIReady() {
+      player = new YT.Player('yt-player', {
+        videoId: 'a1vHjBy85TU',
+        playerVars: {
+          autoplay: 1,
+          mute: 1,
+          start: 38,
+          loop: 1,
+          playlist: 'a1vHjBy85TU',
+          controls: 0,
+          showinfo: 0,
+          modestbranding: 1,
+          rel: 0,
+          iv_load_policy: 3,
+          disablekb: 1,
+        },
+        events: {
+          onReady: function(e) { e.target.playVideo(); }
+        }
+      });
+    }
+
+    // 클릭하면 음소거 해제
+    document.addEventListener('click', function() {
+      if (player && player.isMuted && player.isMuted()) {
+        player.unMute();
+        player.setVolume(50);
+      }
+    }, { once: true });
+  </script>
+
+  <!-- ====================================================================
+       GLYPHS — psychedelic letters as inline SVG paths
+       ==================================================================== -->
+  <script type="text/babel" data-presets="react">
+    /* eslint-disable react/no-unknown-property */
+    const STROKE = 24;
+
+    const SP = {
+      fill: "none",
+      stroke: "currentColor",
+      strokeWidth: STROKE,
+      strokeLinecap: "round",
+      strokeLinejoin: "round",
+    };
+
+    function spiralPath({ turns = 1.2, r0 = 36, rEnd = 5 }) {
+      const N = Math.ceil(turns * 18);
+      const k = -Math.log(rEnd / r0) / (turns * 2 * Math.PI);
+      const cy = r0;
+      const pts = [];
+      for (let i = 0; i <= N; i++) {
+        const t = (i / N) * turns * 2 * Math.PI;
+        const r = r0 * Math.exp(-k * t);
+        const ang = -Math.PI / 2 + t;
+        pts.push([r * Math.cos(ang), cy + r * Math.sin(ang)]);
+      }
+      const fmt = (n) => n.toFixed(2);
+      let d = `M ${fmt(pts[0][0])} ${fmt(pts[0][1])}`;
+      for (let i = 1; i < pts.length; i++) {
+        const p0 = pts[Math.max(i - 2, 0)];
+        const p1 = pts[i - 1];
+        const p2 = pts[i];
+        const p3 = pts[Math.min(i + 1, pts.length - 1)];
+        const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+        const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+        const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+        const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+        d += ` C ${fmt(c1x)} ${fmt(c1y)}, ${fmt(c2x)} ${fmt(c2y)}, ${fmt(p2[0])} ${fmt(p2[1])}`;
+      }
+      return d;
+    }
+
+    function Spiral({ x, y, rot = 0, dir = 1, turns = 1.2, r0 = 36, rEnd = 5 }) {
+      const d = spiralPath({ turns, r0, rEnd });
+      return (
+        <g transform={`translate(${x} ${y}) rotate(${rot}) scale(1 ${dir})`}>
+          <path d={d} {...SP}/>
+        </g>
+      );
+    }
+
+    function LetterG() {
+      return (
+        <g>
+          <path {...SP} d="M 256 165 A 115 115 0 1 0 256 245"/>
+          <path {...SP} d="M 256 245 C 210 268, 156 252, 152 215 C 148 175, 215 168, 232 205 C 244 233, 200 248, 196 220 C 194 204, 222 204, 218 222"/>
+        </g>
+      );
+    }
+    LetterG.width = 308;
+
+    function LetterR() {
+      return (
+        <g>
+          <path {...SP} d="M 70 296 L 70 60"/>
+          <path {...SP} d="M 70 60 C 100 30, 200 30, 220 100 C 240 175, 130 200, 70 200"/>
+          <path {...SP} d="M 110 200 C 150 232, 200 268, 252 296"/>
+          <path {...SP} d="M 252 296 C 268 308, 256 322, 240 316 C 226 310, 244 290, 250 304"/>
+        </g>
+      );
+    }
+    LetterR.width = 296;
+
+    function Letterr() {
+      return (
+        <g>
+          <path {...SP} d="M 60 156 L 60 296"/>
+          <Spiral x={60} y={296} rot={0} dir={-1} turns={0.85} r0={28} rEnd={5}/>
+          <path {...SP} d="M 60 156 C 60 116 110 100 150 110 C 178 116 188 138 188 158"/>
+          <Spiral x={188} y={158} rot={90} dir={1} turns={1.15} r0={30} rEnd={5}/>
+        </g>
+      );
+    }
+    Letterr.width = 234;
+
+    function Lettere() {
+      return (
+        <g>
+          <path {...SP} d="M 198 222 A 90 90 0 1 0 168 280"/>
+          <Spiral x={168} y={280} rot={200} dir={1} turns={1.0} r0={26} rEnd={5}/>
+          <path {...SP} d="M 22 222 L 198 222"/>
+        </g>
+      );
+    }
+    Lettere.width = 230;
+
+    function Lettern() {
+      return (
+        <g>
+          <path {...SP} d="M 50 296 L 50 176"/>
+          <path {...SP} d="M 50 176 C 50 116 220 116 220 176"/>
+          <path {...SP} d="M 220 176 L 220 296"/>
+          <Spiral x={50}  y={296} rot={0}   dir={1}  turns={0.9} r0={26} rEnd={5}/>
+          <Spiral x={220} y={296} rot={180} dir={-1} turns={0.9} r0={26} rEnd={5}/>
+        </g>
+      );
+    }
+    Lettern.width = 270;
+
+    function Letterd() {
+      return (
+        <g>
+          <path {...SP} d="M 180 222 A 80 80 0 1 0 180 232"/>
+          <Spiral x={180} y={232} rot={200} dir={1} turns={0.95} r0={24} rEnd={5}/>
+          <path {...SP} d="M 200 60 L 200 296"/>
+          <Spiral x={200} y={60} rot={180} dir={-1} turns={1.0} r0={28} rEnd={5}/>
+          <Spiral x={200} y={296} rot={0} dir={1} turns={0.85} r0={26} rEnd={5}/>
+        </g>
+      );
+    }
+    Letterd.width = 268;
+
+    const LETTER_MAP = { G: LetterG, R: LetterR, r: Letterr, e: Lettere, n: Lettern, d: Letterd };
+    const HEIGHT = 360;
+    const KERN = -28;
+
+    let _roughDeclared = false;
+    function ensureRoughDefs() {
+      if (_roughDeclared || typeof document === "undefined") return;
+      if (document.getElementById("__gg_defs")) { _roughDeclared = true; return; }
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("id", "__gg_defs");
+      svg.setAttribute("width", "0");
+      svg.setAttribute("height", "0");
+      svg.style.position = "absolute";
+      svg.innerHTML = `
+        <defs>
+          <filter id="gg-rough" x="-10%" y="-10%" width="120%" height="120%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="3" seed="5" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="3.4" result="disp"/>
+            <feGaussianBlur in="disp" stdDeviation="0.7" result="bleed"/>
+            <feColorMatrix in="bleed" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1.4 -0.18" result="bledOpaque"/>
+            <feMerge>
+              <feMergeNode in="bledOpaque"/>
+              <feMergeNode in="disp"/>
+            </feMerge>
+          </filter>
+          <filter id="gg-ink-red" x="-12%" y="-12%" width="124%" height="124%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.034" numOctaves="3" seed="11" result="noise"/>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="4.8" result="disp"/>
+            <feGaussianBlur in="disp" stdDeviation="1.1" result="bleed"/>
+            <feColorMatrix in="bleed" type="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 1.6 -0.22" result="bledOpaque"/>
+            <feMerge>
+              <feMergeNode in="bledOpaque"/>
+              <feMergeNode in="disp"/>
+            </feMerge>
+          </filter>
+        </defs>
+      `;
+      document.body.appendChild(svg);
+      _roughDeclared = true;
+    }
+
+    function Word({ text, color = "currentColor", height = HEIGHT, style, scale = 1, rough = true, filterId }) {
+      React.useEffect(() => { ensureRoughDefs(); }, []);
+      let x = 0;
+      const groups = [];
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const Glyph = LETTER_MAP[ch];
+        if (!Glyph) continue;
+        groups.push(
+          <g key={i} transform={`translate(${x} 0)`}>
+            <Glyph/>
+          </g>
+        );
+        x += Glyph.width + KERN;
+      }
+      const totalWidth = x - KERN;
+      const padX = 32;
+      const padY = 48;
+      const fId = filterId || "gg-rough";
+      return (
+        <svg
+          viewBox={`${-padX} ${-padY} ${totalWidth + padX*2} ${height + padY*2}`}
+          width="100%"
+          height={height * scale}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ color, display: "block", overflow: "visible", ...style }}
+        >
+          <g filter={rough ? `url(#${fId})` : undefined}>
+            {groups}
+          </g>
+        </svg>
+      );
+    }
+
+    window.Word = Word;
+  </script>
+
+  <!-- ====================================================================
+       APP — hover interaction (misregistration + cursor parallax)
+       ==================================================================== -->
+  <script type="text/babel" data-presets="react">
+    /* eslint-disable react/no-unknown-property */
+    const { useState: useS, useRef: useR } = React;
+
+    function App() {
+      const [hov, setHov] = useS(false);
+      const [cur, setCur] = useS({ x: 0.5, y: 0.5 });
+      const ref = useR(null);
+
+      function onMove(e) {
+        const r = ref.current.getBoundingClientRect();
+        setCur({
+          x: (e.clientX - r.left) / r.width,
+          y: (e.clientY - r.top) / r.height,
+        });
+      }
+
+      const tx = (cur.x - 0.5) * 2;
+      const ty = (cur.y - 0.5) * 2;
+      const dx = tx * 22;
+      const dy = ty * 18;
+
+      return (
+        <main className="stage">
+          <svg width="0" height="0" style={{ position: "absolute" }} aria-hidden="true">
+            <defs>
+              <filter id="hero-goo">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="6" result="b"/>
+                <feColorMatrix in="b" mode="matrix"
+                  values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 28 -12" result="g"/>
+                <feComposite in="SourceGraphic" in2="g" operator="atop"/>
+              </filter>
+            </defs>
+          </svg>
+
+          <div
+            ref={ref}
+            className="word-stack"
+            onMouseEnter={() => setHov(true)}
+            onMouseLeave={() => { setHov(false); setCur({ x: 0.5, y: 0.5 }); }}
+            onMouseMove={onMove}
+          >
+            <div
+              className="word-layer green"
+              style={{
+                opacity: hov ? 0.28 : 1,
+                transform: `perspective(1400px) rotateY(${tx * 15}deg) rotateX(${-ty * 15}deg) scale(${1 + Math.abs(tx + ty) * 0.15})`,
+                transition: "opacity 380ms cubic-bezier(.22,1,.36,1), transform 320ms cubic-bezier(.22,1,.36,1)",
+              }}
+            >
+              <window.Word text="Green" style={{ marginBottom: -110 }}/>
+              <window.Word text="Green"/>
+            </div>
+
+            <div
+              className="word-layer red"
+              style={{
+                filter: "url(#hero-goo)",
+                transform: hov
+                  ? `translate(${dx * 5}px, ${dy * 5}px) scale(${1.1 + Math.abs(dx + dy) * 0.003})`
+                  : `translate(${dx * 0.8}px, ${dy * 0.8}px) scale(0.18)`,
+                opacity: hov ? 1 : 0,
+                transition: "transform 520ms cubic-bezier(.34,1.3,.64,1), opacity 320ms ease-out",
+              }}
+            >
+              <window.Word text="Red" style={{ marginBottom: -110 }} filterId="gg-ink-red"/>
+              <window.Word text="Red" filterId="gg-ink-red"/>
+            </div>
+          </div>
+        </main>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+  </script>
+</body>
+</html>
