@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hole — Down the Rabbit-Hole</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=Space+Mono:wght@400&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background: #f3efe6;
+      overflow: hidden;
+      cursor: none;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      display: block;
+    }
+
+    .home-btn {
+      position: fixed;
+      top: 22px;
+      left: 24px;
+      z-index: 10;
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      color: rgba(22, 22, 22, 0.3);
+      text-decoration: none;
+      cursor: pointer;
+      transition: color 0.3s ease;
+    }
+    .home-btn:hover { color: rgba(22, 22, 22, 0.9); }
+
+    .hint {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      font-family: 'Space Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(22, 22, 22, 0.35);
+      white-space: nowrap;
+      pointer-events: none;
+      transition: opacity 1.2s ease;
+    }
+    .hint.off { opacity: 0; }
+  </style>
+</head>
+<body>
+
+  <a class="home-btn" href="../index.html">HOME</a>
+  <canvas id="c"></canvas>
+  <div class="hint" id="hint">move to drag the hole · hold to pull harder</div>
+
+  <script>
+    const TEXT = [
+      "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, “and what is the use of a book,” thought Alice “without pictures or conversations?”",
+      "So she was considering in her own mind (as well as she could, for the hot day made her feel very sleepy and stupid), whether the pleasure of making a daisy-chain would be worth the trouble of getting up and picking the daisies, when suddenly a White Rabbit with pink eyes ran close by her.",
+      "There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, “Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quite natural); but when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on, Alice started to her feet, for it flashed across her mind that she had never before seen a rabbit with either a waistcoat-pocket, or a watch to take out of it, and burning with curiosity, she ran across the field after it, and fortunately was just in time to see it pop down a large rabbit-hole under the hedge.",
+      "In another moment down went Alice after it, never once considering how in the world she was to get out again.",
+      "The rabbit-hole went straight on like a tunnel for some way, and then dipped suddenly down, so suddenly that Alice had not a moment to think about stopping herself before she found herself falling down a very deep well.",
+      "Either the well was very deep, or she fell very slowly, for she had plenty of time as she went down to look about her and to wonder what was going to happen next. First, she tried to look down and make out what she was coming to, but it was too dark to see anything; then she looked at the sides of the well, and noticed that they were filled with cupboards and book-shelves; here and there she saw maps and pictures hung upon pegs. She took down a jar from one of the shelves as she passed; it was labelled “ORANGE MARMALADE”, but to her great disappointment it was empty: she did not like to drop the jar for fear of killing somebody underneath, so managed to put it into one of the cupboards as she fell past it.",
+      "“Well!” thought Alice to herself, “after such a fall as this, I shall think nothing of tumbling down stairs! How brave they’ll all think me at home! Why, I wouldn’t say anything about it, even if I fell off the top of the house!” (Which was very likely true.)",
+      "Down, down, down. Would the fall never come to an end? “I wonder how many miles I’ve fallen by this time?” she said aloud. “I must be getting somewhere near the centre of the earth. Let me see: that would be four thousand miles down, I think—” (for, you see, Alice had learnt several things of this sort in her lessons in the schoolroom, and though this was not a very good opportunity for showing off her knowledge, as there was no one to listen to her, still it was good practice to say it over) “—yes, that’s about the right distance—but then I wonder what Latitude or Longitude I’ve got to?” (Alice had no idea what Latitude was, or Longitude either, but thought they were nice grand words to say.)",
+      "Presently she began again. “I wonder if I shall fall right through the earth! How funny it’ll seem to come out among the people that walk with their heads downward! The Antipathies, I think—” (she was rather glad there was no one listening, this time, as it didn’t sound at all the right word) “—but I shall have to ask them what the name of the country is, you know. Please, Ma’am, is this New Zealand or Australia?” (and she tried to curtsey as she spoke—fancy curtseying as you’re falling through the air! Do you think you could manage it?) “And what an ignorant little girl she’ll think me for asking! No, it’ll never do to ask: perhaps I shall see it written up somewhere.”",
+      "Down, down, down. There was nothing else to do, so Alice soon began talking again. “Dinah’ll miss me very much to-night, I should think!” (Dinah was the cat.) “I hope they’ll remember her saucer of milk at tea-time. Dinah my dear! I wish you were down here with me! There are no mice in the air, I’m afraid, but you might catch a bat, and that’s very like a mouse, you know. But do cats eat bats, I wonder?” And here Alice began to get rather sleepy, and went on saying to herself, in a dreamy sort of way, “Do cats eat bats? Do cats eat bats?” and sometimes, “Do bats eat cats?” for, you see, as she couldn’t answer either question, it didn’t much matter which way she put it. She felt that she was dozing off, and had just begun to dream that she was walking hand in hand with Dinah, and saying to her very earnestly, “Now, Dinah, tell me the truth: did you ever eat a bat?” when suddenly, thump! thump! down she came upon a heap of sticks and dry leaves, and the fall was over.",
+      "Alice was not a bit hurt, and she jumped up on to her feet in a moment: she looked up, but it was all dark overhead; before her was another long passage, and the White Rabbit was still in sight, hurrying down it. There was not a moment to be lost: away went Alice like the wind, and was just in time to hear it say, as it turned a corner, “Oh my ears and whiskers, how late it’s getting!” She was close behind it when she turned the corner, but the Rabbit was no longer to be seen: she found herself in a long, low hall, which was lit up by a row of lamps hanging from the roof.",
+      "There were doors all round the hall, but they were all locked; and when Alice had been all the way down one side and up the other, trying every door, she walked sadly down the middle, wondering how she was ever to get out again.",
+      "Suddenly she came upon a little three-legged table, all made of solid glass; there was nothing on it except a tiny golden key, and Alice’s first thought was that it might belong to one of the doors of the hall; but, alas! either the locks were too large, or the key was too small, but at any rate it would not open any of them. However, on the second time round, she came upon a low curtain she had not noticed before, and behind it was a little door about fifteen inches high: she tried the little golden key in the lock, and to her great delight it fitted!",
+      "Alice opened the door and found that it led into a small passage, not much larger than a rat-hole: she knelt down and looked along the passage into the loveliest garden you ever saw. How she longed to get out of that dark hall, and wander about among those beds of bright flowers and those cool fountains, but she could not even get her head through the doorway; “and even if my head would go through,” thought poor Alice, “it would be of very little use without my shoulders. Oh, how I wish I could shut up like a telescope! I think I could, if I only knew how to begin.” For, you see, so many out-of-the-way things had happened lately, that Alice had begun to think that very few things indeed were really impossible.",
+      "There seemed to be no use in waiting by the little door, so she went back to the table, half hoping she might find another key on it, or at any rate a book of rules for shutting people up like telescopes: this time she found a little bottle on it, (“which certainly was not here before,” said Alice,) and round the neck of the bottle was a paper label, with the words “DRINK ME,” beautifully printed on it in large letters.",
+      "It was all very well to say “Drink me,” but the wise little Alice was not going to do that in a hurry. “No, I’ll look first,” she said, “and see whether it’s marked ‘poison’ or not”; for she had read several nice little histories about children who had got burnt, and eaten up by wild beasts and other unpleasant things, all because they would not remember the simple rules their friends had taught them: such as, that a red-hot poker will burn you if you hold it too long; and that if you cut your finger very deeply with a knife, it usually bleeds; and she had never forgotten that, if you drink much from a bottle marked “poison,” it is almost certain to disagree with you, sooner or later.",
+      "However, this bottle was not marked “poison,” so Alice ventured to taste it, and finding it very nice, (it had, in fact, a sort of mixed flavour of cherry-tart, custard, pine-apple, roast turkey, toffee, and hot buttered toast,) she very soon finished it off.",
+      "“What a curious feeling!” said Alice; “I must be shutting up like a telescope.”",
+      "And so it was indeed: she was now only ten inches high, and her face brightened up at the thought that she was now the right size for going through the little door into that lovely garden. First, however, she waited for a few minutes to see if she was going to shrink any further: she felt a little nervous about this; “for it might end, you know,” said Alice to herself, “in my going out altogether, like a candle. I wonder what I should be like then?” And she tried to fancy what the flame of a candle is like after the candle is blown out, for she could not remember ever having seen such a thing.",
+      "After a while, finding that nothing more happened, she decided on going into the garden at once; but, alas for poor Alice! when she got to the door, she found she had forgotten the little golden key, and when she went back to the table for it, she found she could not possibly reach it: she could see it quite plainly through the glass, and she tried her best to climb up one of the legs of the table, but it was too slippery; and when she had tired herself out with trying, the poor little thing sat down and cried.",
+      "“Come, there’s no use in crying like that!” said Alice to herself, rather sharply; “I advise you to leave off this minute!” She generally gave herself very good advice, (though she very seldom followed it), and sometimes she scolded herself so severely as to bring tears into her eyes; and once she remembered trying to box her own ears for having cheated herself in a game of croquet she was playing against herself, for this curious child was very fond of pretending to be two people. “But it’s no use now,” thought poor Alice, “to pretend to be two people! Why, there’s hardly enough of me left to make one respectable person!”",
+      "Soon her eye fell on a little glass box that was lying under the table: she opened it, and found in it a very small cake, on which the words “EAT ME” were beautifully marked in currants. “Well, I’ll eat it,” said Alice, “and if it makes me grow larger, I can reach the key; and if it makes me grow smaller, I can creep under the door; so either way I’ll get into the garden, and I don’t care which happens!”",
+      "She ate a little bit, and said anxiously to herself, “Which way? Which way?”, holding her hand on the top of her head to feel which way it was growing, and she was quite surprised to find that she remained the same size: to be sure, this generally happens when one eats cake, but Alice had got so much into the way of expecting nothing but out-of-the-way things to happen, that it seemed quite dull and stupid for life to go on in the common way.",
+      "So she set to work, and very soon finished off the cake.",
+    ];
+
+    const PAPER = '#f3efe6';
+    const INK = '#161616';
+    const KY = 0.6;              // oblique view: plane depth → screen y
+    const INFLUENCE = 3.2;       // radial pull radius = R * INFLUENCE
+    const SWIRL = 0.7;           // twist (rad) of the surface near the rim
+    const DEPTH = 1.7;           // pit depth = R * KY * DEPTH
+    const STRIPES = 6;           // surface stripes per text line
+    const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
+
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const hint = document.getElementById('hint');
+
+    let W = 0, H = 0, DPR = 1;
+    let fontSize = 18, lineH = 36, marginX = 80, marginTop = 100, marginBottom = 90;
+    let chars = [];      // { ch, hx, hy, w, size, s, j, dead }
+    let rules = [];      // baseline y positions
+    let pageStart = 0;   // paragraph index where current page begins
+    let pageNo = 1;
+    let nextPageStart = 0;
+    let fade = 1;        // page opacity
+    let phase = 'live';  // live | out | in
+    let collapse = false;
+
+    const hole = { x: 0, y: 0, tx: 0, ty: 0, r: 0, baseR: 0, pressed: false };
+    let lastPointer = -1e9;
+    let time = 0;
+    const widthCache = new Map();
+
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth;
+      H = window.innerHeight;
+      canvas.width = W * DPR;
+      canvas.height = H * DPR;
+      canvas.style.width = W + 'px';
+      canvas.style.height = H + 'px';
+
+      const m = Math.min(W, H);
+      fontSize = Math.max(14, Math.min(21, m * 0.022));
+      lineH = fontSize * 2.05;
+      marginX = Math.max(36, W * 0.1);
+      marginTop = Math.max(70, H * 0.13);
+      marginBottom = Math.max(70, H * 0.12);
+      hole.baseR = m * 0.17;
+      if (!hole.r) {
+        hole.r = hole.baseR;
+        hole.x = hole.tx = W * 0.5;
+        hole.y = hole.ty = H * 0.46;
+      }
+      widthCache.clear();
+      layoutPage(pageStart);
+    }
+
+    function measure(ch, size) {
+      const key = size + ch;
+      let w = widthCache.get(key);
+      if (w === undefined) {
+        ctx.font = `400 ${size}px 'EB Garamond', serif`;
+        w = ctx.measureText(ch).width;
+        widthCache.set(key, w);
+      }
+      return w;
+    }
+
+    function pushChar(ch, x, y, w, size) {
+      chars.push({
+        ch, w, size,
+        hx: x + w / 2, hy: y,
+        s: 0, dead: false,
+        j: 0.7 + Math.random() * 0.6,
+      });
+    }
+
+    function layoutPage(startPara) {
+      chars = [];
+      rules = [];
+      collapse = false;
+      const maxW = W - marginX * 2;
+      const maxLines = Math.floor((H - marginTop - marginBottom) / lineH) + 1;
+      let lineIdx = 0;
+      let p = startPara;
+
+      const space = measure(' ', fontSize);
+      outer:
+      while (p < TEXT.length) {
+        const words = TEXT[p].split(' ');
+        const indent = fontSize;
+        let line = [], lineW = 0, first = true;
+
+        // a word is a run of glyphs; justify by widening the spaces only
+        const flush = (last) => {
+          if (lineIdx >= maxLines) return false;
+          const y = marginTop + lineIdx * lineH;
+          rules.push(y);
+          const avail = maxW - (first ? indent : 0);
+          let x = marginX + (first ? indent : 0);
+          const extra = (!last && line.length > 1) ? (avail - lineW) / (line.length - 1) : 0;
+          for (const wd of line) {
+            for (const ch of wd.t) {
+              const w = measure(ch, fontSize);
+              pushChar(ch, x, y, w, fontSize);
+              x += w;
+            }
+            x += space + extra;
+          }
+          lineIdx++;
+          return true;
+        };
+
+        for (const t of words) {
+          const w = measure(t, fontSize);
+          const avail = maxW - (first ? indent : 0);
+          const need = line.length ? lineW + space + w : w;
+          if (need > avail && line.length) {
+            if (!flush(false)) break outer;
+            line = []; lineW = 0; first = false;
+          }
+          lineW = line.length ? lineW + space + w : w;
+          line.push({ t, w });
+        }
+        if (line.length && !flush(true)) break outer;
+        p++;
+      }
+      nextPageStart = p >= TEXT.length ? 0 : p;
+
+      // running head & folio
+      const small = Math.max(10, fontSize * 0.6);
+      const head = "Alice's Adventures in Wonderland · Lewis Carroll · 1865";
+      let hw = 0;
+      for (const ch of head) hw += measure(ch, small);
+      let hx = (W - hw) / 2;
+      for (const ch of head) {
+        const w = measure(ch, small);
+        pushChar(ch, hx, marginTop * 0.5, w, small);
+        hx += w;
+      }
+      const folio = String(pageNo);
+      let fw = 0;
+      for (const ch of folio) fw += measure(ch, small);
+      let fx = (W - fw) / 2;
+      for (const ch of folio) {
+        const w = measure(ch, small);
+        pushChar(ch, fx, H - marginBottom * 0.45, w, small);
+        fx += w;
+      }
+    }
+
+    // ── surface model ──
+    // The page is a striped plane seen from above at an angle. A pit is cut
+    // into it: points inside sink by DEPTH, the rim band stretches the stripes
+    // into vertical streaks (the far wall), and rows are painted back to front
+    // so the near lip hides what is under it.
+    function ellip(px, py) {
+      const dx = px - hole.x;
+      const dy = (py - hole.y) / KY;
+      const d = Math.hypot(dx, dy) || 0.0001;
+      return { d, ux: dx / d, uy: dy / d };
+    }
+
+    function smooth(a, b, x) {
+      const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    }
+
+    function pit(d, R) { return smooth(R * 1.08, R * 0.86, d); }
+
+    function surf(px, py, R) {
+      const e = ellip(px, py);
+      const Rf = R * INFLUENCE;
+      let x = px, y = py;
+      if (e.d < Rf) {
+        const k = e.d <= R ? 1 : 1 - (e.d - R) / (Rf - R);
+        const dist = e.d <= R ? e.d : R + (e.d - R) * (1 - 0.55 * k * k);
+        const a = Math.atan2(e.uy, e.ux) + SWIRL * k * k;
+        x = hole.x + Math.cos(a) * dist;
+        y = hole.y + Math.sin(a) * dist * KY;
+      }
+      const g = pit(e.d, R);
+      const bowl = e.d < R ? (1 - e.d / R) ** 2 : 0;
+      x += (hole.x - x) * (0.3 * g + 0.4 * bowl);
+      y += R * KY * (DEPTH * g + 0.9 * bowl);
+      return { x, y, g, d: e.d };
+    }
+
+    // ── update ──
+    function update(dt) {
+      time += dt;
+      const idle = time - lastPointer > 3.5;
+      if (idle || PREVIEW) {
+        hole.tx = W * (0.5 + 0.22 * Math.sin(time * 0.13));
+        hole.ty = H * (0.46 + 0.14 * Math.sin(time * 0.09 - 0.4));
+      }
+      const ease = 1 - Math.pow(0.0001, dt);
+      hole.x += (hole.tx - hole.x) * ease * 0.6;
+      hole.y += (hole.ty - hole.y) * ease * 0.6;
+      const targetR = hole.baseR * (hole.pressed ? 1.5 : 1) * (1 + 0.03 * Math.sin(time * 1.7));
+      hole.r += (targetR - hole.r) * ease;
+
+      const R = hole.r, Rf = R * INFLUENCE;
+      let alive = 0;
+      for (const c of chars) {
+        if (c.dead) continue;
+        alive++;
+        const { d } = ellip(c.hx, c.hy);
+        let prox = 0;
+        if (d <= R) prox = 1;
+        else if (d < Rf) { const k = 1 - (d - R) / (Rf - R); prox = k * k; }
+
+        if (c.s < 0.2) {
+          c.s += (prox * 1.1 - 0.08 + (collapse ? 0.25 : 0)) * dt * c.j;
+          if (c.s < 0) c.s = 0;
+        } else {
+          c.s += Math.max(prox * 1.2, 0.3 + c.s * 0.7) * dt * c.j;
+        }
+        if (c.s >= 1) { c.dead = true; alive--; }
+      }
+
+      if (phase === 'live') {
+        if (!collapse && alive <= chars.length * 0.08) collapse = true;
+        if (alive === 0) phase = 'out';
+      } else if (phase === 'out') {
+        fade -= dt * 1.4;
+        if (fade <= 0) {
+          fade = 0;
+          pageStart = nextPageStart;
+          pageNo = pageStart === 0 ? 1 : pageNo + 1;
+          layoutPage(pageStart);
+          phase = 'in';
+        }
+      } else if (phase === 'in') {
+        fade += dt * 1.2;
+        if (fade >= 1) { fade = 1; phase = 'live'; }
+      }
+    }
+
+    // ── draw ──
+    function drawGlyph(c, px, py, R, alphaMul) {
+      // current plane position → surface, oriented along the local stripe
+      const p = surf(px, py, R);
+      const a = surf(px - 3, py, R);
+      const b = surf(px + 3, py, R);
+      const ang = Math.atan2(b.y - a.y, b.x - a.x);
+      const stretch = Math.min(5, Math.max(1, Math.hypot(b.x - a.x, b.y - a.y) / 6));
+      const sink = 1 - smooth(0.55, 1, p.g);
+      const alpha = sink * alphaMul * fade;
+      if (alpha <= 0.01) return;
+      ctx.globalAlpha = alpha;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(ang);
+      ctx.scale(stretch, 1);
+      ctx.fillText(c.ch, -c.w / 2, 0);
+      ctx.restore();
+    }
+
+    function draw() {
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.fillStyle = PAPER;
+      ctx.fillRect(0, 0, W, H);
+      const R = hole.r, ry = R * KY, D = ry * DEPTH;
+
+      // stripe rows covering the whole screen, aligned to text baselines
+      const sp = lineH / STRIPES;
+      const off = fontSize * 0.32;
+      const first = marginTop + off - Math.ceil((marginTop + off) / sp) * sp;
+      const rowsN = Math.ceil((H - first) / sp) + 1;
+      const rowY = (i) => first + i * sp;
+
+      // bucket glyphs by the stripe row of their current plane position
+      const buckets = new Array(rowsN);
+      for (const c of chars) {
+        if (c.dead) continue;
+        let px = c.hx, py = c.hy;
+        if (c.s > 0) {
+          const es = c.s * c.s;
+          px += (hole.x - px) * es;
+          py += (hole.y - py) * es;
+        }
+        const i = Math.min(rowsN - 1, Math.max(0, Math.round((py - first) / sp)));
+        (buckets[i] || (buckets[i] = [])).push({ c, px, py });
+      }
+
+      ctx.lineWidth = 1;
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = INK;
+      let curFont = '';
+      const setFont = (size) => {
+        const f = `400 ${size}px 'EB Garamond', serif`;
+        if (f !== curFont) { ctx.font = f; curFont = f; }
+      };
+
+      const step = 4;
+      const occludeTop = hole.y - ry * 1.3, occludeBot = hole.y + ry * 1.3 + D;
+      for (let i = 0; i < rowsN; i++) {
+        const y = rowY(i);
+        const near = y > occludeTop && y < occludeBot;
+        const rowK = Math.max(0, 1 - (Math.abs(y - hole.y) - ry) / (ry * 0.9));
+        const baseA = 0.13 + 0.8 * rowK;
+
+        // displaced stripe
+        ctx.beginPath();
+        for (let x = -step; x <= W + step; x += step) {
+          const p = surf(x, y, R);
+          if (x === -step) ctx.moveTo(p.x, p.y);
+          else ctx.lineTo(p.x, p.y);
+        }
+        if (near) {
+          // paint the surface below this row so nearer rows hide farther ones
+          ctx.save();
+          ctx.lineTo(W + step, H + D + 10);
+          ctx.lineTo(-step, H + D + 10);
+          ctx.closePath();
+          ctx.fillStyle = PAPER;
+          ctx.fill();
+          ctx.restore();
+          ctx.beginPath();
+          for (let x = -step; x <= W + step; x += step) {
+            const p = surf(x, y, R);
+            if (x === -step) ctx.moveTo(p.x, p.y);
+            else ctx.lineTo(p.x, p.y);
+          }
+        }
+        if (rowK > 0) {
+          const gr = ctx.createLinearGradient(hole.x - R * 2.2, 0, hole.x + R * 2.2, 0);
+          gr.addColorStop(0, `rgba(22,22,22,${0.13 * fade})`);
+          gr.addColorStop(0.3, `rgba(22,22,22,${baseA * fade})`);
+          gr.addColorStop(0.7, `rgba(22,22,22,${baseA * fade})`);
+          gr.addColorStop(1, `rgba(22,22,22,${0.13 * fade})`);
+          ctx.strokeStyle = gr;
+        } else {
+          ctx.strokeStyle = `rgba(22,22,22,${0.13 * fade})`;
+        }
+        ctx.stroke();
+
+        // glyphs riding on this row
+        const b = buckets[i];
+        if (b) {
+          ctx.fillStyle = INK;
+          for (const { c, px, py } of b) {
+            setFont(c.size);
+            drawGlyph(c, px, py, R, 1 - 0.3 * c.s);
+          }
+          ctx.globalAlpha = 1;
+        }
+      }
+    }
+
+    // ── loop ──
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      update(dt);
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    // ── input ──
+    const onMove = (x, y) => {
+      hole.tx = x; hole.ty = y;
+      lastPointer = time;
+      hint.classList.add('off');
+    };
+    window.addEventListener('pointermove', (e) => onMove(e.clientX, e.clientY));
+    window.addEventListener('pointerdown', (e) => { hole.pressed = true; onMove(e.clientX, e.clientY); });
+    window.addEventListener('pointerup', () => { hole.pressed = false; });
+    window.addEventListener('pointercancel', () => { hole.pressed = false; });
+    window.addEventListener('resize', resize);
+    setTimeout(() => hint.classList.add('off'), 6000);
+
+    // ── start ──
+    document.fonts.load("400 18px 'EB Garamond'").then(() => {
+      resize();
+      if (PREVIEW) {
+        hint.classList.add('off');
+        for (let i = 0; i < 150; i++) update(1 / 60);
+      }
+      requestAnimationFrame(frame);
+    });
+  </script>
+</body>
+</html>
