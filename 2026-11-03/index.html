@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Transfer — 2026-11-03</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@700&family=Noto+Sans+JP:wght@700&family=Noto+Sans+SC:wght@700&family=Space+Mono&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; height: 100%; background: #07070a; overflow: hidden; cursor: crosshair; }
+    body.hold { cursor: grabbing; }
+
+    /* ── the station: a camera on the platform, pitched up ── */
+    .scene {
+      position: fixed; inset: 0; overflow: hidden;
+      perspective: 78vw; perspective-origin: 50% 50%;
+      /* below the ceiling line: the wall at the end of the platform (flat, it faces us) */
+      background: linear-gradient(180deg, #0d0e11 0%, #0d0e11 50%, #0a0b0d 60%, #050506 100%);
+    }
+    /* the train on the far track, drawn in 2D behind the 3D ceiling */
+    .train { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .world {
+      position: absolute; left: 50%; top: 50%; width: 0; height: 0;
+      transform-style: preserve-3d;
+      transform: rotateX(26deg) rotateY(-5deg);   /* camera pitch / slight yaw */
+    }
+    /* ceiling: a horizontal plane overhead running down the platform. It is
+       built from depth strips so no single layer exceeds GPU texture limits
+       (one huge plane renders black on retina screens). Each strip is 42vw
+       deep = 5 beam periods, so the pattern continues seamlessly. */
+    .strip {
+      position: absolute; left: 0; top: 0; width: var(--w); height: 42vw;   /* --w per strip: near strips are small, far strips wide */
+      transform-origin: 0 0;
+      transform: translate3d(calc(var(--w) / -2), -47vw, calc(45vw - var(--i) * 42vw)) rotateX(-90deg);
+      background:
+        /* cross beams */
+        repeating-linear-gradient(180deg, transparent 0 7.6vw, rgba(0,0,0,0.5) 7.6vw 7.9vw, rgba(255,255,255,0.05) 7.9vw 8.1vw, transparent 8.1vw 8.4vw),
+        /* panel seams */
+        repeating-linear-gradient(90deg, transparent 0 9.8vw, rgba(255,255,255,0.045) 9.8vw 10vw),
+        linear-gradient(90deg, #121317 0 44%, #1a1b20 47.5%, #1d1e23 50%, #1a1b20 52.5%, #121317 56% 100%);
+    }
+    .strip::after {   /* distance haze */
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(5,5,6,var(--h0)), rgba(5,5,6,var(--h1)));
+    }
+    /* two fluorescent tubes running the length of the platform */
+    .tube {
+      position: absolute; left: 0; top: 0; width: 0.6vw; height: 168vw;
+      transform-origin: 0 0;
+      transform: translate3d(var(--x), -46.9vw, 45vw) rotateX(-90deg);
+      background: linear-gradient(180deg, rgba(255,247,228,0.55), rgba(255,247,228,0.25));
+      box-shadow: 0 0 1.4vw 0.6vw rgba(255,240,210,0.07), 0 0 5vw 2.5vw rgba(255,240,210,0.04);
+    }
+    .tube.l { --x: -26.3vw; } .tube.r { --x: 25.7vw; }
+    /* the sign hangs below the ceiling, facing the camera */
+    .board {
+      position: absolute; left: 50%; top: 50%;
+      width: 90vw; aspect-ratio: 3.5 / 1;
+      transform: translate(-50%, -50%) translate3d(0, -13vw, 0);
+      padding: 1.1vw 1.5vw; box-sizing: border-box;
+      background: linear-gradient(180deg, #34353a, #1e1f23 14%, #141518 84%, #2a2b2f);
+      border-radius: 0.5vw;
+      box-shadow:
+        inset 0 0.15vw 0 rgba(255,255,255,0.09),
+        inset 0 -0.2vw 0.6vw rgba(0,0,0,0.6);
+    }
+    .rod {
+      position: absolute; bottom: 100%; width: 0.9vw; height: 21.3vw;
+      background: linear-gradient(90deg, #26272c, #4a4b52 45%, #1a1b1f);
+    }
+    .rod.l { left: 16%; } .rod.r { right: 16%; }
+    .screen {
+      position: relative; width: 100%; height: 100%; overflow: hidden;
+      background: #08080a; border-radius: 0.25vw;
+      box-shadow: inset 0 0 0 0.15vw #000, inset 0 0.6vw 1.6vw rgba(0,0,0,0.9);
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+    .glass {   /* protective acrylic: diagonal sheen + dark edges */
+      position: absolute; inset: 0; pointer-events: none;
+      background:
+        linear-gradient(104deg, rgba(255,255,255,0) 32%, rgba(255,255,255,0.045) 44%, rgba(255,255,255,0.10) 47%, rgba(255,255,255,0.03) 52%, rgba(255,255,255,0) 60%),
+        linear-gradient(180deg, rgba(255,255,255,0.05), rgba(0,0,0,0) 22%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.35));
+    }
+    /* the sign's light spilling onto the ceiling and the far wall */
+    .spill {
+      position: fixed; inset: 0; pointer-events: none;
+      background: radial-gradient(60% 30% at 50% 28%, rgba(255,140,26,0.10), transparent 70%);
+    }
+    .home-btn {
+      position: fixed; left: 18px; top: 16px; z-index: 5;
+      font: 11px 'Space Mono', monospace; letter-spacing: 0.22em;
+      color: rgba(255, 140, 26, 0.55); text-decoration: none;
+      padding: 6px 10px; border: 1px solid rgba(255, 140, 26, 0.22);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .home-btn:hover { color: #ff8c1a; border-color: rgba(255, 140, 26, 0.6); }
+    .hint {
+      position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 5;
+      font: 10px 'Space Mono', monospace; letter-spacing: 0.16em; white-space: nowrap;
+      color: rgba(255, 255, 255, 0.38); transition: opacity 0.8s;
+    }
+    .hint.off { opacity: 0; }
+    .snd {
+      position: fixed; right: 18px; top: 16px; z-index: 5; cursor: pointer;
+      font: 11px 'Space Mono', monospace; letter-spacing: 0.22em;
+      color: rgba(255, 140, 26, 0.55); background: none;
+      padding: 6px 10px; border: 1px solid rgba(255, 140, 26, 0.22);
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .snd:hover { color: #ff8c1a; border-color: rgba(255, 140, 26, 0.6); }
+    .snd.on { color: #ff8c1a; border-color: rgba(255, 140, 26, 0.6); background: rgba(255, 140, 26, 0.08); }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <canvas id="train" class="train"></canvas>
+    <div class="world">
+      <div class="strip" style="--i:0; --w:140vw; --h0:0; --h1:0"></div>
+      <div class="strip" style="--i:1; --w:200vw; --h0:0; --h1:0.2"></div>
+      <div class="strip" style="--i:2; --w:260vw; --h0:0.2; --h1:0.45"></div>
+      <div class="strip" style="--i:3; --w:min(320vw, 6000px); --h0:0.45; --h1:0.62"></div>
+      <div class="tube l"></div><div class="tube r"></div>
+      <div class="board">
+        <div class="rod l"></div><div class="rod r"></div>
+        <div class="screen"><canvas id="c"></canvas><div class="glass"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="spill"></div>
+  <a class="home-btn" href="../index.html">HOME</a>
+  <div class="hint" id="hint">MOVE LEFT TO SPEED UP · PRESS AND HOLD TO STOP AT THE DOORS · SOUND AFTER FIRST CLICK</div>
+  <button class="snd" id="snd">SOUND: TAP TO ENABLE</button>
+  <script>
+    const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
+    const canvas = document.getElementById('c');
+    const ctx = canvas.getContext('2d');
+    const hint = document.getElementById('hint');
+    const world = document.querySelector('.world');
+
+    // ── content ──
+    const LANGS = [
+      { id: 'ko', font: "'Noto Sans KR'", rgb: '255,140,26' },
+      { id: 'en', font: "'Noto Sans KR'", rgb: '61,220,90' },
+      { id: 'ja', font: "'Noto Sans JP'", rgb: '255,210,63' },
+      { id: 'zh', font: "'Noto Sans SC'", rgb: '255,82,82' },
+    ];
+    const PHRASES = [
+      ['이번 역은', 'This stop is', '次は', '前方到站'],
+      ['왕십리역입니다.', 'Wangsimni station.', 'ワンシムニです。', '往十里站。'],
+      ['내리실 문은 오른쪽입니다.', 'The doors are on your right.', 'お出口は右側です。', '下车门在右侧。'],
+      ['2호선,', 'Line 2,', '2号線、', '2号线、'],
+      ['5호선,', 'Line 5,', '5号線、', '5号线、'],
+      ['수인분당선,', 'Suin-Bundang Line,', '水仁・盆唐線、', '水仁盆唐线、'],
+      ['경의중앙선으로', 'Gyeongui-Jungang Line', '京義・中央線', '京义中央线'],
+      ['갈아타실 분은', 'passengers transferring', 'はお乗り換えです。', '换乘的乘客'],
+      ['이번 역에서 내리시기 바랍니다.', 'please get off at this stop.', 'この駅でお降りください。', '请在本站下车。'],
+    ];
+    // line colours (brightened for LEDs)
+    const LINES = { l2: '40,200,100', l5: '180,130,220', sb: '250,200,40', gj: '120,210,180' };
+    // top row: arrivals on this platform (line 2) and the connecting platform (line 5)
+    const TRAINS = [
+      { key: 'l2', name: '2호선', dest: '성수행', eta: 150, state: 'run', hold: 0 },
+      { key: 'l5', name: '5호선', dest: '방화행', eta: 55, state: 'run', hold: 0 },
+    ];
+    const ETA_RATE = 3;          // countdown seconds per real second
+    // bottom row: which way to walk for each connection
+    const TRANSFER = '갈아타는 곳';
+    const LEFT = [['l2', '2호선'], ['sb', '수인분당선']], RIGHT = [['l5', '5호선'], ['gj', '경의중앙선']];
+    const SMALL_TEXT = TRANSFER + '0123456789분 후곧 도착출발' + TRAINS.map(tr => tr.name + tr.dest).join('') + LEFT.concat(RIGHT).map(a => a[1]).join('');
+
+    // ── tuning ──
+    const CRUISE = 34;      // dots per second
+    const SWEEP = 110;      // flip front speed, dots per second
+    const GAP = 7;          // dots between phrases
+    const ZW = 16;          // door width in dots
+    const DWELL = 1.3;      // seconds between flips while stopped at the doors
+
+    // ── state ──
+    let W, H, DPR, p, cols, rows, mainRows, smallRows, mainTop, headTop, footTop, zoneX;
+    let x = 0, v = 0, holding = false, t = 0, L = 0;
+    let offLayer = null, sprites = {};
+    let wasStopped = false, footT = 0;
+    // small-row text bitmaps, cached per string (rebuilt on resize)
+    let small = new Map();
+    const txt = (s) => { let b = small.get(s); if (!b) { b = raster(s, LANGS[0].font, smallRows); small.set(s, b); } return b; };
+    const phrases = PHRASES.map(vs => ({ texts: vs, variants: null, width: 0, pos: 0, lang: 0, prev: 0, flipT: 1e9, prevRel: null, dwell: 0 }));
+
+    // ── text → dots ──
+    const SS = 3;
+    const smooth = (a, b, x) => { const k = Math.min(1, Math.max(0, (x - a) / (b - a))); return k * k * (3 - 2 * k); };
+    const measure = document.createElement('canvas').getContext('2d');
+    function raster(text, font, nrows) {
+      const fs = nrows * 0.92 * SS;
+      measure.font = `700 ${fs}px ${font}`;
+      const w = Math.ceil(measure.measureText(text).width / SS) + 1;
+      const oc = document.createElement('canvas');
+      oc.width = w * SS; oc.height = nrows * SS;
+      const g = oc.getContext('2d');
+      g.font = `700 ${fs}px ${font}`;
+      g.fillStyle = '#fff'; g.textBaseline = 'alphabetic';
+      g.fillText(text, 0, nrows * 0.8 * SS);
+      const d = g.getImageData(0, 0, oc.width, oc.height).data;
+      const b = new Float32Array(w * nrows);
+      for (let r = 0; r < nrows; r++) for (let c = 0; c < w; c++) {
+        let s = 0;
+        for (let yy = 0; yy < SS; yy++) for (let xx = 0; xx < SS; xx++) s += d[((r * SS + yy) * oc.width + c * SS + xx) * 4 + 3];
+        b[r * w + c] = smooth(0.18, 0.62, s / (255 * SS * SS));
+      }
+      return { w, b };
+    }
+
+    // ── sprites (one lit LED, with a soft glow) ──
+    function makeSprite(rgb) {
+      const s = Math.ceil(p * 2.6);
+      const c = document.createElement('canvas');
+      c.width = c.height = Math.ceil(s * DPR);
+      const g = c.getContext('2d');
+      g.scale(DPR, DPR);
+      const m = s / 2;
+      const grd = g.createRadialGradient(m, m, p * 0.3, m, m, p * 1.25);
+      grd.addColorStop(0, `rgba(${rgb},0.45)`);
+      grd.addColorStop(1, `rgba(${rgb},0)`);
+      g.fillStyle = grd; g.fillRect(0, 0, s, s);
+      g.fillStyle = `rgb(${rgb})`;
+      g.beginPath(); g.arc(m, m, p * 0.4, 0, Math.PI * 2); g.fill();
+      return { c, s };
+    }
+    function dot(sp, col, row, top, b) {
+      if (b < 0.06 || col < 0 || col >= cols) return;
+      ctx.globalAlpha = Math.min(1, b);
+      ctx.drawImage(sp.c, (col + 0.5) * p - sp.s / 2, (top + row + 0.5) * p - sp.s / 2, sp.s, sp.s);
+    }
+    function bitmap(bm, sp, sx, top, c0 = 0, c1 = 1e9, gain = 1) {
+      const a = Math.max(c0, -sx, 0), z = Math.min(c1, bm.w, cols - sx);
+      for (let c = a; c < z; c++) for (let r = 0; r < mainRowsOf(bm); r++) {
+        const b = bm.b[r * bm.w + c];
+        if (b > 0.06) dot(sp, sx + c, r, top, b * gain);
+      }
+    }
+    const mainRowsOf = (bm) => bm.b.length / bm.w;
+
+    // ── layout ──
+    const board = document.querySelector('.board');
+    function resize() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      // the canvas fills the board's screen; the board itself is laid out by CSS
+      W = canvas.clientWidth || 1; H = canvas.clientHeight || 1;
+      canvas.width = Math.round(W * DPR); canvas.height = Math.round(H * DPR);
+      cols = 208;
+      p = W / cols; rows = Math.floor(H / p);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, (H - rows * p) / 2 * DPR);
+      smallRows = 12;
+      mainRows = Math.min(18, Math.max(14, rows - 2 * smallRows - 10));
+      headTop = 2;
+      footTop = rows - smallRows - 2;
+      mainTop = Math.round((headTop + smallRows + footTop) / 2 - mainRows / 2);
+      zoneX = Math.floor(cols * 0.5);
+
+      sprites = {};
+      for (const l of LANGS) sprites[l.id] = makeSprite(l.rgb);
+      sprites.white = makeSprite('255,255,255');
+      sprites.dim = makeSprite('255,140,26');
+      sprites.green = makeSprite('61,220,90');
+      sprites.red = makeSprite('255,82,82');
+      for (const k in LINES) sprites[k] = makeSprite(LINES[k]);
+
+      // unlit LEDs, drawn once
+      offLayer = document.createElement('canvas');
+      offLayer.width = canvas.width; offLayer.height = canvas.height;
+      const g = offLayer.getContext('2d');
+      g.setTransform(DPR, 0, 0, DPR, 0, (H - rows * p) / 2 * DPR);
+      g.fillStyle = '#141416';
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        g.beginPath(); g.arc((c + 0.5) * p, (r + 0.5) * p, p * 0.36, 0, Math.PI * 2); g.fill();
+      }
+
+      // text bitmaps
+      let cur = 0;
+      for (const ph of phrases) {
+        ph.variants = ph.texts.map((s, i) => raster(s, LANGS[i].font, mainRows));
+        ph.width = Math.max(...ph.variants.map(b => b.w));
+        ph.pos = cur;
+        cur += ph.width + GAP;
+      }
+      L = cur + Math.round(cols * 0.5);   // half a screen of dark between repeats
+      small = new Map();
+    }
+
+    // ── simulation ──
+    const mod = (a, n) => ((a % n) + n) % n;
+    function flip(ph) {
+      ph.prev = ph.lang; ph.lang = (ph.lang + 1) % LANGS.length; ph.flipT = 0; ph.dwell = 0;
+      sound.tick();
+    }
+    function updateTrains(dt) {
+      const stopped = v === 0;
+      for (const tr of TRAINS) {
+        if (tr.key === 'l2') {
+          // the train on this platform is the one the viewer stops
+          if (stopped && tr.state !== 'here') { tr.state = 'here'; tr.eta = 0; }
+          if (!stopped && tr.state === 'here') { tr.state = 'gone'; tr.hold = 4; }
+        }
+        if (tr.state === 'run') {
+          tr.eta -= dt * ETA_RATE;
+          if (tr.eta <= 0) { tr.eta = 0; tr.state = 'here'; tr.hold = 10; }
+        } else if (tr.state === 'here' && tr.key !== 'l2') {
+          tr.hold -= dt; if (tr.hold <= 0) { tr.state = 'gone'; tr.hold = 4; }
+        } else if (tr.state === 'gone') {
+          tr.hold -= dt; if (tr.hold <= 0) { tr.state = 'run'; tr.eta = 200 + Math.random() * 220; }
+        }
+      }
+    }
+    const etaText = (tr) => tr.state === 'here' ? '도착' : tr.state === 'gone' ? '출발' : tr.eta > 60 ? `${Math.ceil(tr.eta / 60)}분 후` : '곧 도착';
+    function update(dt) {
+      t += dt;
+      const target = holding ? 0 : CRUISE;
+      const k = holding ? 3.2 : (v < target ? 0.6 : 1.6);
+      v += (target - v) * Math.min(1, dt * k);
+      if (holding && v < 0.25) v = 0;
+      x += v * dt;
+      const stopped = v === 0;
+      if (!stopped && wasStopped) sound.depart();
+      wasStopped = stopped;
+      footT += dt * (stopped ? 3.6 / 1.4 : 1);
+      updateTrains(dt);
+      const xi = Math.floor(x);
+      for (const ph of phrases) {
+        ph.flipT += dt;
+        // distance from the doors to this phrase's left edge, going right (0..L)
+        const rel = mod(ph.pos - xi - zoneX, L);
+        if (ph.prevRel !== null && rel - ph.prevRel > L / 2) flip(ph);   // left edge just crossed the doors
+        ph.prevRel = rel;
+        // stopped with this phrase in the doors: keep transferring in place
+        const sx = ph.pos - xi; // may need wrapping
+        const inst = mod(sx + L / 2, L) - L / 2;
+        const inDoors = inst < zoneX + ZW / 2 && inst + ph.width > zoneX - ZW / 2;
+        if (v === 0 && inDoors) { ph.dwell += dt; if (ph.dwell > DWELL) flip(ph); }
+        else ph.dwell = 0;
+      }
+    }
+
+    // ── draw ──
+    function drawPhrase(ph, sx) {
+      if (sx + ph.width < 0 || sx > cols) return;
+      const cur = ph.variants[ph.lang], old = ph.variants[ph.prev];
+      const spC = sprites[LANGS[ph.lang].id], spO = sprites[LANGS[ph.prev].id];
+      const front = ph.flipT * SWEEP;
+      if (front > ph.width + 3) { bitmap(cur, spC, sx, mainTop); return; }
+      const f = Math.floor(front);
+      // already transferred columns: new text, with the old text as a fading afterimage
+      bitmap(cur, spC, sx, mainTop, 0, f - 1);
+      const ghost = 0.35 * Math.max(0, 1 - ph.flipT / 0.55);
+      if (ghost > 0.02) bitmap(old, spO, sx, mainTop, 0, f - 1, ghost);
+      // the front: a white column where both texts exist
+      for (let c = Math.max(0, f - 1); c < Math.min(ph.width, f + 1); c++)
+        for (let r = 0; r < mainRows; r++) {
+          const a = c < cur.w ? cur.b[r * cur.w + c] : 0, b = c < old.w ? old.b[r * old.w + c] : 0;
+          dot(sprites.white, sx + c, r, mainTop, Math.max(a, b));
+        }
+      bitmap(old, spO, sx, mainTop, f + 1, 1e9);
+    }
+
+    // a solid LED arrow, 6 dots wide, pointing left (-1) or right (+1)
+    function arrow(sx, top, dir, a) {
+      const h = smallRows, mid = (h - 1) / 2;
+      for (let c = 0; c < 6; c++) {
+        const k = dir < 0 ? c : 5 - c;          // 0 at the tip
+        const half = Math.min(mid, k * 0.9 + 0.4);
+        for (let r = 0; r < h; r++) if (Math.abs(r - mid) <= half) dot(sprites.white, sx + c, r, top, a);
+      }
+    }
+
+    function draw() {
+      ctx.globalAlpha = 1;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#09090a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(offLayer, 0, 0);
+      ctx.setTransform(DPR, 0, 0, DPR, 0, (H - rows * p) / 2 * DPR);
+
+      const stopped = v === 0;
+      const M = 4;   // side margin in dots
+
+      // top row: arrivals. line 2 on the left (this platform), line 5 on the right
+      {
+        const tr2 = TRAINS[0], tr5 = TRAINS[1];
+        const n2 = txt(tr2.name), d2 = txt(tr2.dest + ' ' + etaText(tr2));
+        const n5 = txt(tr5.name), d5 = txt(tr5.dest + ' ' + etaText(tr5));
+        const pulse = (tr) => tr.state === 'here' ? (Math.sin(t * 8) > 0 ? 0.9 : 0.35) : tr.eta <= 60 && tr.state === 'run' ? (Math.sin(t * 4) > 0 ? 0.75 : 0.45) : 0.55;
+        bitmap(n2, sprites[tr2.key], M - 2, headTop, 0, 1e9, 0.8);
+        bitmap(d2, sprites.dim, M - 2 + n2.w + 4, headTop, 0, 1e9, pulse(tr2));
+        const w5 = n5.w + 4 + d5.w;
+        bitmap(n5, sprites[tr5.key], cols - M + 2 - w5, headTop, 0, 1e9, 0.8);
+        bitmap(d5, sprites.dim, cols - M + 2 - d5.w, headTop, 0, 1e9, pulse(tr5));
+      }
+
+      // bottom row: which way to walk for each connection. The two sides take
+      // turns, like a real sign; while the train stands the turns come quicker
+      // and the active arrow flashes.
+      {
+        const AW = 6, lab = txt(TRANSFER);
+        const period = 3.6;
+        const side = Math.floor(footT / period) % 2;         // 0 left, 1 right
+        const blink = stopped ? (Math.sin(t * 9) > -0.2 ? 1 : 0.3) : 0.9;
+        arrow(M, footTop, -1, side === 0 ? blink : 0.18);
+        arrow(cols - M - AW, footTop, 1, side === 1 ? blink : 0.18);
+        if (side === 0) {
+          let cx = M + AW + 4;
+          bitmap(lab, sprites.dim, cx, footTop, 0, 1e9, 0.55); cx += lab.w + 5;
+          for (const [key, name] of LEFT) { const b = txt(name); bitmap(b, sprites[key], cx, footTop, 0, 1e9, 0.85); cx += b.w + 5; }
+        } else {
+          let cx = cols - M - AW - 4;
+          cx -= lab.w; bitmap(lab, sprites.dim, cx, footTop, 0, 1e9, 0.55); cx -= 5;
+          for (const [key, name] of RIGHT.slice().reverse()) { const b = txt(name); cx -= b.w; bitmap(b, sprites[key], cx, footTop, 0, 1e9, 0.85); cx -= 5; }
+        }
+      }
+
+      // the doors
+      const blink = stopped ? 1 : (Math.sin(t * 6) > 0 ? 1 : 0.35);
+      const spD = stopped ? sprites.green : sprites.red;
+      for (const dx of [-ZW / 2, ZW / 2]) {
+        const c = zoneX + dx;
+        for (let r = -3; r < mainRows + 3; r++) {
+          const edge = r < 0 || r >= mainRows;
+          dot(spD, c, r, mainTop, edge ? 0.9 : (r % 2 === 0 ? 0.55 * blink : 0.12));
+        }
+      }
+
+      // the announcement
+      const xi = Math.floor(x);
+      for (const ph of phrases) {
+        const base = ph.pos - xi;
+        for (const k of [-1, 0, 1]) drawPhrase(ph, base - Math.floor(base / L) * L + k * L);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      update(dt);
+      draw();
+      drawTrain(dt);
+      // a standing viewer never holds perfectly still
+      world.style.transform = `rotateX(${26 + 0.5 * Math.sin(t * 0.37)}deg) rotateY(${-5 + 0.7 * Math.sin(t * 0.23 + 1)}deg)`;
+      requestAnimationFrame(frame);
+    }
+
+    // ── the train: a car passing on the far track, motion-blurred by its speed ──
+    const tcv = document.getElementById('train'), tctx = tcv.getContext('2d');
+    let TW = 0, TH = 0, TD = 1, car = null, carW = 0, R0 = 0, R1 = 0, tx = 0, doorOpen = 0, trainJit = 0;
+    function trainResize() {
+      TD = 1;   // the train is a backdrop and mostly blurred: 1x is plenty
+      TW = tcv.clientWidth || 1; TH = tcv.clientHeight || 1;
+      tcv.width = TW * TD; tcv.height = TH * TD;
+      // the car band sits under the ceiling line and above the platform edge
+      R0 = TH * 0.50; R1 = TH * 0.86;
+      carW = Math.max(520, TW * 0.72);
+      car = null;
+    }
+    // one car length, drawn sharp. Doors are drawn live so they can open.
+    function buildCar() {
+      const h = R1 - R0, w = Math.round(carW);
+      const c = document.createElement('canvas'); c.width = w; c.height = Math.round(h);
+      const g = c.getContext('2d');
+      const y = (f) => f * h;
+      // body
+      let gr = g.createLinearGradient(0, 0, 0, h);
+      gr.addColorStop(0, '#1c1f24'); gr.addColorStop(0.08, '#30343b'); gr.addColorStop(0.5, '#1b1e23'); gr.addColorStop(0.92, '#101215'); gr.addColorStop(1, '#08090b');
+      g.fillStyle = gr; g.fillRect(0, 0, w, h);
+      // roof edge and a couple of bright trim lines (they become the streaks)
+      g.fillStyle = 'rgba(255,255,255,0.35)'; g.fillRect(0, y(0.045), w, 2);
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(0, y(0.6), w, 1.5);
+      g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(0, y(0.9), w, 2);
+      // lit windows: two bays left of the door, two right
+      const winY = y(0.17), winH = y(0.30), gap = w * 0.035;
+      const bays = [[0.05, 0.21], [0.245, 0.405], [0.60, 0.76], [0.795, 0.955]];
+      for (const [a, b] of bays) {
+        const x0 = a * w, x1 = b * w;
+        gr = g.createLinearGradient(0, winY, 0, winY + winH);
+        gr.addColorStop(0, '#fbf7ee'); gr.addColorStop(0.55, '#ebe3d2'); gr.addColorStop(1, '#a9a08e');
+        g.fillStyle = gr; roundRect(g, x0, winY, x1 - x0, winH, 6); g.fill();
+        // passengers only as soft shadows in the light
+        const n = 1 + ((a * 97) | 0) % 3;
+        for (let i = 0; i < n; i++) {
+          const px = x0 + (x1 - x0) * (0.2 + 0.6 * ((i * 0.37 + a * 3.1) % 1)), py = winY + winH * 0.62, rx = (x1 - x0) * 0.16, ry = winH * 0.5;
+          const rg = g.createRadialGradient(px, py, 0, px, py, 1);
+          rg.addColorStop(0, 'rgba(60,52,46,0.38)'); rg.addColorStop(0.55, 'rgba(60,52,46,0.18)'); rg.addColorStop(1, 'rgba(60,52,46,0)');
+          g.save(); g.translate(px, py); g.scale(rx, ry); g.translate(-px, -py); g.fillStyle = rg; g.fillRect(px - 1, py - 1, 2, 2); g.restore();
+        }
+        // window frame + glass sheen
+        g.strokeStyle = 'rgba(0,0,0,0.6)'; g.lineWidth = 3; roundRect(g, x0, winY, x1 - x0, winH, 6); g.stroke();
+        g.fillStyle = 'rgba(255,255,255,0.08)'; g.fillRect(x0 + 4, winY + 4, x1 - x0 - 8, winH * 0.18);
+      }
+      // line colour band under the windows (this is a line 2 train)
+      g.fillStyle = `rgb(${LINES.l2})`; g.fillRect(0, y(0.52), w, y(0.045));
+      g.fillStyle = 'rgba(255,255,255,0.12)'; g.fillRect(0, y(0.52), w, 2);
+      // lower body ribs
+      g.fillStyle = 'rgba(0,0,0,0.35)';
+      for (let k = 0; k < 5; k++) g.fillRect(0, y(0.66 + k * 0.05), w, 1.5);
+      // car-end seam and coupling gap
+      g.fillStyle = '#060607'; g.fillRect(w - w * 0.012, 0, w * 0.012, h);
+      g.fillStyle = 'rgba(0,0,0,0.5)'; g.fillRect(w - w * 0.03, 0, w * 0.018, h);
+      // door opening (dark interior shows when the leaves slide apart)
+      const d = doorRect(w, h);
+      gr = g.createLinearGradient(0, d.y, 0, d.y + d.h);
+      gr.addColorStop(0, '#f6ead2'); gr.addColorStop(0.6, '#d9ccb2'); gr.addColorStop(1, '#5a5248');
+      g.fillStyle = gr; g.fillRect(d.x, d.y, d.w, d.h);
+      g.fillStyle = 'rgba(0,0,0,0.45)'; g.fillRect(d.x, d.y, d.w, 3); g.fillRect(d.x, d.y, 3, d.h); g.fillRect(d.x + d.w - 3, d.y, 3, d.h);
+      return c;
+    }
+    const doorRect = (w, h) => ({ x: w * 0.43, y: h * 0.12, w: w * 0.14, h: h * 0.80 });
+    function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+    // a door leaf (half of the pair), drawn at its slid position
+    function drawLeaf(g, x, y, w, h, winY, winH) {
+      g.fillStyle = '#2b2e35'; g.fillRect(x, y, w, h);
+      let gr = g.createLinearGradient(0, winY, 0, winY + winH);
+      gr.addColorStop(0, '#fff3dc'); gr.addColorStop(1, '#c9bba0');
+      g.fillStyle = gr; g.fillRect(x + w * 0.16, winY, w * 0.68, winH);
+      g.fillStyle = `rgb(${LINES.l2})`; g.fillRect(x, y + h * 0.5, w, h * 0.056);
+      g.fillStyle = 'rgba(0,0,0,0.6)'; g.fillRect(x, y, 2, h); g.fillRect(x + w - 2, y, 2, h);
+    }
+    // the sharp frame: tiled cars with doors at their current opening
+    let sharp = null, sctx = null, mid = null, mctx = null;
+    function drawSharp() {
+      const w = Math.round(carW), h = R1 - R0;
+      if (!sharp || sharp.width !== TW + w) { sharp = document.createElement('canvas'); sharp.width = TW + w; sharp.height = Math.round(h); sctx = sharp.getContext('2d'); }
+      const g = sctx; g.clearRect(0, 0, sharp.width, sharp.height);
+      const off = mod(tx, w);
+      const d = doorRect(w, h), slide = d.w * 0.5 * doorOpen;
+      for (let x0 = -off; x0 < TW + w; x0 += w) {
+        g.drawImage(car, x0, 0);
+        // leaves slide outward over the body
+        g.save(); g.beginPath(); g.rect(x0 + d.x - d.w * 0.5, d.y, d.w * 2, d.h); g.clip();
+        const lw = d.w / 2, winY = d.y + d.h * 0.1, winH = d.h * 0.34;
+        drawLeaf(g, x0 + d.x - slide, d.y, lw, d.h, winY, winH);
+        drawLeaf(g, x0 + d.x + lw + slide, d.y, lw, d.h, winY, winH);
+        g.restore();
+      }
+    }
+    function drawTrain(dt) {
+      if (!car) car = buildCar();
+      const speed = v * (TW / 1440) * 40;          // px/s: the car moves with the sign's text
+      tx += speed * dt;
+      const goal = v === 0 ? 1 : 0;
+      doorOpen += (goal - doorOpen) * Math.min(1, dt * (goal ? 2.2 : 4));
+      drawSharp();
+      const g = tctx; g.setTransform(TD, 0, 0, TD, 0, 0);
+      g.clearRect(0, 0, TW, TH);
+      // tunnel wall behind the car band
+      g.fillStyle = '#0a0b0d'; g.fillRect(0, R0 - 40, TW, R1 - R0 + 80);
+      // motion blur: two box passes (= a triangle filter) over the exposure
+      // length. The strips are periodic in one car, so shifts wrap by w.
+      const blur = speed / 9, w = Math.round(carW);
+      // nothing on the far side is ever quite in focus
+      g.filter = `blur(${(2.6 + Math.min(2, blur / 120)).toFixed(2)}px)`;
+      if (blur < 3) g.drawImage(sharp, 0, R0);
+      else {
+        if (!mid || mid.width !== sharp.width) { mid = document.createElement('canvas'); mid.width = sharp.width; mid.height = sharp.height; mctx = mid.getContext('2d'); }
+        const n = Math.min(9, Math.max(2, Math.round(blur / 14)));
+        trainJit = (trainJit + 0.618) % 1;
+        mctx.clearRect(0, 0, mid.width, mid.height);
+        mctx.globalAlpha = 1 / n;
+        for (let i = 0; i < n; i++) {
+          const sx = mod(blur * 0.5 * ((i + trainJit) / n - 0.5), w);
+          mctx.drawImage(sharp, -sx, 0); mctx.drawImage(sharp, w - sx, 0);
+        }
+        mctx.globalAlpha = 1;
+        g.globalAlpha = 1 / n;
+        for (let i = 0; i < n; i++) {
+          const sx = mod(blur * 0.5 * ((i + 1 - trainJit) / n - 0.5), w);
+          g.drawImage(mid, -sx, R0); g.drawImage(mid, w - sx, R0);
+        }
+        g.globalAlpha = 1;
+      }
+      g.filter = 'none';
+      // at speed the lit windows smear into a glowing band
+      const glow = Math.min(1, speed / 1800);
+      if (glow > 0.02) {
+        const h = R1 - R0;
+        let gg = g.createLinearGradient(0, R0 + h * 0.08, 0, R0 + h * 0.56);
+        gg.addColorStop(0, 'rgba(255,240,215,0)'); gg.addColorStop(0.45, `rgba(255,240,215,${0.14 * glow})`); gg.addColorStop(1, 'rgba(255,240,215,0)');
+        g.fillStyle = gg; g.fillRect(0, R0, TW, h * 0.6);
+      }
+      // the platform edge in front of it: dark gap, yellow safety strip, floor
+      g.filter = 'blur(1.8px)';
+      g.fillStyle = '#050506'; g.fillRect(0, R1, TW, TH - R1);
+      g.fillStyle = 'rgba(255,255,255,0.10)'; g.fillRect(0, R1 + 2, TW, 2);
+      g.fillStyle = 'rgba(250,200,40,0.38)'; g.fillRect(0, R1 + TH * 0.045, TW, TH * 0.012);
+      g.fillStyle = 'rgba(250,200,40,0.10)'; g.fillRect(0, R1 + TH * 0.040, TW, TH * 0.022);
+      let gr = g.createLinearGradient(0, R1 + TH * 0.06, 0, TH);
+      gr.addColorStop(0, '#17181c'); gr.addColorStop(1, '#08090b');
+      g.fillStyle = gr; g.fillRect(0, R1 + TH * 0.06, TW, TH);
+      // light from the windows falls on the platform when the train stands
+      g.fillStyle = `rgba(255,220,170,${0.05 * doorOpen})`; g.fillRect(0, R1 + TH * 0.06, TW, TH);
+      g.filter = 'none';
+      // haze where the ceiling meets the far side
+      gr = g.createLinearGradient(0, R0 - 40, 0, R0 + 60);
+      gr.addColorStop(0, 'rgba(13,14,17,1)'); gr.addColorStop(1, 'rgba(13,14,17,0)');
+      g.fillStyle = gr; g.fillRect(0, R0 - 40, TW, 100);
+    }
+
+    // ── sound (all synthesised, no recordings) ──
+    const sound = (() => {
+      let ac = null, out = null, muted = false, lastArrive = -1e9;
+      function init() {
+        if (ac) { if (ac.state !== 'running') ac.resume(); return; }
+        ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state !== 'running') ac.resume();
+        out = ac.createGain(); out.gain.value = 0.5;
+        // a little station hall: feedback delay, darkened
+        const dry = ac.createGain(); dry.gain.value = 0.8;
+        const wet = ac.createGain(); wet.gain.value = 0.3;
+        const dl = ac.createDelay(1); dl.delayTime.value = 0.21;
+        const fb = ac.createGain(); fb.gain.value = 0.4;
+        const lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+        out.connect(dry).connect(ac.destination);
+        out.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(wet).connect(ac.destination);
+      }
+      // a plucked string in the spirit of a gayageum: bright attack, quick decay, a little pitch sag
+      function pluck(f, when, dur = 1.0, g = 0.45) {
+        const o1 = ac.createOscillator(), o2 = ac.createOscillator(), env = ac.createGain(), flt = ac.createBiquadFilter(), g2 = ac.createGain();
+        o1.type = 'triangle'; o2.type = 'sine';
+        o1.frequency.setValueAtTime(f * 1.012, when); o1.frequency.exponentialRampToValueAtTime(f, when + 0.09);
+        o2.frequency.value = f * 2; g2.gain.value = 0.22;
+        flt.type = 'lowpass'; flt.frequency.setValueAtTime(5000, when); flt.frequency.exponentialRampToValueAtTime(700, when + dur);
+        env.gain.setValueAtTime(0, when); env.gain.linearRampToValueAtTime(g, when + 0.006); env.gain.exponentialRampToValueAtTime(0.001, when + dur);
+        o1.connect(flt); o2.connect(g2).connect(flt); flt.connect(env).connect(out);
+        o1.start(when); o2.start(when); o1.stop(when + dur + 0.05); o2.stop(when + dur + 0.05);
+      }
+      // a soft chime: fundamental plus two inharmonic partials
+      function bell(f, when, dur = 1.2, g = 0.16) {
+        for (const [m, gg] of [[1, 1], [2.76, 0.3], [5.4, 0.1]]) {
+          const o = ac.createOscillator(), e = ac.createGain();
+          o.frequency.value = f * m;
+          e.gain.setValueAtTime(0, when); e.gain.linearRampToValueAtTime(g * gg, when + 0.004);
+          e.gain.exponentialRampToValueAtTime(0.0005, when + dur / (1 + m * 0.3));
+          o.connect(e).connect(out); o.start(when); o.stop(when + dur);
+        }
+      }
+      const N = { C4: 261.63, C5: 523.25, D5: 587.33, E5: 659.25, G5: 783.99, A5: 880, C6: 1046.5 };
+      return {
+        init,
+        get ready() { return !!ac && ac.state === 'running'; },
+        get muted() { return muted; },
+        toggle() { muted = !muted; if (out) out.gain.value = muted ? 0 : 0.5; return muted; },
+        // a tiny confirmation when sound is switched on
+        ping() { if (!ac || muted) return; bell(N.G5, ac.currentTime, 0.6, 0.16); },
+        // the train stands at the platform: a short pentatonic transfer melody
+        arrive() {
+          if (!ac || muted) return;
+          if (ac.currentTime - lastArrive < 2.4) return;   // don't pile the melody onto itself
+          lastArrive = ac.currentTime;
+          const t0 = ac.currentTime + 0.05;
+          const seq = [[N.G5, 0], [N.E5, 0.17], [N.D5, 0.34], [N.E5, 0.51], [N.G5, 0.68], [N.A5, 0.85], [N.G5, 1.12], [N.E5, 1.46], [N.D5, 1.8], [N.C5, 2.06]];
+          for (const [f, d] of seq) pluck(f, t0 + d, 1.1, 0.4);
+          pluck(N.C4, t0 + 2.06, 2.2, 0.28);
+        },
+        // doors closing, pulling out
+        depart() { if (!ac || muted) return; const t0 = ac.currentTime + 0.02; bell(N.E5, t0, 1.0, 0.13); bell(N.C5, t0 + 0.24, 1.5, 0.13); },
+        // a phrase changes language at the doors
+        tick() { if (!ac || muted) return; bell(N.C6, ac.currentTime, 0.4, 0.11); },
+      };
+    })();
+
+    // ── input ──
+    let lastPX = null;
+    window.addEventListener('pointermove', (e) => {
+      if (lastPX !== null) {
+        const dx = (e.clientX - lastPX) / p;
+        v = Math.min(150, Math.max(0, v - dx * 0.5));
+      }
+      lastPX = e.clientX;
+    });
+    window.addEventListener('pointerleave', () => { lastPX = null; });
+    // the melody starts the moment you press, while the train is still braking
+    function press() { if (holding) return; holding = true; sound.init(); sound.arrive(); document.body.classList.add('hold'); hint.classList.add('off'); sndLabel(); }
+    window.addEventListener('pointerdown', (e) => { if (e.target.closest('button, a')) return; press(); });
+    window.addEventListener('pointerup', () => { sound.init(); holding = false; document.body.classList.remove('hold'); sndLabel(); });
+    window.addEventListener('pointercancel', () => { holding = false; document.body.classList.remove('hold'); });
+    window.addEventListener('wheel', (e) => { v = Math.min(150, Math.max(0, v + e.deltaY * 0.12)); }, { passive: true });
+    window.addEventListener('keydown', (e) => { if (e.code === 'Space') { press(); e.preventDefault(); } if (e.key === 'm') snd.click(); });
+    window.addEventListener('keyup', (e) => { if (e.code === 'Space') holding = false; sndLabel(); });
+    // the button reads the current state. The first click only wakes the audio
+    // up (the browser needs a gesture for that); after that it mutes/unmutes.
+    const snd = document.getElementById('snd');
+    function sndLabel() {
+      const on = sound.ready && !sound.muted;
+      snd.textContent = !sound.ready ? 'SOUND: TAP TO ENABLE' : on ? 'SOUND: ON' : 'SOUND: OFF';
+      snd.classList.toggle('on', on);
+    }
+    snd.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const wasReady = sound.ready;
+      sound.init();
+      if (wasReady) sound.toggle();
+      if (!sound.muted) sound.ping();
+      setTimeout(sndLabel, 50); sndLabel();
+    });
+    window.addEventListener('resize', () => { resize(); trainResize(); });
+    setTimeout(() => hint.classList.add('off'), 9000);
+
+    // ── boot ──
+    const allText = (i) => PHRASES.map(v => v[i]).join('') + SMALL_TEXT;
+    Promise.all(LANGS.map((l, i) => document.fonts.load(`700 24px ${l.font}`, allText(i))))
+      .catch(() => {})
+      .then(() => {
+        resize(); trainResize();
+        x = -Math.round(cols * 0.5);
+        if (PREVIEW) {
+          hint.classList.add('off');
+          // a moment mid-run: the station name is in the doors, earlier phrases already transferred
+          x = phrases[2].pos - zoneX + 4;
+          phrases[0].lang = 1; phrases[1].lang = 1;
+          phrases[2].prev = 0; phrases[2].lang = 1; phrases[2].flipT = (ZW / 2 + 6) / SWEEP;
+          for (const ph of phrases) ph.prevRel = mod(ph.pos - Math.floor(x) - zoneX, L);
+        }
+        requestAnimationFrame(frame);
+      });
+  </script>
+</body>
+</html>
