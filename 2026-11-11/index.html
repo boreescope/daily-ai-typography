@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>빈칸 — THE BLANK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #171410; }
+  body { font-family: 'Space Mono', monospace; cursor: default; }
+  body.pick { cursor: pointer; }
+  canvas { display: block; }
+
+  .home-btn {
+    position: fixed; left: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
+    color: #9a8f78; text-decoration: none; padding: 9px 13px;
+    border: 1px solid rgba(154,143,120,.32); background: rgba(23,20,16,.6);
+    transition: color .3s, border-color .3s;
+  }
+  .home-btn:hover { color: #e4d9bf; border-color: rgba(228,217,191,.5); }
+
+  .snd {
+    position: fixed; right: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
+    color: #9a8f78; padding: 9px 13px; cursor: pointer;
+    border: 1px solid rgba(154,143,120,.32); background: rgba(23,20,16,.6);
+    transition: color .3s, border-color .3s;
+  }
+  .snd:hover { color: #e4d9bf; border-color: rgba(228,217,191,.5); }
+
+  .hint {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
+    font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
+    color: rgba(154,143,120,.72); white-space: nowrap; pointer-events: none;
+    background: rgba(23,20,16,.7); padding: 8px 13px;
+    transition: opacity 1.2s ease;
+  }
+  .hint.off { opacity: 0; }
+
+  body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<a class="home-btn" href="../index.html">← INDEX</a>
+<div class="snd" id="snd">SOUND: ON</div>
+<div class="hint" id="hint">CLICK A BLANK · 다시 누르면 지우고 고쳐 쓴다</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+if (PREVIEW) document.body.classList.add('preview');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+const PW = 1240, PH = 1580;      // the sheet, in its own units
+const MG = 112;
+const INK = [50, 54, 116];        // 등사 ink, a violet blue that never printed evenly
+const LEAD = [78, 78, 88];        // pencil
+
+let W = 0, H = 0, K = 1, OX = 0, OY = 0;
+const sx = x => OX + x * K, sy = y => OY + y * K;
+const px2p = (x, y) => [(x - OX) / K, (y - OY) / K];
+
+// ── the paper ──────────────────────────────────────────────────────────────
+// 1학기 기말, 국어. Five questions and a name, and every one of them has a hole
+// in the middle of it.
+const QS = [
+  { n: '1', pre: '나는 ', post: ' 사람이 되고 싶다.',
+    w: ['괜찮은', '쓸모 있는', '아무나 아닌', '조용한', '덜 미안한', '사라지지 않는'] },
+  { n: '2', pre: '어른이 되면 ', post: ' 할 줄 알아야 한다.',
+    w: ['거절', '포기', '모른 척', '적당히', '계산', '혼자'] },
+  { n: '3', pre: '내가 가장 ', post: ' 때는 혼자 있을 때다.',
+    w: ['편한', '무서운', '솔직한', '나 같은', '멀쩡한', '어린'] },
+  { n: '4', pre: '끝내 ', post: ' 말이 있다.',
+    w: ['꺼내지 못한', '하지 않은', '삼킨', '고르다 만', '늦은'] },
+  { n: '5', pre: '시험이 끝나면 ', post: '.',
+    w: ['자고 싶다', '배가 고플 것이다', '아무 일도 없다', '또 시험이다', '다 잊는다'] },
+];
+const NAMEW = ['아무개', '빈칸', '모름', '나', '미상'];
+
+const BLANKS = [];   // filled by layout(): {x,y,w,h,words,idx,state,st,er,torn}
+let paper = null, marks = null, mg = null;
+let done = false, stampT = 0, pencilT = 0;
+let crumbs = [], t = 0, hover = -1;
+
+function inkText(g, str, x, y, size, seed, weight) {
+  // 등사기 is a stencil: the ink is thin in some letters and floods in others,
+  // and the second pull of the drum never lands on the first.
+  g.font = `${weight || 400} ${size}px "Nanum Myeongjo", serif`;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  let cx = x;
+  for (let i = 0; i < str.length; i++) {
+    const ch = str[i];
+    const w = g.measureText(ch).width;
+    const a = 0.62 + Math.random() * 0.34;
+    const jx = (Math.random() - 0.5) * size * 0.035;
+    const jy = (Math.random() - 0.5) * size * 0.045;
+    g.fillStyle = `rgba(${INK[0] + 24},${INK[1] + 28},${INK[2] + 20},${a * 0.22})`;
+    g.fillText(ch, cx + jx + size * 0.035, y + jy + size * 0.022);
+    g.fillStyle = `rgba(${INK[0]},${INK[1]},${INK[2]},${a})`;
+    g.fillText(ch, cx + jx, y + jy);
+    cx += w;
+  }
+  return cx - x;
+}
+
+function inkWidth(g, str, size, weight) {
+  g.font = `${weight || 400} ${size}px "Nanum Myeongjo", serif`;
+  return g.measureText(str).width;
+}
+
+function paperTexture(g) {
+  g.fillStyle = '#cdc6b0';
+  g.fillRect(0, 0, PW, PH);
+
+  // 갱지: cheap pulp, so the tone wanders and there are darker fibres in it
+  for (let i = 0; i < 16; i++) {
+    const r = rnd(80, 230), x = rnd(0, PW), y = rnd(0, PH);
+    const gd = g.createRadialGradient(x, y, 0, x, y, r);
+    const dark = Math.random() > 0.45;
+    gd.addColorStop(0, dark ? 'rgba(152,142,120,.05)' : 'rgba(228,222,203,.1)');
+    gd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gd;
+    g.fillRect(x - r, y - r, r * 2, r * 2);
+  }
+  for (let i = 0; i < 2800; i++) {
+    const x = rnd(0, PW), y = rnd(0, PH), l = rnd(1, 7);
+    g.strokeStyle = `rgba(${rnd(120, 170) | 0},${rnd(110, 158) | 0},${rnd(92, 134) | 0},${rnd(.05, .2)})`;
+    g.lineWidth = rnd(0.5, 1.3);
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + rnd(-l, l), y + rnd(-l, l));
+    g.stroke();
+  }
+  // the fold it arrived in
+  g.strokeStyle = 'rgba(120,112,92,.16)';
+  g.lineWidth = 2.2;
+  g.beginPath(); g.moveTo(0, PH * 0.5); g.lineTo(PW, PH * 0.5 + 3); g.stroke();
+  g.strokeStyle = 'rgba(240,236,220,.26)';
+  g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(0, PH * 0.5 - 3); g.lineTo(PW, PH * 0.5); g.stroke();
+}
+
+function layout(g) {
+  BLANKS.length = 0;
+  const col = PW - MG * 2;
+
+  // header
+  inkText(g, '1학기 기말', MG, 132, 24, 1);
+  inkText(g, '국 어', MG, 196, 58, 2, 800);
+  const nx = MG + 352;
+  inkText(g, '이름', nx, 190, 30, 3);
+  BLANKS.push({ x: nx + 78, y: 158, w: 214, h: 44, words: NAMEW, idx: 0, state: 0, st: 0, er: 0, torn: 0, size: 32 });
+
+  inkText(g, '점수', PW - MG - 148, 142, 24, 4);
+  g.strokeStyle = `rgba(${INK[0]},${INK[1]},${INK[2]},.6)`;
+  g.lineWidth = 2;
+  g.strokeRect(PW - MG - 108, 152, 108, 68);
+
+  g.strokeStyle = `rgba(${INK[0]},${INK[1]},${INK[2]},.72)`;
+  g.lineWidth = 3;
+  g.beginPath(); g.moveTo(MG, 248); g.lineTo(PW - MG, 248); g.stroke();
+
+  inkText(g, '※ 빈칸에 알맞은 말을 쓰시오. 고쳐 쓴 자리는 감점하지 않는다.', MG, 310, 25, 5);
+
+  const SZ = 38, BW = 300;
+  let y = 430;
+  for (const q of QS) {
+    inkText(g, q.n + '.', MG, y, SZ, 10 + y, 700);
+    let x = MG + 54;
+    x += inkText(g, q.pre, x, y, SZ, 20 + y);
+    BLANKS.push({ x, y: y - SZ * 0.9, w: BW, h: SZ * 1.25, words: q.w, idx: 0, state: 0, st: 0, er: 0, torn: 0, size: SZ });
+    // the rule you are meant to write on
+    g.strokeStyle = `rgba(${INK[0]},${INK[1]},${INK[2]},.78)`;
+    g.lineWidth = 2.4;
+    g.beginPath(); g.moveTo(x, y + 9); g.lineTo(x + BW, y + 9); g.stroke();
+    x += BW;
+    inkText(g, q.post, x, y, SZ, 30 + y);
+    y += 212;
+  }
+
+  // the rule under the name, drawn last so it uses the same hand
+  const b0 = BLANKS[0];
+  g.strokeStyle = `rgba(${INK[0]},${INK[1]},${INK[2]},.78)`;
+  g.lineWidth = 2.4;
+  g.beginPath(); g.moveTo(b0.x, 198); g.lineTo(b0.x + b0.w, 198); g.stroke();
+}
+
+function bake() {
+  paper = document.createElement('canvas');
+  paper.width = PW; paper.height = PH;
+  const g = paper.getContext('2d');
+  paperTexture(g);
+  layout(g);
+
+  marks = document.createElement('canvas');
+  marks.width = PW; marks.height = PH;
+  mg = marks.getContext('2d');
+}
+// ── sound ──────────────────────────────────────────────────────────────────
+// An empty classroom: the fluorescent tube, and whatever the hand is doing.
+const sound = (() => {
+  let ac = null, on = true, master, nb = null;
+
+  function noiseBuf() {
+    if (nb) return nb;
+    const len = ac.sampleRate * 2;
+    nb = ac.createBuffer(1, len, ac.sampleRate);
+    const d = nb.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    return nb;
+  }
+
+  function build() {
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = 0.9;
+    const comp = ac.createDynamicsCompressor();
+    master.connect(comp).connect(ac.destination);
+
+    // the tube overhead
+    const o = ac.createOscillator();
+    o.type = 'sawtooth'; o.frequency.value = 120;
+    const f = ac.createBiquadFilter();
+    f.type = 'bandpass'; f.frequency.value = 240; f.Q.value = 9;
+    const g = ac.createGain(); g.gain.value = 0.012;
+    o.connect(f).connect(g).connect(master);
+    o.start();
+
+    const src = ac.createBufferSource();
+    src.buffer = noiseBuf(); src.loop = true;
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 420;
+    const ng = ac.createGain(); ng.gain.value = 0.035;
+    src.connect(lp).connect(ng).connect(master);
+    src.start();
+  }
+
+  function burst(dur, freq, q, vol, sweep) {
+    if (!ac || !on) return;
+    const n = ac.currentTime;
+    const s = ac.createBufferSource();
+    s.buffer = noiseBuf();
+    s.loop = true;
+    s.playbackRate.value = 0.8 + Math.random() * 0.5;
+    const f = ac.createBiquadFilter();
+    f.type = 'bandpass'; f.frequency.setValueAtTime(freq, n); f.Q.value = q;
+    if (sweep) f.frequency.exponentialRampToValueAtTime(freq * sweep, n + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, n);
+    g.gain.linearRampToValueAtTime(vol, n + dur * 0.16);
+    g.gain.exponentialRampToValueAtTime(0.0001, n + dur);
+    s.connect(f).connect(g).connect(master);
+    s.start(n); s.stop(n + dur + 0.05);
+  }
+
+  function tone(f, vol, dur, type) {
+    if (!ac || !on) return;
+    const n = ac.currentTime;
+    const o = ac.createOscillator();
+    o.type = type || 'sine';
+    o.frequency.value = f;
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, n);
+    g.gain.linearRampToValueAtTime(vol, n + 0.006);
+    g.gain.exponentialRampToValueAtTime(0.0001, n + dur);
+    o.connect(g).connect(master);
+    o.start(n); o.stop(n + dur + 0.05);
+  }
+
+  return {
+    live: () => !!ac && on && ac.state === 'running',
+    kick() { if (!ac) build(); else if (ac.state === 'suspended') ac.resume(); },
+    toggle() {
+      if (!ac) { build(); on = true; return true; }
+      on = !on;
+      master.gain.setTargetAtTime(on ? 0.9 : 0, ac.currentTime, 0.1);
+      if (on) ac.resume();
+      return on;
+    },
+    tick() { burst(0.035, 2600 + Math.random() * 900, 14, 0.05); },
+    scratch() { burst(0.26, 1500, 3, 0.07, 0.6); },
+    settle() { burst(0.09, 900, 5, 0.08, 0.5); tone(150, 0.05, 0.1, 'triangle'); },
+    rub() { burst(0.5, 760, 1.6, 0.13, 1.5); },
+    tear() { burst(0.34, 2100, 1.1, 0.17, 0.25); },
+    stamp() { tone(92, 0.2, 0.16, 'triangle'); burst(0.12, 620, 2, 0.12, 0.4); },
+    bell() { for (const [f, v] of [[1047, .055], [1568, .028], [2093, .016]]) tone(f, v, 3.4); },
+  };
+})();
+
+// ── marks that stay on the paper ───────────────────────────────────────────
+function rubOut(b) {
+  b.er++;
+  sound.rub();
+  for (let i = 0; i < 16 + b.er * 7; i++) {
+    const x = b.x + rnd(-12, b.w + 12), y = b.y + rnd(-5, b.h + 5);
+    const r = rnd(7, 20);
+    mg.fillStyle = `rgba(214,208,190,${rnd(.025, .075)})`;
+    mg.beginPath();
+    mg.ellipse(x, y, r, r * rnd(.4, .8), rnd(0, 3.1), 0, TAU);
+    mg.fill();
+  }
+  for (let i = 0; i < 14 + b.er * 8; i++) {
+    const x = b.x + rnd(0, b.w), y = b.y + rnd(3, b.h - 3);
+    mg.strokeStyle = `rgba(112,108,100,${rnd(.05, .16)})`;
+    mg.lineWidth = rnd(1, 3.6);
+    mg.beginPath();
+    mg.moveTo(x, y);
+    mg.lineTo(x + rnd(-32, 32), y + rnd(-4, 4));
+    mg.stroke();
+  }
+  for (let i = 0; i < 8; i++) {
+    crumbs.push({
+      x: b.x + rnd(0, b.w), y: b.y + b.h * 0.55,
+      vx: rnd(-34, 34), vy: rnd(-70, 10), r: rnd(1.5, 4.6),
+      floor: PH - rnd(50, 125),
+    });
+  }
+  if (b.er >= 4) tearOut(b);
+}
+
+function tearOut(b) {
+  b.torn = 1;
+  b.state = 0;
+  sound.tear();
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2, rx = b.w * 0.40, ry = b.h * 0.46;
+  b.hole = []; b.fray = [];
+  let rr = 1;
+  for (let i = 0; i < 44; i++) {
+    const a = i / 44 * TAU;
+    rr = clamp(rr + rnd(-.09, .09), 0.84, 1.1);   // walks, so the edge wanders instead of spiking
+    const c = Math.cos(a), sn = Math.sin(a);
+    b.hole.push([cx + c * rx * rr, cy + sn * ry * rr]);
+    const fr = rr + rnd(.05, .17);
+    b.fray.push([cx + c * rx * fr, cy + sn * ry * fr]);
+  }
+}
+
+// ── pencil ─────────────────────────────────────────────────────────────────
+function lead(g, str, cx, cy, size, a) {
+  g.font = `400 ${size}px "Gaegu", cursive`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = `rgba(${LEAD[0]},${LEAD[1]},${LEAD[2]},${a * 0.26})`;
+  g.fillText(str, cx + 1.4, cy + 1.2);
+  g.fillStyle = `rgba(${LEAD[0]},${LEAD[1]},${LEAD[2]},${a * 0.9})`;
+  g.fillText(str, cx, cy);
+}
+
+function fitSize(g, str, base, maxW) {
+  let s = base;
+  g.font = `400 ${s}px "Gaegu", cursive`;
+  const w = g.measureText(str).width;
+  if (w > maxW) s = Math.max(14, s * maxW / w);
+  return s;
+}
+
+function drawAnswers(g) {
+  for (const b of BLANKS) {
+    if (b.torn) continue;
+    const cx = b.x + b.w / 2, cy = b.y + b.h * 0.46;
+
+    if (b.state === 1) {
+      // the reel: the hand running down a list it does not want to choose from
+      const L = b.words.length;
+      const u = clamp(b.st / 1.0, 0, 1);
+      const pos = b.steps * (1 - Math.pow(1 - u, 3));
+      const i0 = Math.floor(pos), fr = pos - i0;
+      g.save();
+      g.beginPath();
+      g.rect(b.x - 4, b.y - 2, b.w + 8, b.h + 4);
+      g.clip();
+      for (const [k, off] of [[0, -fr], [1, 1 - fr]]) {
+        const w = b.words[(b.start + i0 + k) % L];
+        const s = fitSize(g, w, b.size * 1.18, b.w * 0.92);
+        lead(g, w, cx, cy + off * b.h, s, k === 0 ? 1 - fr * 0.4 : 0.6 + fr * 0.4);
+      }
+      g.restore();
+    } else if (b.state === 2) {
+      const w = b.words[b.idx];
+      const s = fitSize(g, w, b.size * 1.18, b.w * 0.92);
+      lead(g, w, cx, cy, s, 1);
+    }
+  }
+}
+
+// ── the stamp ──────────────────────────────────────────────────────────────
+const RING = Array.from({ length: 44 }, () => 0.3 + Math.random() * 0.65);
+function drawStamp(g) {
+  if (!done) return;
+  const u = clamp(stampT / 0.4, 0, 1);
+  const sc = 1 + Math.pow(1 - u, 2) * 0.9;
+  g.save();
+  g.translate(PW - MG - 54, 186);
+  g.rotate(-0.22);
+  g.scale(sc, sc);
+  g.lineWidth = 7;
+  g.strokeStyle = 'rgba(176,58,46,.8)';
+  for (let i = 0; i < RING.length; i++) {
+    g.globalAlpha = u * RING[i];
+    g.beginPath();
+    g.arc(0, 0, 60, i / RING.length * TAU, (i + 1) / RING.length * TAU);
+    g.stroke();
+  }
+  g.globalAlpha = u * 0.82;
+  g.font = '800 44px "Nanum Myeongjo", serif';
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = 'rgba(176,58,46,.85)';
+  g.fillText('미완', 0, 3);
+  g.restore();
+  g.globalAlpha = 1;
+}
+
+// ── draw ───────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.fillStyle = '#171410';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.translate(OX, OY);
+  ctx.scale(K, K);
+
+  ctx.shadowColor = 'rgba(0,0,0,.6)';
+  ctx.shadowBlur = 34; ctx.shadowOffsetY = 10;
+  ctx.fillStyle = '#cdc6b0';
+  ctx.fillRect(0, 0, PW, PH);
+  ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+
+  ctx.drawImage(paper, 0, 0);
+  ctx.drawImage(marks, 0, 0);
+
+  // the blank the cursor is over lifts a little off the page
+  if (hover >= 0 && !BLANKS[hover].torn) {
+    const b = BLANKS[hover];
+    ctx.fillStyle = 'rgba(96,104,150,.05)';
+    ctx.fillRect(b.x - 4, b.y - 2, b.w + 8, b.h + 4);
+  }
+
+  for (const b of BLANKS) {
+    if (!b.hole) continue;
+    const path = pts => { ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]); ctx.closePath(); };
+    path(b.fray);
+    ctx.fillStyle = 'rgba(226,220,202,.7)';   // raw pulp, lighter than the printed side
+    ctx.fill();
+    path(b.hole);
+    ctx.fillStyle = '#171410';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(74,64,48,.5)';
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+  }
+
+  drawAnswers(ctx);
+  drawStamp(ctx);
+
+  if (pencilT > 0) {
+    const a = clamp(pencilT / 1.6, 0, 1);
+    lead(ctx, '여기까지 쓰고 냈다', PW / 2, PH - 196, 40, a * 0.82);
+  }
+
+  for (const c of crumbs) {
+    ctx.fillStyle = 'rgba(112,108,98,.55)';
+    ctx.beginPath();
+    ctx.arc(c.x, c.y, c.r, 0, TAU);
+    ctx.fill();
+  }
+
+  ctx.restore();
+}
+
+// ── step ───────────────────────────────────────────────────────────────────
+function step(dt) {
+  if (PREVIEW) return;
+  t += dt;
+
+  for (const b of BLANKS) {
+    if (b.state !== 1) continue;
+    const was = Math.floor(b.steps * (1 - Math.pow(1 - clamp(b.st / 1.0, 0, 1), 3)));
+    b.st += dt;
+    const u = clamp(b.st / 1.0, 0, 1);
+    const now = Math.floor(b.steps * (1 - Math.pow(1 - u, 3)));
+    if (now !== was && u < 0.97) sound.tick();
+    if (u >= 1) {
+      b.state = 2;
+      b.idx = (b.start + b.steps) % b.words.length;
+      sound.settle();
+    }
+  }
+
+  for (let i = crumbs.length - 1; i >= 0; i--) {
+    const c = crumbs[i];
+    c.vy += 520 * dt;
+    c.x += c.vx * dt; c.y += c.vy * dt;
+    if (c.y >= c.floor) {
+      mg.fillStyle = `rgba(108,104,94,${rnd(.3, .6)})`;
+      mg.beginPath();
+      mg.arc(c.x, c.floor, c.r, 0, TAU);
+      mg.fill();
+      crumbs.splice(i, 1);
+    }
+  }
+
+  if (!done && BLANKS.every(b => b.state === 2 || b.torn)) {
+    done = true; stampT = 0;
+    sound.bell();
+    setTimeout(() => sound.stamp(), 180);
+  }
+  if (done) {
+    stampT += dt;
+    if (stampT > 1.1) pencilT += dt;
+  }
+}
+
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  step(dt);
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ── input ──────────────────────────────────────────────────────────────────
+const hintEl = document.getElementById('hint');
+
+function hit(mx, my) {
+  const [x, y] = px2p(mx, my);
+  for (let i = 0; i < BLANKS.length; i++) {
+    const b = BLANKS[i];
+    if (x > b.x - 6 && x < b.x + b.w + 6 && y > b.y - 4 && y < b.y + b.h + 4) return i;
+  }
+  return -1;
+}
+
+function spin(b) {
+  if (b.torn || b.state === 1) return;
+  if (b.state === 2) rubOut(b);
+  if (b.torn) return;
+  const L = b.words.length;
+  b.start = b.state === 2 ? b.idx : (Math.random() * L) | 0;
+  b.steps = 11 + ((Math.random() * L) | 0) + L;
+  b.state = 1;
+  b.st = 0;
+  sound.scratch();
+}
+
+cv.addEventListener('pointermove', e => {
+  hover = hit(e.clientX, e.clientY);
+  document.body.classList.toggle('pick', hover >= 0 && !BLANKS[hover].torn);
+});
+
+cv.addEventListener('pointerdown', e => {
+  sound.kick();
+  const i = hit(e.clientX, e.clientY);
+  if (i < 0) return;
+  spin(BLANKS[i]);
+  hintEl.classList.add('off');
+});
+
+const sndEl = document.getElementById('snd');
+sndEl.addEventListener('click', () => {
+  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+
+// ── layout ─────────────────────────────────────────────────────────────────
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  if (PREVIEW) {
+    // a thumbnail has no room for a whole sheet, so it gets the top of one
+    K = W * 1.5 / PW;
+    OX = -100 * K; OY = -95 * K;
+  } else {
+    K = Math.min(H * 0.95 / PH, W * 0.95 / PW);
+    OX = (W - PW * K) / 2;
+    OY = (H - PH * K) / 2;
+  }
+}
+window.addEventListener('resize', resize);
+
+// ── boot ───────────────────────────────────────────────────────────────────
+(async () => {
+  try {
+    await Promise.all([
+      document.fonts.load('800 60px "Nanum Myeongjo"'),
+      document.fonts.load('400 40px "Gaegu"'),
+      document.fonts.load('700 30px "Space Mono"'),
+    ]);
+    await document.fonts.ready;
+  } catch (e) { /* whatever is loaded will have to do */ }
+
+  bake();
+  resize();
+
+  if (PREVIEW) {
+    BLANKS[0].state = 2; BLANKS[0].idx = 0;
+    BLANKS[1].state = 2; BLANKS[1].idx = 4;
+    BLANKS[2].state = 2; BLANKS[2].idx = 2;
+    BLANKS[1].er = 1;
+    for (let i = 0; i < 22; i++) {
+      const b = BLANKS[1];
+      mg.fillStyle = `rgba(216,210,192,${rnd(.05, .16)})`;
+      mg.beginPath();
+      mg.ellipse(b.x + rnd(-12, b.w + 12), b.y + rnd(-5, b.h + 5), rnd(9, 26), rnd(5, 16), rnd(0, 3.1), 0, TAU);
+      mg.fill();
+    }
+    draw();
+    return;
+  }
+
+  setTimeout(() => hintEl.classList.add('off'), 15000);
+  last = performance.now();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
