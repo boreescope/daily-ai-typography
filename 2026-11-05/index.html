@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>소음 — NOISE MPC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kirang+Haerang&family=Noto+Sans+KR:wght@500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05070d; }
+  body { font-family: 'Space Mono', monospace; cursor: default; }
+  canvas { display: block; position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
+
+  .home-btn {
+    position: fixed; left: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
+    color: #c8a86a; text-decoration: none;
+    padding: 9px 13px; border: 1px solid rgba(200,168,106,.35);
+  }
+  .home-btn:hover { color: #ffd591; border-color: rgba(255,213,145,.7); }
+
+  .snd {
+    position: fixed; right: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
+    color: #c8a86a; background: none; border: 1px solid rgba(200,168,106,.35);
+    padding: 9px 13px; cursor: pointer;
+  }
+  .snd:hover { color: #ffd591; border-color: rgba(255,213,145,.7); }
+  .snd.on { color: #ffd591; border-color: rgba(255,213,145,.7); }
+
+  /* transport readout, bottom-left — the only standing text on the page */
+  .hud {
+    position: fixed; left: 26px; bottom: 24px; z-index: 20;
+    font: 400 11px/1.9 'Space Mono', monospace; letter-spacing: .12em;
+    color: rgba(190,170,135,.5); pointer-events: none;
+  }
+  .hud b { font-weight: 700; color: rgba(255,213,145,.9); }
+
+  .count {
+    position: fixed; right: 26px; bottom: 24px; z-index: 20; text-align: right;
+    font: 400 11px/1.9 'Space Mono', monospace; letter-spacing: .12em;
+    color: rgba(190,170,135,.5); pointer-events: none;
+  }
+  .count b { font: 700 30px/1 'Space Mono', monospace; color: #ffd591; display: block; margin-bottom: 5px; }
+  .count.over b { color: #ff7a59; }
+
+  .hint {
+    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20;
+    font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
+    color: rgba(190,170,135,.42); white-space: nowrap; pointer-events: none;
+    transition: opacity 1.4s ease;
+  }
+  .hint.off { opacity: 0; }
+
+  body.preview .home-btn, body.preview .snd,
+  body.preview .hud, body.preview .count, body.preview .hint { display: none; }
+</style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <a class="home-btn" href="../index.html">HOME</a>
+  <button class="snd" id="snd">SOUND: TAP TO START</button>
+  <div class="hud"><b id="bpm">92</b> BPM · 4/4<br><span id="clk">22:10</span> · 야간</div>
+  <div class="count" id="count"><b id="db">28</b>dB · 야간 기준 34</div>
+  <div class="hint" id="hint">CLICK ANYWHERE FOR SOUND · SIXTEEN FLATS ANSWER — MOVE THE MOUSE TO FIND THEM · KEYS 1234 QWER ASDF ZXCV · M MUTE</div>
+
+<script>
+  const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
+  if (PREVIEW) document.body.classList.add('preview');
+
+  const cv = document.getElementById('c');
+  const ctx = cv.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  let W = 0, H = 0;
+
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+  // ── one key for the whole building ──
+  // A minor pentatonic. Every pitched voice is tuned to a degree of it, which
+  // is the difference between sixteen neighbours and sixteen noises: an 88Hz
+  // washing machine next to a 96Hz door beats against it, A2 next to E2 does not.
+  const N = {
+    A1: 55,   C2: 65.41,  D2: 73.42,  E2: 82.41,  G2: 98,
+    A2: 110,  C3: 130.81, D3: 146.83, E3: 164.81, G3: 196,
+    A3: 220,  C4: 261.63, D4: 293.66, E4: 329.63, G4: 392,
+    A4: 440,  C5: 523.25, D5: 587.33, E5: 659.25, G5: 784,
+    A5: 880,  C6: 1046.5, E6: 1318.5, A6: 1760,
+  };
+
+  // ── the sixteen households ──
+  // Each is one MPC pad. `p` is a 16-step pattern, `n` the note under a step
+  // for the voices that carry pitch. The building plays all of the lit ones at
+  // once, which is the whole piece: the noise only turns into music because the
+  // neighbours happen to be on the same clock, and now in the same key.
+  // `tone` picks the interior colour — a TV lights a room blue, a lamp amber.
+  const PADS = [
+    { k: '쿵',     key: '1', tone: 'warm', kind: 'kick',  who: 'tread',
+      p: [1,0,0,0, 0,0,1,0, 1,0,0,0, 0,0,0,0] },
+    { k: '드르륵', key: '2', tone: 'warm', kind: 'drag',  who: 'chair',
+      p: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,1,0] },
+    { k: '탕',     key: '3', tone: 'warm', kind: 'hammer', who: 'tool',
+      p: [0,0,1,0, 0,0,0,0, 0,0,1,0, 0,0,0,0] },
+    { k: '쏴아',   key: '4', tone: 'pale', kind: 'water', who: 'bath',
+      p: [0,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,0,0] },
+
+    { k: '또각',   key: 'q', tone: 'warm', kind: 'heel',  who: 'hall',
+      p: [0,0,1,0, 0,1,0,0, 0,0,1,0, 0,1,0,0] },
+    { k: '왕',     key: 'w', tone: 'warm', kind: 'bark',  who: 'dog',
+      p: [0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,1] },
+    { k: '위잉',   key: 'e', tone: 'pale', kind: 'vac',   who: 'clean',
+      p: [1,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0] },
+    // the only voice with a tune, and it sits out more bars than it plays.
+    // Somebody practising upstairs is heard in pieces through a wall, not as
+    // a part written to run under everything else.
+    { k: '딩',     key: 'r', tone: 'warm', kind: 'piano', who: 'piano',
+      p: [0,0,0,1, 0,0,1,0, 0,0,1,0, 0,0,1,0], odds: 0.34,
+      n: { 3: N.E5, 6: N.G5, 10: N.A5, 14: N.D5 } },
+
+    { k: '칙',     key: 'a', tone: 'warm', kind: 'hat',   who: 'sink',
+      p: [0,0,1,0, 0,0,1,0, 0,0,1,0, 0,0,1,0] },
+    { k: '쾅',     key: 's', tone: 'warm', kind: 'door',  who: 'door',
+      p: [0,0,0,0, 0,0,0,0, 0,0,0,0, 1,0,0,0] },
+    { k: '둥',     key: 'd', tone: 'pale', kind: 'spin',  who: 'wash',
+      p: [0,0,1,0, 0,0,0,0, 0,0,1,0, 0,0,0,0] },
+    { k: '통',     key: 'f', tone: 'warm', kind: 'ball',  who: 'kid',
+      p: [0,0,0,1, 0,0,1,0, 0,0,0,1, 0,0,1,0] },
+
+    { k: '똑',     key: 'z', tone: 'pale', kind: 'drip',  who: 'tap',
+      p: [0,0,0,0, 0,0,0,1, 0,0,0,0, 0,0,0,1] },
+    // root, root, fifth — a bass line, not a pulse. It keeps the downbeat
+    // more often than the piano keeps anything; a subwoofer through a floor
+    // is the one neighbour you hear every bar
+    { k: '웅',     key: 'x', tone: 'warm', kind: 'bass',  who: 'speaker',
+      p: [1,0,0,0, 0,0,1,0, 0,0,0,0, 0,0,1,0], odds: 0.62,
+      n: { 0: N.A1, 6: N.A1, 14: N.E2 } },
+    { k: '중얼',   key: 'c', tone: 'blue', kind: 'tv',    who: 'tv',
+      p: [0,0,1,0, 1,0,1,0, 0,0,1,0, 1,0,1,0] },
+    { k: '삐',     key: 'v', tone: 'warm', kind: 'beep',  who: 'alarm',
+      p: [0,0,0,0, 0,0,0,0, 0,0,0,0, 1,0,1,0] },
+  ];
+
+  // downbeat loud, the 16ths between it soft. Without this every hit is the
+  // same weight and sixteen even hits per bar is a drill, not a groove.
+  const VEL = [1, .58, .76, .62, .92, .58, .80, .62, .97, .58, .76, .62, .90, .60, .82, .66];
+
+  // warm = a lamp, pale = the kitchen or bathroom fluorescent, blue = a screen
+  const WARM = [255, 196, 107], PALE = [206, 226, 240], BLUE = [138, 176, 224];
+  const FLASH = [255, 240, 214];
+  // the words are the colour of the thing that is on in every one of these
+  // rooms, so they read as light leaving the flat rather than type laid over it
+  const BULB = [255, 201, 112];
+
+  // ── the night's running account ──
+  // One line at a time, each only once, and only on the way it is written for:
+  // the block filling up, or emptying. Each is one thing somebody heard —
+  // a sentence that draws a conclusion stops being a sound and becomes a
+  // caption explaining the picture it is sitting on.
+  const BEATS = [
+    { up: 1, n: 2,  s: '먼저 온 집이 의자를 끈다' },
+    { up: 1, n: 5,  s: '어떤 집에서 피아노를 친다' },
+    { up: 1, n: 7,  s: '엘리베이터가 11층에 멈춰 있다' },
+    { up: 1, n: 9,  s: '어떤 집에서 못을 박는다' },
+    { up: 1, n: 11, s: '누가 천장을 두 번 쳤다' },
+    { up: 1, n: 13, s: '개가 짖다가 그만둔다' },
+    { up: 1, n: 15, s: '열여섯 집이 다 깨어 있다' },
+    { up: 0, n: 12, s: '피아노가 먼저 그만둔다' },
+    { up: 0, n: 9,  s: '한 집씩 텔레비전을 끈다' },
+    { up: 0, n: 6,  s: '복도 센서등이 혼자 켜졌다 꺼진다' },
+    { up: 0, n: 3,  s: '위층 의자가 한 번 끌린다' },
+    { up: 0, n: 1,  s: '한 집만 불이 켜져 있다' },
+    { up: 0, n: 0,  s: '잠그지 않은 수도꼭지 하나' },
+  ];
+
+  // ── the night ──
+  // The block comes home a flat at a time and every arrival is one more voice,
+  // so the loop assembles itself out of people getting in. Past the peak it
+  // runs the other way: lights go out one by one and the music thins until the
+  // only thing left is a tap nobody closed. Order is musical, not random —
+  // the door and the footsteps first so there is a floor to build on, the tune
+  // halfway up, and the noisiest neighbours are the first to give it up.
+  const HOME  = [9, 0, 13, 8, 14, 4, 10, 7, 11, 3, 5, 2, 6, 1, 15, 12];
+  const SLEEP = [2, 11, 5, 1, 6, 4, 9, 3, 15, 8, 0, 7, 10, 14, 13, 12];
+  const toneRGB = t => t === 'pale' ? PALE : t === 'blue' ? BLUE : WARM;
+  const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+
+  // ── text → tinted bitmap, cached ──
+  // The flash words are redrawn every frame at varying alpha; measuring and
+  // filling live text sixteen times a frame is what kills the frame budget.
+  // Kirang Haerang, hollowed out. A filled word over a dark facade is a label
+  // printed on the building; an outline is a shape the night shows through,
+  // which is nearer to what a sound is. The face has a brush stroke that
+  // thickens and thins, so the contour alone still reads as handwriting.
+  const rasters = new Map();
+  function raster(text, px, col) {
+    const key = text + '|' + px + '|' + col;
+    let r = rasters.get(key);
+    if (r) return r;
+    const font = `${px}px 'Kirang Haerang', 'Noto Sans KR', sans-serif`;
+    const pad = Math.ceil(px * 0.28);
+    const m = document.createElement('canvas');
+    const g = m.getContext('2d');
+    g.font = font;
+    const w = Math.ceil(g.measureText(text).width) + pad * 2, h = Math.ceil(px * 1.7);
+    m.width = w * DPR; m.height = h * DPR;
+    g.scale(DPR, DPR);
+    g.font = font;
+    g.textBaseline = 'middle';
+    g.lineJoin = 'round';
+    g.miterLimit = 2;
+    // a hairline of the night first, so the outline never sits straight on a
+    // lit window and dissolve into it
+    g.strokeStyle = 'rgba(4,6,11,.72)';
+    g.lineWidth = Math.max(2.4, px * 0.105);
+    g.strokeText(text, pad, h / 2);
+    g.strokeStyle = col;
+    g.lineWidth = Math.max(1.1, px * 0.042);
+    g.strokeText(text, pad, h / 2);
+    r = { c: m, w, h };
+    rasters.set(key, r);
+    return r;
+  }
+
+  // ── layout ──
+  // Seen from the far pavement, which is the only distance at which a block
+  // like this reads as one thing: two dozen bays across, a dozen floors down,
+  // no roofline and no ground. A window lands at about fifty pixels, so no
+  // word will ever fit inside one — that is deliberate, and `drawFlash` takes
+  // the consequence: the sound comes out of the flat and sits on the concrete.
+  let stat = document.createElement('canvas');
+  let sctx = stat.getContext('2d');
+  let cx0 = 0, cy0 = 0, cw = 0, ch = 0, winW = 0, winH = 0;
+  let shaft = null, core = null;
+
+  // which sixteen flats answer. Scattered, not a block: a tidy 4×4 of lit
+  // windows in the middle of three hundred dark ones reads as a control panel
+  // bolted to a building. Lit flats in a real block are spread like this.
+  const SEAT = [
+    [-4, -3], [ 2, -4], [ 5, -2], [-2, -2],
+    [ 0, -1], [ 3,  0], [-5,  0], [ 1,  1],
+    [-3,  1], [ 4,  2], [-1,  2], [ 2,  3],
+    [-4,  4], [ 0,  3], [ 5,  4], [-2,  4],
+  ];
+  const SEATK = new Set(SEAT.map(s => s[0] + ',' + s[1]));
+
+  // three independent hashes off the same cell, so brightness, colour and
+  // what is in the room vary separately. One hash makes every bright window
+  // identical in every other way, and the eye picks that up immediately.
+  // Integer mixing, not sin() — the usual fract(sin(dot)) trick leaves visible
+  // diagonal banding at this cell size, and a facade with stripes of lit flats
+  // running across it is the one thing a real block never does.
+  function hsh(c, r, k) {
+    let n = (c * 374761393 + r * 668265263 + k * 1442695041) | 0;
+    n = Math.imul(n ^ (n >>> 13), 1274126177);
+    n = n ^ (n >>> 16);
+    return (n >>> 0) / 4294967296;
+  }
+  const hashA = (c, r) => hsh(c, r, 1);
+  const hashB = (c, r) => hsh(c, r, 7);
+  const hashC = (c, r) => hsh(c, r, 23);
+
+  // landing `i` of the lift tower, counted down from the top flat.
+  // `i` may run outside 0..15 — the tower does not stop where the pads do.
+  function shaftCell(i) {
+    const h = shaft.s * 0.54, w = shaft.w * 0.60;
+    return { x: shaft.x + (shaft.w - w) / 2, y: shaft.y + i * shaft.s + (shaft.s - h) / 2, w, h };
+  }
+
+  function cellAt(c, r) {
+    return { x: cx0 + c * cw + (cw - winW) / 2, y: cy0 + r * ch + (ch - winH) / 2, w: winW, h: winH };
+  }
+  const cell = i => cellAt(SEAT[i][0], SEAT[i][1]);
+
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    cv.width = W * DPR; cv.height = H * DPR;
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    // bay pitch, not grid width — the building is sized by how big one flat
+    // looks, and however many of them fit is however many the frame holds.
+    // The thumbnail is 320 wide, so it takes the floor and shows eight bays.
+    // the window is a little over half its bay. Concrete is most of a facade
+    // like this — pack the glass tight and it stops being a building and
+    // becomes a spreadsheet with the light on.
+    cw = PREVIEW ? 42 : clamp(Math.min(W / 23, H / 13.4), 46, 78);
+    ch = cw * 1.34;
+    winW = cw * 0.62;
+    winH = ch * 0.42;
+    cx0 = Math.round(W / 2 - cw / 2);
+    cy0 = PREVIEW ? Math.round(H / 2 - ch * 1.5) : Math.round(H / 2 - ch * 0.9);
+
+    // the lift is seven bays right of the middle flat, and its sixteen landings
+    // cover exactly the nine floors the flats are spread over — the beat and
+    // the building end up measured in the same units.
+    shaft = { x: cx0 + 7.6 * cw, w: cw * 0.62, y: cy0 - 4 * ch, s: (9 * ch) / 16 };
+    // and a stair core on the other side. Every photograph of one of these has
+    // a blank bay somewhere; without it the facade reads as graph paper.
+    core = { x: cx0 - 7.6 * cw, w: cw * 1.5 };
+
+    stat.width = W * DPR; stat.height = H * DPR;
+    sctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+    buildStatic();
+  }
+
+  // ── the facade, baked once ──
+  // The whole frame is wall. No sky, no street, no roofline — the block runs
+  // past every edge, which is the only way a building this size reads as big.
+  // The sixteen pads are sixteen of three hundred flats, and nothing marks
+  // them out until the pointer comes onto the glass.
+  function buildStatic() {
+    const g = sctx;
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = '#070a11'; g.fillRect(0, 0, W, H);
+
+    const c0 = Math.floor(-cx0 / cw) - 1, c1 = Math.ceil((W - cx0) / cw) + 1;
+    const r0 = Math.floor(-cy0 / ch) - 1, r1 = Math.ceil((H - cy0) / ch) + 1;
+    const pierW = cw - winW, slabH = ch - winH;
+
+    // the spandrel under each floor. In the photograph this band is the
+    // darkest thing in the frame, and it is the only reason a wall of glass
+    // reads as a building with floors in it rather than as a lit grid.
+    for (let r = r0; r <= r1; r++) {
+      const y = cy0 + r * ch + (ch - winH) / 2 + winH;
+      g.fillStyle = 'rgba(0,0,0,.46)'; g.fillRect(0, y, W, slabH);
+      g.fillStyle = 'rgba(176,196,226,.05)'; g.fillRect(0, y + slabH - 1.2, W, 1.2);
+    }
+    // the piers between bays, barely there
+    for (let c = c0; c <= c1; c++) {
+      const x = cx0 + c * cw + (cw - winW) / 2 + winW;
+      g.fillStyle = 'rgba(0,0,0,.34)'; g.fillRect(x, 0, pierW, H);
+    }
+
+    // every window that is not a pad. Just under half are on, which is what a
+    // block looks like at midnight — a building where only the sixteen
+    // clickable flats are awake is a diagram, not a photograph.
+    for (let r = r0; r <= r1; r++) {
+      for (let c = c0; c <= c1; c++) {
+        if (SEATK.has(c + ',' + r)) continue;
+        const x = cx0 + c * cw + (cw - winW) / 2;
+        if (x + winW > core.x && x < core.x + core.w) continue;
+        if (x + winW > shaft.x - shaft.w * 0.55 && x < shaft.x + shaft.w * 1.55) continue;
+        deadWindow(g, x, cy0 + r * ch + (ch - winH) / 2, winW, winH,
+                   hashA(c, r), hashB(c, r), hashC(c, r));
+      }
+    }
+
+    // the stair core — flat concrete, one narrow landing window a floor
+    g.fillStyle = '#0a0d15'; g.fillRect(core.x, 0, core.w, H);
+    const ce = g.createLinearGradient(core.x, 0, core.x + core.w, 0);
+    ce.addColorStop(0, 'rgba(0,0,0,.34)');
+    ce.addColorStop(0.5, 'rgba(186,202,230,.035)');
+    ce.addColorStop(1, 'rgba(0,0,0,.30)');
+    g.fillStyle = ce; g.fillRect(core.x, 0, core.w, H);
+    // hard arrises, or the slab reads as a thumb smudge on the lens rather
+    // than a wall standing in front of the flats
+    g.fillStyle = 'rgba(0,0,0,.72)';
+    g.fillRect(core.x - 1, 0, 2, H); g.fillRect(core.x + core.w - 1, 0, 2, H);
+    g.fillStyle = 'rgba(150,166,194,.09)';
+    g.fillRect(core.x + core.w, 0, 1.4, H);
+    for (let r = r0; r <= r1; r++) {
+      const y = cy0 + r * ch + (ch - winH) / 2, lum = hashB(r, 3) < 0.5 ? 0.11 : 0.035;
+      g.fillStyle = `rgba(226,214,186,${lum})`;
+      g.fillRect(core.x + core.w * 0.36, y + winH * 0.10, core.w * 0.28, winH * 0.62);
+      g.fillStyle = 'rgba(0,0,0,.5)';
+      g.fillRect(core.x + core.w * 0.49, y + winH * 0.10, Math.max(1, cw * 0.02), winH * 0.62);
+    }
+
+    // the lift tower. It stands a little proud of the facade, so it carries its
+    // own shadow on one side and catches what light there is on the other.
+    const tx = shaft.x - shaft.w * 0.55, tw = shaft.w * 2.1;
+    g.fillStyle = '#0a0e16'; g.fillRect(tx, 0, tw, H);
+    g.fillStyle = 'rgba(0,0,0,.46)'; g.fillRect(tx + tw, 0, shaft.w * 0.34, H);
+    const te = g.createLinearGradient(tx, 0, tx + tw, 0);
+    te.addColorStop(0, 'rgba(198,214,240,.055)');
+    te.addColorStop(0.5, 'rgba(0,0,0,0)');
+    te.addColorStop(1, 'rgba(0,0,0,.30)');
+    g.fillStyle = te; g.fillRect(tx, 0, tw, H);
+
+    // the landings, all the way up and down. Only the sixteen beside the pads
+    // ever light — above and below them the car is somebody else's floor.
+    const j0 = Math.floor(-shaft.y / shaft.s) - 1;
+    const j1 = Math.ceil((H - shaft.y) / shaft.s) + 1;
+    for (let j = j0; j <= j1; j++) {
+      const l = shaftCell(j);
+      g.fillStyle = '#05070c'; g.fillRect(l.x, l.y, l.w, l.h);
+      g.fillStyle = 'rgba(150,175,215,.035)'; g.fillRect(l.x, l.y, l.w, 1);
+      g.fillStyle = 'rgba(0,0,0,.40)';
+      g.fillRect(tx, l.y + l.h + shaft.s * 0.13, tw, Math.max(1, shaft.s * 0.05));
+    }
+
+    // the eye has to land on the flats, so the rest of the block falls away.
+    // The bottom goes darkest — in the photograph the lower floors are in the
+    // shadow of whatever the camera is standing behind.
+    // far enough out that the facade still reaches the frame — in the
+    // photograph the block runs off all four edges, and a vignette that eats
+    // the corners turns it back into an object sitting in the middle
+    const vg = g.createRadialGradient(W * 0.5, H * 0.44, Math.min(W, H) * 0.34,
+                                      W * 0.5, H * 0.44, Math.max(W, H) * 0.86);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,.44)');
+    g.fillStyle = vg; g.fillRect(0, 0, W, H);
+    const bg = g.createLinearGradient(0, H * 0.70, 0, H);
+    bg.addColorStop(0, 'rgba(0,0,0,0)');
+    bg.addColorStop(1, 'rgba(0,0,0,.34)');
+    g.fillStyle = bg; g.fillRect(0, H * 0.70, W, H * 0.30);
+  }
+
+  // ── a flat nobody can click ──
+  // At this distance a window is five facts: how bright, how warm, where the
+  // curtain stops, whether anything is standing in it, and whether it has a
+  // rail. Three hashes decide them separately — one hash and every bright
+  // window ends up identical in every other way, which the eye picks up at once.
+  function deadWindow(g, x, y, w, h, a, b, d) {
+    // glass is never black. It holds a little of the sky and the street, and
+    // a facade of black rectangles looks like a punch card.
+    g.fillStyle = '#0a0e17'; g.fillRect(x, y, w, h);
+    const sky = g.createLinearGradient(0, y, 0, y + h);
+    sky.addColorStop(0, 'rgba(126,154,196,.085)');
+    sky.addColorStop(1, 'rgba(126,154,196,.015)');
+    g.fillStyle = sky; g.fillRect(x, y, w, h);
+
+    if (a < 0.44) {
+      // somebody is in. Warm bulbs mostly, a cold kitchen tube now and then,
+      // and most of them dim — only a few flats put the big light on.
+      const col = b > 0.22 ? [255, 219, 168] : [206, 224, 244];
+      // curved, not linear — a uniform spread puts as many blazing flats as
+      // dim ones on the wall. Most windows at night are somebody's lamp.
+      const L = 0.11 + Math.pow(a / 0.44, 1.7) * 0.58;
+      const lg = g.createLinearGradient(0, y, 0, y + h);
+      lg.addColorStop(0, rgba(col, L * 0.78));
+      lg.addColorStop(0.42, rgba(col, L));
+      lg.addColorStop(1, rgba(col, L * 0.50));
+      g.fillStyle = lg; g.fillRect(x, y, w, h);
+      // the bulb itself, only in the flats bright enough to be showing one.
+      // On every window it turns into a row of highlighter marks across the
+      // facade, which is what it looked like before.
+      if (L > 0.42) {
+        g.fillStyle = rgba(col, Math.min(0.62, L * 1.1));
+        g.fillRect(x + w * 0.32, y + h * 0.06, w * 0.36, Math.max(1, h * 0.045));
+      }
+      room(g, x, y, w, h, b, d);
+    }
+    pane(g, x, y, w, h, a, b, d);
+  }
+
+  // a person at thirty pixels. A circle on a rectangle reads as a bollard —
+  // what makes it a body is that the shoulders slope away from the neck and
+  // the trunk is wider at the hip than at the chest. Blurred, because they
+  // are behind glass and a net curtain: a hard silhouette looks like a decal
+  // stuck on the outside of the window.
+  function figure(g, fx, baseY, hgt, tilt) {
+    const u = hgt / 7.2;                            // one head high
+    const lean = (tilt - 0.5) * u * 0.5;            // nobody stands plumb
+    const headY = baseY - hgt + u;
+    g.save();
+    g.filter = 'blur(1.9px)';
+    g.fillStyle = 'rgba(9,11,17,.74)';
+    g.beginPath();
+    g.ellipse(fx + lean, headY, u * 0.80, u * 0.92, 0, 0, 7);
+    g.fill();
+    g.beginPath();
+    g.moveTo(fx + lean - u * 0.34, headY + u * 0.80);
+    g.lineTo(fx + lean + u * 0.34, headY + u * 0.80);
+    // shoulder out, then the sides fall almost straight to the sill
+    g.bezierCurveTo(fx + u * 1.42, headY + u * 1.50, fx + u * 1.22, headY + u * 3.2, fx + u * 1.10, baseY);
+    g.lineTo(fx - u * 1.10, baseY);
+    g.bezierCurveTo(fx - u * 1.22, headY + u * 3.2, fx - u * 1.42, headY + u * 1.50,
+                    fx + lean - u * 0.34, headY + u * 0.80);
+    g.closePath();
+    g.fill();
+    g.restore();
+  }
+
+  // what you can actually make out through someone else's window from the far
+  // side of a street: a blind half shut, a curtain pulled to one side, a
+  // shape standing in the middle of its own living room. Nothing more.
+  function room(g, x, y, w, h, b, d) {
+    if (d < 0.26) {
+      g.fillStyle = 'rgba(14,16,22,.40)';
+      for (let k = 0; k < 7; k++) g.fillRect(x + w * (0.04 + k * 0.135), y, Math.max(1, w * 0.055), h * 0.86);
+    } else if (d < 0.56) {
+      g.fillStyle = 'rgba(18,18,24,.52)';
+      g.fillRect(b > 0.5 ? x : x + w * 0.52, y, w * 0.48, h * 0.88);
+    } else if (d < 0.72) {
+      const fx = x + w * (0.24 + b * 0.46);
+      // standing back in the room, not pressed against the glass — from the
+      // far pavement a person fills maybe half the height of a window, and
+      // anything taller than that turns the flat into a doll's house
+      figure(g, fx, y + h * 0.80, h * 0.46, b);
+      // a second one further back, in some of them. Two shapes in a room is
+      // an evening; one shape is a photograph of a person at a window
+      if (b > 0.68) figure(g, fx + w * 0.22, y + h * 0.78, h * 0.39, 1 - b);
+    } else if (d < 0.85) {
+      g.fillStyle = 'rgba(150,186,232,.30)';
+      g.fillRect(x + w * 0.14, y + h * 0.28, w * 0.34, h * 0.28);
+    }
+    // the back of the sofa, the sill clutter — the same dark band in all of them
+    g.fillStyle = 'rgba(12,14,20,.42)';
+    g.fillRect(x, y + h * 0.78, w, h * 0.22);
+  }
+
+  // the frame. Two lights and a transom on every window, a third mullion and
+  // a balcony rail on some — repeat one window exactly and the wall is
+  // wallpaper, so the rail and the extra bar come and go with the hash.
+  function pane(g, x, y, w, h, a, b, d) {
+    g.fillStyle = 'rgba(4,6,10,.74)';
+    g.fillRect(x + w * 0.485, y, Math.max(1, w * 0.035), h);
+    g.fillRect(x, y + h * 0.30, w, Math.max(1, h * 0.05));
+    if (b > 0.52) g.fillRect(x + w * 0.235, y, Math.max(1, w * 0.03), h);
+    if (d > 0.40) {
+      g.fillStyle = 'rgba(4,6,10,.62)';
+      const ry = y + h * 0.56;
+      for (let k = 0; k < 9; k++) g.fillRect(x + w * (0.02 + k * 0.112), ry, Math.max(1, w * 0.018), h * 0.44);
+      g.fillRect(x, ry, w, Math.max(1.2, h * 0.04));
+    }
+    g.strokeStyle = 'rgba(0,0,0,.62)';
+    g.lineWidth = Math.max(1.4, w * 0.045);
+    g.strokeRect(x - g.lineWidth / 2, y - g.lineWidth / 2, w + g.lineWidth, h + g.lineWidth);
+  }
+
+  // ── pad state ──
+  PADS.forEach((p, i) => { p.i = i; p.on = false; p.lit = 0; p.flash = 0; p.word = p.k; });
+
+  // Whether a pad takes the step it is marked for. The two voices carrying a
+  // tune were the ones that never sat out, so the tune was the loudest thing
+  // in a piece about noise — they now skip most of their marks. Keyed off the
+  // absolute step so the scheduler, running a beat ahead of the picture,
+  // reaches the same answer the drawing will.
+  const plays = (p, s, a) => !!p.p[s] && (p.odds === undefined || hsh(a, p.i, 41) < p.odds);
+  let hover = -1, step16 = 0, bars = 0, pointerIn = false;
+
+  // ── one of the sixteen ──
+  // Same vocabulary as every other window on the wall, drawn live instead of
+  // baked. A pad that looked different from its neighbours while it was dark
+  // would give the game away before the first bar.
+  function drawWindow(g, i) {
+    const p = PADS[i], r = cell(i);
+    const L = p.lit;
+    const base = toneRGB(p.tone);
+
+    g.fillStyle = '#0a0e17'; g.fillRect(r.x, r.y, r.w, r.h);
+    const sky = g.createLinearGradient(0, r.y, 0, r.y + r.h);
+    sky.addColorStop(0, `rgba(126,154,196,${0.085 * (1 - L)})`);
+    sky.addColorStop(1, `rgba(126,154,196,${0.015 * (1 - L)})`);
+    g.fillStyle = sky; g.fillRect(r.x, r.y, r.w, r.h);
+
+    if (L > 0.004) {
+      // lit interior: brightest at the ceiling fitting, falling to the sill
+      const lg = g.createLinearGradient(0, r.y, 0, r.y + r.h);
+      lg.addColorStop(0, rgba(base, 0.58 * L));
+      lg.addColorStop(0.36, rgba(base, 0.88 * L));
+      lg.addColorStop(1, rgba(base, 0.40 * L));
+      g.fillStyle = lg; g.fillRect(r.x, r.y, r.w, r.h);
+
+      g.save();
+      g.beginPath(); g.rect(r.x, r.y, r.w, r.h); g.clip();
+      g.fillStyle = rgba(FLASH, 0.85 * L);
+      g.fillRect(r.x + r.w * 0.30, r.y + r.h * 0.055, r.w * 0.40, Math.max(1.5, r.h * 0.05));
+      interior(g, p.who, r, L);
+      // the room glows a little harder on the step it is hit
+      if (p.flash > 0.002) {
+        g.fillStyle = rgba(FLASH, 0.34 * p.flash);
+        g.fillRect(r.x, r.y, r.w, r.h);
+      }
+      g.restore();
+    }
+
+    pane(g, r.x, r.y, r.w, r.h, 0.3, 0.3, 0.8);
+
+    // once the pointer is on the facade every pad shows its edge. Sixteen
+    // hairlines scattered over three hundred windows is the only way to find
+    // them, and they go again the moment the mouse leaves.
+    if (pointerIn && !PREVIEW) {
+      g.strokeStyle = i === hover ? 'rgba(255,213,145,.62)' : 'rgba(255,213,145,.15)';
+      g.lineWidth = 1;
+      g.strokeRect(r.x - 3.5, r.y - 3.5, r.w + 7, r.h + 7);
+    }
+
+    // light spilling onto the spandrel below the sill
+    if (L > 0.02) {
+      const sp = g.createLinearGradient(0, r.y + r.h, 0, r.y + r.h + ch * 0.34);
+      sp.addColorStop(0, rgba(base, 0.13 * L));
+      sp.addColorStop(1, rgba(base, 0));
+      g.fillStyle = sp;
+      g.fillRect(r.x - r.w * 0.10, r.y + r.h, r.w * 1.20, ch * 0.34);
+    }
+  }
+
+  // ── what is in the room ──
+  // Flat silhouettes only. At this size anything more detailed reads as noise,
+  // and the point is that you recognise the household in one glance.
+  function interior(g, who, r, L) {
+    const x = r.x, y = r.y, w = r.w, h = r.h;
+    g.save();
+    // everything in here stands back from the glass. Scaled about the floor
+    // of the window, so the furniture keeps its footing while the whole room
+    // retreats — drawn at full width it reads as a doll's house diorama
+    g.translate(x + w / 2, y + h * 0.80);
+    g.scale(0.70, 0.70);
+    g.translate(-(x + w / 2), -(y + h * 0.80));
+    // they are behind glass and most of them behind a curtain as well. A
+    // silhouette with a clean edge sits on the outside of the window
+    g.filter = 'blur(1.5px)';
+    g.fillStyle = `rgba(10,12,18,${0.88 * L})`;
+    const box = (a, b, c2, d) => g.fillRect(x + w * a, y + h * b, w * c2, h * d);
+    // head and the shoulders under it, always together — the slope from neck
+    // to arm is the whole difference between a person and a fence post
+    const head = (a, b, s) => {
+      const hx = x + w * a, hy = y + h * b, u = w * s;
+      g.beginPath(); g.ellipse(hx, hy, u * 0.90, u * 1.05, 0, 0, 7); g.fill();
+      g.beginPath();
+      g.moveTo(hx - u * 0.52, hy + u * 0.86);
+      g.bezierCurveTo(hx - u * 1.9, hy + u * 1.25, hx - u * 2.0, hy + u * 1.9, hx - u * 2.0, hy + u * 2.7);
+      g.lineTo(hx + u * 2.0, hy + u * 2.7);
+      g.bezierCurveTo(hx + u * 2.0, hy + u * 1.9, hx + u * 1.9, hy + u * 1.25, hx + u * 0.52, hy + u * 0.86);
+      g.closePath(); g.fill();
+    };
+
+    switch (who) {
+      case 'tread': head(0.42, 0.30, 0.045); box(0.37, 0.36, 0.10, 0.22); box(0.60, 0.46, 0.26, 0.05); break;
+      case 'chair': box(0.26, 0.42, 0.30, 0.035); box(0.27, 0.45, 0.03, 0.14); box(0.52, 0.30, 0.035, 0.29); break;
+      case 'tool':  box(0.30, 0.28, 0.04, 0.30); box(0.26, 0.56, 0.22, 0.035); head(0.66, 0.34, 0.04); box(0.62, 0.38, 0.09, 0.19); break;
+      case 'bath':  box(0.22, 0.44, 0.34, 0.14); box(0.70, 0.22, 0.035, 0.22); break;
+      case 'hall':  head(0.50, 0.26, 0.048); box(0.455, 0.32, 0.09, 0.26); break;
+      case 'dog':   box(0.30, 0.50, 0.22, 0.08); head(0.55, 0.47, 0.035); box(0.32, 0.56, 0.03, 0.06); box(0.47, 0.56, 0.03, 0.06); break;
+      case 'clean': head(0.34, 0.30, 0.042); box(0.30, 0.35, 0.09, 0.21); box(0.44, 0.34, 0.025, 0.22); box(0.42, 0.54, 0.16, 0.04); break;
+      case 'piano': box(0.22, 0.40, 0.40, 0.08); box(0.22, 0.48, 0.05, 0.12); box(0.57, 0.48, 0.05, 0.12); head(0.72, 0.33, 0.042); box(0.68, 0.38, 0.09, 0.20); break;
+      case 'sink':  box(0.26, 0.42, 0.34, 0.05); box(0.40, 0.30, 0.025, 0.13); head(0.70, 0.32, 0.04); box(0.66, 0.37, 0.09, 0.21); break;
+      case 'door':  box(0.58, 0.14, 0.24, 0.46); g.fillStyle = `rgba(255,220,170,${0.5 * L})`; box(0.60, 0.36, 0.02, 0.03); break;
+      case 'wash':  box(0.28, 0.34, 0.24, 0.26); g.fillStyle = `rgba(150,180,220,${0.45 * L})`; head(0.40, 0.46, 0.055); break;
+      case 'kid':   head(0.36, 0.32, 0.040); box(0.325, 0.37, 0.08, 0.20); g.fillStyle = `rgba(16,18,26,${0.8 * L})`; head(0.60, 0.50, 0.035); break;
+      case 'tap':   box(0.34, 0.40, 0.26, 0.05); box(0.46, 0.28, 0.022, 0.13); break;
+      case 'speaker': box(0.26, 0.26, 0.11, 0.33); box(0.62, 0.26, 0.11, 0.33); break;
+      case 'tv':    g.fillStyle = `rgba(150,185,230,${0.55 * L})`; box(0.24, 0.16, 0.30, 0.20);
+                    g.fillStyle = `rgba(10,12,18,${0.88 * L})`; head(0.70, 0.36, 0.045); box(0.655, 0.41, 0.09, 0.18); break;
+      case 'alarm': box(0.26, 0.40, 0.26, 0.18); head(0.66, 0.36, 0.042); box(0.62, 0.41, 0.085, 0.18); break;
+    }
+    g.restore();
+  }
+
+  // ── the word leaves the flat ──
+  // From across the street a window is fifty pixels wide and nothing legible
+  // fits behind the glass. So the sound comes out: the word stands on the
+  // concrete over the flat that made it, at the size you would hear it, and
+  // lifts off the wall as it dies. Several at once is the subject.
+  function drawFlash(g, i) {
+    const p = PADS[i];
+    if (p.flash < 0.03) return;
+    const r = cell(i);
+    const px = Math.round(clamp(ch * 0.41, 10, 29));
+    const a = Math.pow(p.flash, 0.8);
+    const bm = raster(p.word, px, rgba(BULB, 1));
+    const mx = r.x + r.w / 2;
+    // above the flat, unless the flat is near the top of the frame — then the
+    // word would leave over the edge half-read, so it drops under the sill
+    const rise = (1 - p.flash) * ch * 0.38;
+    const up = r.y - bm.h * 1.1 - rise > 0;
+    const ty = up ? r.y - bm.h * 0.78 - rise : r.y + r.h + bm.h * 0.08 - rise;
+    const dx = mx - bm.w / 2;
+
+    g.save();
+    // a hollow word lets the facade through, so the ground under it only needs
+    // settling, not covering — a solid smudge behind an outline reads as a
+    // sticker with a drop shadow
+    g.globalAlpha = 0.34 * a;
+    const sg = g.createRadialGradient(mx, ty + bm.h / 2, 0, mx, ty + bm.h / 2, bm.w * 0.74);
+    sg.addColorStop(0, 'rgba(3,4,8,.78)');
+    sg.addColorStop(0.62, 'rgba(3,4,8,.34)');
+    sg.addColorStop(1, 'rgba(3,4,8,0)');
+    g.fillStyle = sg;
+    g.fillRect(mx - bm.w, ty - bm.h * 0.5, bm.w * 2, bm.h * 2);
+    // the filament behind the outline — a word the colour of a bulb should
+    // carry the bulb's halo too, or it is just a yellow line drawing
+    g.globalAlpha = 0.30 * a;
+    g.filter = 'blur(6px)';
+    g.drawImage(bm.c, dx, ty, bm.w, bm.h);
+    // and the contour itself only barely sharp. At this size a hard stroke
+    // competes with the window mullions; softened, it stays a sound
+    g.globalAlpha = 0.95 * a;
+    g.filter = 'blur(0.9px)';
+    g.drawImage(bm.c, dx, ty, bm.w, bm.h);
+    g.restore();
+  }
+
+  // ── the lift ──
+  // Index 0 is the top landing, 15 the ground. The car is not a playhead any
+  // more: at a sixteenth a landing it flickered, and it ran downward all
+  // night, which is the wrong direction for a building filling up. It goes
+  // up slowly with somebody in it and drops back fast and empty.
+  let liftAt = 15, liftTo = 15, liftHold = 1.2;
+
+  function nextStop() {
+    const r = Math.random();
+    if (liftAt > 14.5) return Math.max(0, Math.round(11 - r * 10));   // off the ground, up
+    if (liftAt < 0.5) return 15;                                      // off the top, back down
+    if (r < 0.66) return Math.max(0, Math.round(liftAt - 1 - r * 6)); // a few more floors up
+    return 15;
+  }
+
+  function liftStep(dt) {
+    if (liftHold > 0) { liftHold -= dt; return; }
+    const d = liftTo - liftAt;
+    if (Math.abs(d) < 0.03) {
+      liftAt = liftTo;
+      liftHold = 1.1 + Math.random() * 1.8;   // doors, and somebody getting out
+      liftTo = nextStop();
+      return;
+    }
+    // up is loaded and unhurried, down is an empty car on its way back
+    const sp = d < 0 ? 1.35 : 4.2;
+    liftAt += Math.sign(d) * Math.min(Math.abs(d), sp * dt);
+  }
+
+  function drawShaft(g) {
+    // the lift keeps running after the last light goes out, but quietly. A car
+    // at full brightness over a sleeping block reads as a machine left on
+    const lv = 0.40 + 0.60 * (onCount() / 16);
+    const dir = Math.sign(liftTo - liftAt);
+    for (let i = 0; i < 16; i++) {
+      const l = shaftCell(i);
+      // the car lights the landing it is level with, and the one behind it
+      // keeps the light a moment — that trail is what shows the direction
+      const dd = i - liftAt;
+      const near = Math.max(0, 1 - Math.abs(dd) * 1.1);
+      const tail = (dir && Math.sign(dd) === -dir) ? Math.max(0, 0.40 - Math.abs(dd) * 0.20) : 0;
+      const a = Math.max(near, tail);
+      // every fourth landing keeps an ember, so the bar stays countable
+      const lit = Math.max(i % 4 === 0 ? 0.10 : 0.035, a);
+
+      g.fillStyle = rgba(WARM, lit * 0.88 * lv);
+      g.fillRect(l.x, l.y, l.w, l.h);
+      g.fillStyle = `rgba(0,0,0,${0.22 + 0.22 * (1 - lit)})`;
+      g.fillRect(l.x, l.y + l.h * 0.58, l.w, l.h * 0.42);
+
+      if (a > 0.02) {
+        // light from a shaft window spreads sideways across the tower face
+        const rr = l.h * 2.4;
+        g.save();
+        g.translate(l.x + l.w / 2, l.y + l.h / 2);
+        g.scale(2.0, 1);
+        const gl = g.createRadialGradient(0, 0, 0, 0, 0, rr);
+        gl.addColorStop(0, rgba(WARM, 0.22 * a * lv));
+        gl.addColorStop(0.55, rgba(WARM, 0.06 * a * lv));
+        gl.addColorStop(1, rgba(WARM, 0));
+        g.fillStyle = gl; g.fillRect(-rr, -rr, rr * 2, rr * 2);
+        g.restore();
+      }
+    }
+
+    // the indicator over the doors, where it always is
+    const px = Math.max(9, Math.round(shaft.s * 0.52));
+    const py = shaft.y - shaft.s * 1.5;
+    g.save();
+    g.fillStyle = 'rgba(4,6,10,.85)';
+    g.fillRect(shaft.x - shaft.w * 0.26, py, shaft.w * 1.52, shaft.s * 1.1);
+    g.font = `700 ${px}px 'Space Mono', monospace`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = rgba(WARM, 0.80 * lv);
+    g.fillText(String(16 - Math.round(liftAt)).padStart(2, '0'),
+               shaft.x + shaft.w * 0.56, py + shaft.s * 0.56);
+    // the travel arrow, pointing the way the car is going. Index falls as the
+    // car rises, so an ascending trip has a negative direction
+    const ax = shaft.x - shaft.w * 0.02, ay = py + shaft.s * 0.55, as = px * 0.26;
+    const up = dir < 0;
+    g.fillStyle = rgba(WARM, (dir ? 0.62 : 0.16) * lv);
+    g.beginPath();
+    g.moveTo(ax - as, ay + (up ? as * 0.8 : -as * 0.8));
+    g.lineTo(ax + as, ay + (up ? as * 0.8 : -as * 0.8));
+    g.lineTo(ax, ay + (up ? -as : as));
+    g.closePath(); g.fill();
+    g.restore();
+  }
+
+  // ── sound ──
+  // Every voice is synthesised. The clock runs on the AudioContext rather than
+  // on rAF: at 92 BPM a sixteenth is 163ms and frame jitter is audible as
+  // sloppy timing, which would wreck the only thing the piece is after.
+  const BPM = 92, SPS = 60 / BPM / 4;
+  const sound = (() => {
+    let ac = null, master = null, wet = null, pad = null, nz = null;
+    let muted = false, nextT = 0, sstep = 0, sabs = 0, timer = 0;
+    const queue = [];
+
+    function noise() {
+      if (nz) return nz;
+      nz = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
+      const d = nz.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      return nz;
+    }
+    const env = (g, t, peak, dec, atk = 0.004) => {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.linearRampToValueAtTime(peak, t + atk);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + dec);
+    };
+    function src(t, dur) {
+      const s = ac.createBufferSource();
+      s.buffer = noise(); s.loop = true;
+      s.start(t); s.stop(t + dur);
+      return s;
+    }
+    const chain = (...n) => { for (let i = 0; i < n.length - 1; i++) n[i].connect(n[i + 1]); return n[0]; };
+    // `bus` routes the sustained voices through a gain the kick dips, so the
+    // drones get out of the way of the downbeat instead of sitting on top of it
+    function out(node, send, bus) {
+      node.connect(bus === 'pad' ? pad : master);
+      if (send) { const s = ac.createGain(); s.gain.value = send; node.connect(s); s.connect(wet); }
+    }
+
+    const SYNTH = {
+      kick(t, v) {
+        // the kick also opens a hole for itself: the sustained voices duck for
+        // a fifth of a second so the downbeat is a hit, not an addition
+        pad.gain.cancelScheduledValues(t);
+        pad.gain.setValueAtTime(1, t);
+        pad.gain.linearRampToValueAtTime(0.42, t + 0.014);
+        pad.gain.linearRampToValueAtTime(1, t + 0.21);
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.frequency.setValueAtTime(N.E3, t);
+        o.frequency.exponentialRampToValueAtTime(N.A1, t + 0.13);
+        env(g, t, 0.95 * v, 0.32); o.connect(g); out(g, 0);
+        o.start(t); o.stop(t + 0.4);
+      },
+      drag(t, v) {
+        const g = ac.createGain(), f = ac.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = N.C6; f.Q.value = 1.8;
+        env(g, t, 0.22 * v, 0.5, 0.05);
+        chain(src(t, 0.55), f, g); out(g, 0.3);
+      },
+      hammer(t, v) {
+        const g = ac.createGain(), f = ac.createBiquadFilter();
+        f.type = 'highpass'; f.frequency.value = 1600;
+        env(g, t, 0.34 * v, 0.12); chain(src(t, 0.2), f, g); out(g, 0.38);
+        const o = ac.createOscillator(), g2 = ac.createGain();
+        o.type = 'triangle'; o.frequency.setValueAtTime(N.E4, t);
+        o.frequency.exponentialRampToValueAtTime(N.C3, t + 0.08);
+        env(g2, t, 0.26 * v, 0.12); o.connect(g2); out(g2, 0.2);
+        o.start(t); o.stop(t + 0.2);
+      },
+      water(t, v) {
+        const g = ac.createGain(), f = ac.createBiquadFilter();
+        f.type = 'highpass'; f.frequency.value = 1100;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(0.11 * v, t + 0.22);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+        chain(src(t, 0.95), f, g); out(g, 0.26, 'pad');
+      },
+      heel(t, v) {
+        const g = ac.createGain(), f = ac.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = N.A6 * 2; f.Q.value = 7;
+        env(g, t, 0.30 * v, 0.07); chain(src(t, 0.1), f, g); out(g, 0.46);
+      },
+      bark(t, v) {
+        const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(N.A4, t);
+        o.frequency.exponentialRampToValueAtTime(N.E3, t + 0.18);
+        f.type = 'bandpass'; f.frequency.value = 950; f.Q.value = 2.4;
+        env(g, t, 0.30 * v, 0.22, 0.01); chain(o, f, g); out(g, 0.28);
+        o.start(t); o.stop(t + 0.3);
+      },
+      vac(t, v) {
+        const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+        o.type = 'sawtooth'; o.frequency.value = N.A2;
+        f.type = 'lowpass'; f.frequency.value = 760; f.Q.value = 3;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.linearRampToValueAtTime(0.10 * v, t + 0.12);
+        g.gain.setValueAtTime(0.10 * v, t + 0.75);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + 1.15);
+        chain(o, f, g); out(g, 0.12, 'pad');
+        o.start(t); o.stop(t + 1.2);
+      },
+      piano(t, v, n) {
+        const f0 = n || N.A5;
+        for (const [m, a] of [[1, 0.20], [2, 0.075], [3.01, 0.03]]) {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'triangle'; o.frequency.value = f0 * m;
+          env(g, t, a * v, 0.9, 0.006); o.connect(g); out(g, 0.5);
+          o.start(t); o.stop(t + 1.0);
+        }
+      },
+      hat(t, v) {
+        const g = ac.createGain(), f = ac.createBiquadFilter();
+        f.type = 'highpass'; f.frequency.value = 7200;
+        env(g, t, 0.15 * v, 0.045); chain(src(t, 0.08), f, g); out(g, 0.22);
+      },
+      door(t, v) {
+        const g = ac.createGain(), f = ac.createBiquadFilter();
+        f.type = 'lowpass'; f.frequency.value = 520;
+        env(g, t, 0.42 * v, 0.38); chain(src(t, 0.5), f, g); out(g, 0.4);
+        const o = ac.createOscillator(), g2 = ac.createGain();
+        o.frequency.setValueAtTime(N.A2, t);
+        o.frequency.exponentialRampToValueAtTime(N.A1, t + 0.2);
+        env(g2, t, 0.40 * v, 0.3); o.connect(g2); out(g2, 0.18);
+        o.start(t); o.stop(t + 0.4);
+      },
+      spin(t, v) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine'; o.frequency.value = N.E2;
+        const lfo = ac.createOscillator(), lg = ac.createGain();
+        lfo.frequency.value = 11; lg.gain.value = 18;
+        chain(lfo, lg, o.frequency);
+        env(g, t, 0.28 * v, 0.5, 0.02); o.connect(g); out(g, 0.12, 'pad');
+        o.start(t); o.stop(t + 0.6); lfo.start(t); lfo.stop(t + 0.6);
+      },
+      ball(t, v) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(N.E5, t);
+        o.frequency.exponentialRampToValueAtTime(N.A3, t + 0.11);
+        env(g, t, 0.30 * v, 0.2); o.connect(g); out(g, 0.4);
+        o.start(t); o.stop(t + 0.25);
+      },
+      drip(t, v) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'sine';
+        o.frequency.setValueAtTime(N.E6, t);
+        o.frequency.exponentialRampToValueAtTime(N.A5, t + 0.06);
+        env(g, t, 0.21 * v, 0.1, 0.002); o.connect(g); out(g, 0.55);
+        o.start(t); o.stop(t + 0.15);
+      },
+      bass(t, v, n) {
+        const f0 = n || N.A1;
+        for (const [m, a] of [[1, 0.40], [2, 0.12]]) {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'sine'; o.frequency.value = f0 * m;
+          env(g, t, a * v, 0.5, 0.02); o.connect(g); out(g, 0);
+          o.start(t); o.stop(t + 0.7);
+        }
+      },
+      tv(t, v) {
+        // a fixed band, not a random one — the randomness read as hiss
+        const g = ac.createGain(), f = ac.createBiquadFilter();
+        f.type = 'bandpass'; f.frequency.value = 700; f.Q.value = 1.6;
+        env(g, t, 0.085 * v, 0.11, 0.02); chain(src(t, 0.16), f, g); out(g, 0.18);
+      },
+      beep(t, v) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'square'; o.frequency.value = N.A6;
+        env(g, t, 0.085 * v, 0.09, 0.002); o.connect(g); out(g, 0.28);
+        o.start(t); o.stop(t + 0.12);
+      },
+    };
+
+    function init() {
+      if (ac) return;
+      ac = new (window.AudioContext || window.webkitAudioContext)();
+      master = ac.createGain(); master.gain.value = 0.55;
+      const comp = ac.createDynamicsCompressor();
+      comp.threshold.value = -13; comp.ratio.value = 4; comp.knee.value = 10;
+      comp.attack.value = 0.005; comp.release.value = 0.18;
+      master.connect(comp); comp.connect(ac.destination);
+      pad = ac.createGain(); pad.gain.value = 1; pad.connect(master);
+      // a stairwell, not a hall: one short feedback tap, rolled off. Long tails
+      // smear sixteen voices into one, which is exactly what noise sounds like.
+      wet = ac.createGain(); wet.gain.value = 0.34;
+      const dl = ac.createDelay(1), fb = ac.createGain(), lp = ac.createBiquadFilter();
+      dl.delayTime.value = 0.163; fb.gain.value = 0.20;   // one 16th, so it lands on the grid
+      lp.type = 'lowpass'; lp.frequency.value = 1900;
+      wet.connect(dl); dl.connect(lp); lp.connect(fb); fb.connect(dl); lp.connect(master);
+      nextT = ac.currentTime + 0.08;
+      timer = setInterval(sched, 25);
+    }
+    function sched() {
+      if (!ac) return;
+      while (nextT < ac.currentTime + 0.13) {
+        const s = sstep;
+        // odd 16ths sit late — dead-straight sixteen-to-the-bar is a machine
+        const t = nextT + (s % 2 ? SPS * 0.13 : 0);
+        if (!muted) for (const p of PADS) {
+          if (p.on && plays(p, s, sabs)) SYNTH[p.kind](t, VEL[s], p.n && p.n[s]);
+        }
+        queue.push({ s, t, a: sabs });
+        nextT += SPS; sstep = (sstep + 1) % 16; sabs++;
+      }
+    }
+    return {
+      init,
+      // a suspended context's clock does not advance, so `running` has to mean
+      // actually running — otherwise the visuals wait on an audio clock that
+      // is frozen and the building stops while the browser holds the sound back
+      running: () => !!ac && ac.state === 'running',
+      live: () => !!ac && ac.state === 'running',
+      // called the instant the page is allowed to make a noise. The queue is
+      // dropped and the sequencer re-pointed at whichever sixteenth the
+      // picture is already on, so the lift does not jump when the sound lands.
+      resume(s) {
+        if (!ac) return;
+        sstep = (s + 1) % 16;
+        ac.resume().then(() => { queue.length = 0; nextT = ac.currentTime + 0.06; }).catch(() => {});
+      },
+      // the lights follow the audio clock, so what you see is what you heard
+      due(fire) { if (!ac) return; while (queue.length && queue[0].t <= ac.currentTime) { const q = queue.shift(); fire(q.s, q.a); } },
+      tap(p) {
+        if (!ac || muted) return;
+        // the preview hit uses the pad's own first note, so a tap is in key too
+        const n = p.n && p.n[Object.keys(p.n)[0]];
+        SYNTH[p.kind](ac.currentTime + 0.01, 0.9, n);
+      },
+      muted: () => muted,
+      toggle() { if (!ac) { init(); muted = false; } else muted = !muted; return !muted; },
+    };
+  })();
+
+  // ── clock + state ──
+  const dbEl = document.getElementById('db'), countEl = document.getElementById('count');
+  const sndBtn = document.getElementById('snd'), hint = document.getElementById('hint');
+  const clkEl = document.getElementById('clk');
+  let fallbackT = 0, silentA = 0, db = 24, dbShown = -1, last = 0;
+  let beat = -1, beatT = 0;
+  const told = new Set();
+  const BEAT_LIFE = 6.2;
+  let phase = 'home', hold = 0, auto = true, idleT = 0, clkShown = '';
+
+  const onCount = () => PADS.reduce((n, p) => n + (p.on ? 1 : 0), 0);
+
+  // one flat changes per bar. The lists are scanned rather than indexed, so a
+  // flat the listener switched by hand is simply skipped and the night carries
+  // on from whatever the building actually looks like.
+  function nightBar() {
+    if (!auto) return;
+    if (hold > 0) { hold--; return; }
+    if (phase === 'home') {
+      const i = HOME.find(j => !PADS[j].on);
+      if (i === undefined) { phase = 'full'; hold = 6; return; }
+      PADS[i].on = true; PADS[i].flash = 1;
+    } else if (phase === 'sleep') {
+      const i = SLEEP.find(j => PADS[j].on);
+      if (i === undefined) { phase = 'dark'; hold = 3; return; }
+      PADS[i].on = false;
+    } else {
+      phase = phase === 'full' ? 'sleep' : 'home';
+    }
+  }
+
+  function fire(s, a) {
+    step16 = s;
+    if (s === 0) { bars++; nightBar(); }
+    for (const p of PADS) if (p.on && plays(p, s, a)) p.flash = 1;
+  }
+
+  function step(dt) {
+    // the thumbnail is one frozen bar — if the clock ran, whichever words were
+    // ringing at capture time would be luck
+    if (PREVIEW) return;
+    liftStep(dt);
+    if (sound.running()) sound.due(fire);
+    else { fallbackT -= dt; if (fallbackT <= 0) { fallbackT += SPS; silentA++; fire((step16 + 1) % 16, silentA); } }
+
+    for (const p of PADS) {
+      p.lit += ((p.on ? 1 : 0) - p.lit) * Math.min(1, dt * 7);
+      if (p.flash > 0) p.flash = Math.max(0, p.flash - dt * 2.6);
+    }
+    // the building takes itself back after a while. Somebody poking at the
+    // windows should not stop the night from happening
+    if (!auto) { idleT += dt; if (idleT > 16) { auto = true; phase = onCount() > 11 ? 'sleep' : 'home'; } }
+
+    const n = onCount();
+    db += (24 + n * 2.8 - db) * Math.min(1, dt * 2.4);
+    // an empty block at 22:10 has not gone to bed, it has not come home yet,
+    // so which half of the night we are in decides which lines can be true
+    const up = phase === 'home' || phase === 'full';
+    if (up && n <= 1) BEATS.forEach((b, i) => { if (!b.up) told.delete(i); });
+    if (!up && n >= 15) BEATS.forEach((b, i) => { if (b.up) told.delete(i); });
+
+    if (beat < 0) {
+      for (let i = 0; i < BEATS.length; i++) {
+        const b = BEATS[i];
+        if (told.has(i)) continue;
+        if (b.up ? (up && n >= b.n) : (!up && n <= b.n)) { beat = i; beatT = 0; told.add(i); break; }
+      }
+    } else if ((beatT += dt) > BEAT_LIFE) beat = -1;
+
+    const v = Math.round(db);
+    if (v !== dbShown) { dbShown = v; dbEl.textContent = v; countEl.classList.toggle('over', v > 34); }
+
+    // the clock reads off how full the block is: 22:10 as the first one gets
+    // in, 23:40 when everybody is up, 01:20 by the time the last light goes
+    const mins = phase === 'sleep' || phase === 'dark'
+      ? 1420 + (16 - n) / 16 * 100
+      : 1330 + n / 16 * 90;
+    const t = `${((mins / 60) | 0) % 24}:${String(((mins | 0) % 60)).padStart(2, '0')}`;
+    if (t !== clkShown) { clkShown = t; clkEl.textContent = t; }
+  }
+
+  // the line of the night sits on the spandrel below the lowest flat. There is
+  // no sky left to put one in, so it goes on the concrete, like the name plate
+  // every one of these buildings carries somewhere up its flank — and below
+  // the flats it stays clear of the words, which all travel upward.
+  function slabLine(g, text, a) {
+    const px = Math.round(clamp(W * 0.0128, 13, 19));
+    g.save();
+    g.font = `500 ${px}px 'Noto Sans KR', sans-serif`;
+    g.textAlign = 'center';
+    g.textBaseline = 'middle';
+    g.letterSpacing = '0.2em';
+    const tw = g.measureText(text).width + px * 2.2;
+    const bh = px * 2.3, by = cy0 + 5.3 * ch - bh / 2;
+    const sg = g.createLinearGradient(W / 2 - tw / 2, 0, W / 2 + tw / 2, 0);
+    sg.addColorStop(0, 'rgba(5,7,12,0)');
+    sg.addColorStop(.22, 'rgba(5,7,12,.88)');
+    sg.addColorStop(.78, 'rgba(5,7,12,.88)');
+    sg.addColorStop(1, 'rgba(5,7,12,0)');
+    g.globalAlpha = a;
+    g.fillStyle = sg;
+    g.fillRect(W / 2 - tw / 2, by, tw, bh);
+    g.globalAlpha = a * 0.9;
+    g.fillStyle = 'rgba(255,221,170,1)';
+    g.fillText(text, W / 2, by + bh / 2 + 0.5);
+    g.restore();
+  }
+
+  function draw() {
+    ctx.drawImage(stat, 0, 0, W, H);
+    for (let i = 0; i < 16; i++) drawWindow(ctx, i);
+    for (let i = 0; i < 16; i++) drawFlash(ctx, i);
+    drawShaft(ctx);
+
+    // whichever sentence the block has just earned
+    if (beat >= 0) {
+      const a = Math.min(1, beatT / 1.1, (BEAT_LIFE - beatT) / 1.6);
+      if (a > 0.004) slabLine(ctx, BEATS[beat].s, a);
+    }
+  }
+
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000 || 0);
+    last = now;
+    step(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  // ── input ──
+  // One gesture: a window is either on or off. Everything else follows.
+  function hit(mx, my) {
+    for (let i = 0; i < 16; i++) {
+      const r = cell(i);
+      if (mx >= r.x - 4 && mx <= r.x + r.w + 4 && my >= r.y - 4 && my <= r.y + r.h + 4) return i;
+    }
+    return -1;
+  }
+  addEventListener('mousemove', e => {
+    pointerIn = true;
+    hover = hit(e.clientX, e.clientY);
+    document.body.style.cursor = hover >= 0 ? 'pointer' : 'default';
+  });
+  addEventListener('mouseleave', () => { pointerIn = false; hover = -1; });
+  // ── sound from the first frame ──
+  // The block is meant to be playing when you arrive. No browser will let an
+  // AudioContext make a noise before the page has been touched, so the context
+  // is built and asked to run at boot, and if the browser refuses, the very
+  // next contact of any kind takes it — a window, a key, a click on the wall.
+  // After that the button is only there to stop it again.
+  function wake() {
+    sound.init();
+    if (!sound.live()) sound.resume(step16);
+    setTimeout(label, 80);
+  }
+  function label() {
+    const live = sound.live();
+    sndBtn.textContent = live ? 'SOUND: ' + (sound.muted() ? 'OFF' : 'ON') : 'SOUND: TAP TO START';
+    sndBtn.classList.toggle('on', live && !sound.muted());
+  }
+
+  function toggle(i) {
+    const p = PADS[i];
+    wake();
+    p.on = !p.on;
+    // every press sounds, the one that switches a flat off included — a pad you
+    // can hit silently is not a pad, and you want to audition a voice without
+    // committing it to the loop
+    p.flash = 1; sound.tap(p);
+    // the night hands over while somebody is playing, and takes itself back
+    auto = false; idleT = 0;
+    hint.classList.add('off');
+  }
+  addEventListener('mousedown', e => {
+    const i = hit(e.clientX, e.clientY);
+    if (i >= 0) toggle(i);
+  });
+  sndBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    // while the browser is still holding the context down, the button is a
+    // start button and nothing else — muting something that is not audible yet
+    // would leave the listener with two switches and no sound
+    if (!sound.live()) { wake(); return; }
+    const on = sound.toggle();
+    sndBtn.textContent = 'SOUND: ' + (on ? 'ON' : 'OFF');
+    sndBtn.classList.toggle('on', on);
+  });
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (k === 'm') { sndBtn.click(); return; }
+    const i = PADS.findIndex(p => p.key === k);
+    if (i >= 0) toggle(i);
+  });
+
+  addEventListener('resize', resize);
+  setTimeout(() => hint.classList.add('off'), 11000);
+
+  // ── boot ──
+  // Rasterising before the webfont lands bakes the fallback glyphs into the
+  // bitmap cache, and those bitmaps are never rebuilt.
+  const WARMUP = PADS.map(p => p.k).join('') + BEATS.map(b => b.s).join('');
+  Promise.all([
+    document.fonts.load(`900 40px 'Noto Sans KR'`, WARMUP),
+    document.fonts.load(`500 24px 'Noto Sans KR'`, WARMUP),
+    document.fonts.load(`40px 'Kirang Haerang'`, WARMUP),
+  ]).catch(() => {}).then(() => {
+    resize();
+    if (PREVIEW) {
+      // the thumbnail crops to the middle of the block, so it lights the flats
+      // that actually land inside 320×200 and holds two of them mid-word
+      for (const i of [5, 7, 8, 9, 10, 11, 13]) { PADS[i].on = true; PADS[i].lit = 1; }
+      step16 = 8;
+      liftAt = 8.4; liftTo = 3;   // mid-climb, so the arrow reads up
+      PADS[7].flash = 0.96; PADS[10].flash = 0.80;
+    } else {
+      // nothing is on at the start. The block is empty and the first bar is
+      // somebody's door — the piece has to begin before the music does
+      wake();
+      const first = () => wake();
+      addEventListener('pointerdown', first, { once: true, capture: true });
+      addEventListener('keydown', first, { once: true, capture: true });
+    }
+
+    requestAnimationFrame(frame);
+  });
+</script>
+</body>
+</html>
