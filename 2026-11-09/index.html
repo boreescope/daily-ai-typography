@@ -95,21 +95,34 @@
   const PR = 30000;          // how big the planet is, once it becomes one
   const GRID = 110;          // ordinary streets
   const BIG = 440;           // the ones with names
-  const DEST = [426, -301]; // 성신여대입구역, where we were actually going
+  // walked off the basemap's own road pixels, one point every 18 m, 701 m in all.
+  // 삼선교로 to 보문로36길 to the station — 99.6% of it lands on drawn road.
+  const ROUTE = [
+    [0, 0], [17, -2], [28, 11], [42, 21], [57, 13], [72, 6], [89, 0], [106, -4], [121, -17],
+    [125, -36], [136, -51], [132, -68], [125, -85], [125, -102], [140, -110], [153, -121],
+    [168, -131], [185, -134], [202, -142], [220, -148], [237, -151], [252, -161], [269, -168],
+    [286, -174], [303, -180], [318, -187], [333, -195], [331, -212], [325, -229], [331, -246],
+    [343, -259], [361, -259], [380, -259], [399, -263], [397, -282], [397, -299], [413, -307],
+    [422, -305],
+  ];
+  const DEST = ROUTE[ROUTE.length - 1];   // 성신여대입구역, where we were actually going
+  const RSTEP = 18;                       // metres between route points
 
-  // traced off the basemap itself: 삼선교로 to 보문로36길 to the station
-  const ROUTE = (() => {
-    const p = [[0, 0], [38, -21], [78, -34], [112, -64], [132, -102], [172, -117],
-      [210, -138], [250, -153], [291, -167], [325, -195], [344, -233], [382, -254],
-      [397, -293], DEST];
-    const out = [];
-    for (let i = 0; i < p.length - 1; i++) {
-      const [x0, y0] = p[i], [x1, y1] = p[i + 1];
-      for (let t = 0; t < 1; t += 0.06) out.push([lerp(x0, x1, t), lerp(y0, y1, t)]);
-    }
-    out.push(DEST);
-    return out;
+  // how far is left to drive, from any point along the route
+  const RLEN = (() => {
+    const c = [0];
+    for (let i = 1; i < ROUTE.length; i++)
+      c.push(c[i - 1] + Math.hypot(ROUTE[i][0] - ROUTE[i - 1][0], ROUTE[i][1] - ROUTE[i - 1][1]));
+    return c;
   })();
+  const routePt = t => {
+    const i = Math.min(ROUTE.length - 2, Math.floor(t)), f = clamp(t - i, 0, 1);
+    return [lerp(ROUTE[i][0], ROUTE[i + 1][0], f), lerp(ROUTE[i][1], ROUTE[i + 1][1], f)];
+  };
+  const routeLeft = t => {
+    const i = Math.min(ROUTE.length - 2, Math.floor(t)), f = clamp(t - i, 0, 1);
+    return RLEN[RLEN.length - 1] - (RLEN[i] + (RLEN[i + 1] - RLEN[i]) * f);
+  };
 
   const PARKS = [[-620, -240, 380, 260], [520, 180, 300, 340], [-340, 700, 460, 220],
                  [880, -620, 250, 250], [-1100, -860, 320, 300]];
@@ -145,6 +158,7 @@
   let wx = 0, wy = 0;              // where we are, in metres from the start
   let vx = 0, vy = 0, speed = 0;   // how hard the hand is pushing
   let head = -Math.PI / 2;         // which way the arrow points
+  let prog = 0;                    // how far along the route we have actually driven
   let d = 0, alt = 0, night = 0;   // the one variable, and what it grows into
   let T = 0;
   let line = ACTS[0].lines[0], lineT = 0, lineAct = 0, lineIdx = 0;
@@ -498,15 +512,14 @@
   function route(g, a) {
     g.save();
     g.globalAlpha = a;
-    g.strokeStyle = '#1668e3'; g.lineWidth = Math.max(3, 34 * gs);
+    g.strokeStyle = '#1668e3'; g.lineWidth = Math.max(2.5, 19 * gs);
     g.lineJoin = 'round'; g.lineCap = 'round';
     g.beginPath();
-    for (let i = 0; i < ROUTE.length; i++) {
-      const p = ROUTE[i];
-      i ? g.lineTo(sx(p[0]), sy(p[1])) : g.moveTo(sx(p[0]), sy(p[1]));
-    }
+    g.moveTo(sx(wx), sy(wy));   // the line starts where you are, not where you were
+    for (let i = Math.max(1, Math.ceil(prog)); i < ROUTE.length; i++)
+      g.lineTo(sx(ROUTE[i][0]), sy(ROUTE[i][1]));
     g.stroke();
-    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = Math.max(1, 10 * gs);
+    g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = Math.max(1, 6 * gs);
     g.stroke();
 
     const px = sx(DEST[0]), py = sy(DEST[1]);
@@ -625,7 +638,11 @@
 
   function readout() {
     const km = d * 1.2, act = actOf(d);
-    if (act === 0) { const rem = 0.52 + km; return `성신여대입구역  ·  ${rem.toFixed(1)} km  ·  ${Math.max(1, Math.round(rem * 3.4))}분`; }
+    if (act === 0) {
+      if (prog >= ROUTE.length - 1) return '성신여대입구역  ·  도착  ·  안내를 종료합니다';
+      const rem = (routeLeft(prog) + Math.hypot(wx - routePt(prog)[0], wy - routePt(prog)[1])) / 1000;
+      return `성신여대입구역  ·  ${rem.toFixed(1)} km  ·  ${Math.max(1, Math.round(rem * 12))}분`;
+    }
     if (act === 1) return `${km.toFixed(1)} km  ·  재계산 중  ·  경로 이탈`;
     if (act === 2) return `${Math.round(km * 840).toLocaleString('en-US')} km  ·  ―  ·  도로 없음`;
     if (act === 3) return `고도 ${Math.round(alt * 412).toLocaleString('en-US')} km  ·  ―  ·  신호 없음`;
@@ -658,13 +675,25 @@
     // keys push, drag pushes, the ride home pushes hardest
     if (backing > 0) {
       const dist = Math.hypot(wx, wy);
-      if (dist < 40) { wx = 0; wy = 0; vx = 0; vy = 0; backing = 0; }
+      if (dist < 40) { wx = 0; wy = 0; vx = 0; vy = 0; backing = 0; prog = 0; }
       else {
         const k = Math.min(1, dt * 0.9);
         wx -= wx * k; wy -= wy * k;
         vx = -wx * 0.9; vy = -wy * 0.9;
       }
     } else {
+      // hands off and still near the road, it just drives, like any nav
+      const rp = routePt(prog);
+      if (!dragging && keys.size === 0 && prog < ROUTE.length - 1 &&
+          Math.hypot(wx - rp[0], wy - rp[1]) < 90) {
+        prog = Math.min(ROUTE.length - 1, prog + dt * 12 / RSTEP);   // 12 m/s, city pace
+        const np = routePt(prog), k = Math.min(1, dt * 4);
+        const want = Math.atan2(np[1] - wy, np[0] - wx);
+        wx += (np[0] - wx) * k; wy += (np[1] - wy) * k;
+        head += (((want - head + Math.PI * 3) % TAU) - Math.PI) * Math.min(1, dt * 4);
+        vx = 0; vy = 0;
+      }
+
       const glide = clamp((d - 2) / 4.5, 0, 1);   // there is less to slow you down out there
       const acc = 820 * (1 + alt * 2.5);
       let ax = 0, ay = 0;
@@ -718,9 +747,13 @@
 
     if (act !== prevAct) { lineAct = act; lineIdx = 0; forced = 0; say(ACTS[act].lines[0], act >= 4 ? 3 : act >= 1 ? 1 : 0); }
 
+    // it finishes the job it was given, and then has nothing left to say
+    const arrived = act === 0 && prog >= ROUTE.length - 1;
+    if (arrived && line !== '목적지에 도착했습니다') say('목적지에 도착했습니다', 0);
+
     forced = Math.max(0, forced - dt);
     lineT += dt;
-    if (forced === 0 && lineT > LINEGAP) {
+    if (!arrived && forced === 0 && lineT > LINEGAP) {
       lineIdx = (lineIdx + 1) % ACTS[act].lines.length;
       say(ACTS[act].lines[lineIdx], act >= 4 ? 3 : act >= 2 ? 2 : act >= 1 ? 1 : 0);
     }
@@ -841,7 +874,7 @@
   requestAnimationFrame(loop);
 
   window.__st = () => ({
-    d, alt, night, act: actOf(d), speed, line, frames,
+    d, alt, night, act: actOf(d), speed, line, frames, prog,
     space: document.body.classList.contains('space'),
     back: backing > 0,
     live: sound.live(),
