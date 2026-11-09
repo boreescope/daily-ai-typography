@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>번역 불가 — Untranslatable</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #15171a; }
+  body { cursor: pointer; }
+  canvas { display: block; }
+
+  .home-btn {
+    position: fixed; top: 20px; left: 20px; z-index: 10;
+    padding: 7px 13px;
+    background: rgba(28,31,35,.6);
+    border: 1px solid rgba(150,146,136,.26);
+    color: #8d8a80;
+    font: 700 10px/1 'Space Mono', monospace;
+    letter-spacing: .14em; text-decoration: none;
+    transition: color .2s, border-color .2s;
+  }
+  .home-btn:hover { color: #e3dcce; border-color: rgba(227,220,206,.5); }
+
+  .snd {
+    position: fixed; top: 20px; right: 20px; z-index: 10;
+    padding: 7px 13px;
+    background: rgba(28,31,35,.6);
+    border: 1px solid rgba(150,146,136,.26);
+    color: #8d8a80;
+    font: 700 10px/1 'Space Mono', monospace;
+    letter-spacing: .14em;
+    user-select: none;
+  }
+  .snd:hover { color: #e3dcce; border-color: rgba(227,220,206,.5); }
+
+  .hint {
+    position: fixed; left: 0; right: 0; bottom: 26px; z-index: 9;
+    text-align: center;
+    color: rgba(190,184,170,.4);
+    font: 400 12px/1 'Nanum Myeongjo', serif;
+    letter-spacing: .22em;
+    transition: opacity .8s;
+  }
+  .hint.off { opacity: 0; }
+
+  body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<a class="home-btn" href="../index.html">← INDEX</a>
+<div class="snd" id="snd">SOUND: ON</div>
+<div class="hint" id="hint">클릭하면 다음 단어</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+if (PREVIEW) document.body.classList.add('preview');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+let W = 0, H = 0, S = 0;
+
+// 번역기가 끝내 "—"를 내놓는 말들
+const WORDS = [
+  { ko: '한', sub: '恨', cand: ['resentment', 'grudge', 'sorrow', 'bitterness', 'unresolved grief'],
+    gl: '풀지 못한 채 오래 품고 있는 것. 영어 단어들은 하나같이 너무 짧게 끝난다' },
+  { ko: '정', sub: '情', cand: ['affection', 'attachment', 'bond', 'fondness', 'long familiarity'],
+    gl: '오래 같이 있으면 생기는 것. 좋아하는 마음과는 다르다' },
+  { ko: '눈치', sub: 'nun-chi', cand: ['tact', 'social cue', 'reading the room', 'discretion'],
+    gl: '말하지 않은 것을 알아채는 능력. 눈치가 없다는 말이 더 번역되지 않는다' },
+  { ko: '시원하다', sub: 'si-won-ha-da', cand: ['refreshing', 'cool', 'relieving', 'satisfying'],
+    gl: '펄펄 끓는 국물을 마시고도 쓰는 말' },
+  { ko: '억울하다', sub: 'eog-ul-ha-da', cand: ['unfair', 'wronged', 'aggrieved', 'indignant'],
+    gl: '내가 하지 않은 일로 혼났을 때, 그 마음 전체' },
+  { ko: '아쉽다', sub: 'a-swib-da', cand: ['a pity', 'regrettable', 'wanting', 'bittersweet'],
+    gl: '조금만 더 있었으면 했는데 끝나버린 것' },
+  { ko: '답답하다', sub: 'dab-dab-ha-da', cand: ['stuffy', 'frustrated', 'stifled', 'suffocating'],
+    gl: '가슴이 막힌 것 같은데, 숨은 쉬어진다' },
+  { ko: '애틋하다', sub: 'ae-teus-ha-da', cand: ['tender', 'poignant', 'wistful', 'yearning'],
+    gl: '그리운데 아프고, 아픈데 소중하다' },
+];
+
+const FLICKER = ['meaning', 'feeling', 'sense', 'nuance', 'state', 'mood', 'quality', 'condition', 'sentiment', 'notion', 'tone', 'temper'];
+
+let wi = -1;           // 지금 돌리고 있는 단어
+let ph = 'idle';       // type · churn · cand · dash · gloss · done
+let t = 0;             // 현재 단계 안에서의 시간
+let ci = 0;            // 몇 번째 후보인가
+let cs = 0;            // 후보 안에서의 시간
+let done = [];         // 지금까지 그어진 후보들
+let dash = 0, gloss = 0, lamp = 0, churn = 0, flick = 0;
+let tried = 0;
+
+// ── 소리 ───────────────────────────────────────────────────────────────────
+const sound = (() => {
+  let ac = null, master = null, on = true, hum = null, noise = null;
+
+  function boot() {
+    if (ac) return;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = on ? 0.9 : 0;
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.ratio.value = 7;
+    master.connect(comp); comp.connect(ac.destination);
+
+    // 기계가 켜져 있는 소리
+    const o = ac.createOscillator();
+    o.type = 'square'; o.frequency.value = 59;
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 190;
+    const g = ac.createGain(); g.gain.value = 0.022;
+    o.connect(lp); lp.connect(g); g.connect(master); o.start();
+    hum = g;
+
+    // 테이프 잡음
+    const len = ac.sampleRate * 2;
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.4;
+    const src = ac.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const hp = ac.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 2600;
+    const ng = ac.createGain(); ng.gain.value = 0.012;
+    src.connect(hp); hp.connect(ng); ng.connect(master); src.start();
+    noise = ng;
+  }
+
+  const env = (g, a, p, d, v) => {
+    g.gain.setValueAtTime(0.0001, a);
+    g.gain.exponentialRampToValueAtTime(v, a + p);
+    g.gain.exponentialRampToValueAtTime(0.0001, a + p + d);
+  };
+
+  function burst(dur, f, q, v, type) {
+    const n = Math.max(1, Math.floor(ac.sampleRate * dur));
+    const buf = ac.createBuffer(1, n, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1);
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const bp = ac.createBiquadFilter();
+    bp.type = type || 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    const g = ac.createGain();
+    src.connect(bp); bp.connect(g); g.connect(master);
+    env(g, ac.currentTime, 0.004, dur, v);
+    src.start();
+    src.stop(ac.currentTime + dur + 0.02);
+  }
+
+  return {
+    kick() { boot(); if (ac.state === 'suspended') ac.resume(); },
+    live() { return !!ac && ac.state === 'running'; },
+    toggle() { on = !on; if (master) master.gain.value = on ? 0.9 : 0; return on; },
+
+    // 활자 하나
+    key() {
+      if (!ac) return;
+      burst(0.016, rnd(1900, 3400), 2.2, 0.16, 'bandpass');
+    },
+
+    // 모터가 답을 찾는다
+    motor(ms) {
+      if (!ac) return;
+      const n = ac.currentTime, dur = ms / 1000;
+      const o = ac.createOscillator();
+      o.type = 'sawtooth';
+      o.frequency.setValueAtTime(74, n);
+      o.frequency.linearRampToValueAtTime(96, n + dur * 0.6);
+      o.frequency.linearRampToValueAtTime(68, n + dur);
+      const lp = ac.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 430; lp.Q.value = 3;
+      const g = ac.createGain();
+      o.connect(lp); lp.connect(g); g.connect(master);
+      env(g, n, 0.06, dur, 0.1);
+      o.start(); o.stop(n + dur + 0.1);
+    },
+
+    // 줄을 긋는다
+    strike() {
+      if (!ac) return;
+      const n = ac.currentTime;
+      const o = ac.createOscillator();
+      o.type = 'triangle';
+      o.frequency.setValueAtTime(174, n);
+      o.frequency.exponentialRampToValueAtTime(82, n + 0.17);
+      const g = ac.createGain();
+      o.connect(g); g.connect(master);
+      env(g, n, 0.006, 0.19, 0.2);
+      o.start(); o.stop(n + 0.26);
+      burst(0.09, 1250, 1.1, 0.1, 'bandpass');
+    },
+
+    // 기계가 포기한다
+    give() {
+      if (!ac) return;
+      const n = ac.currentTime;
+      [104, 52].forEach((f, i) => {
+        const o = ac.createOscillator();
+        o.type = i ? 'sine' : 'triangle';
+        o.frequency.value = f;
+        const g = ac.createGain();
+        o.connect(g); g.connect(master);
+        env(g, n + i * 0.04, 0.05, 1.5, i ? 0.17 : 0.1);
+        o.start(); o.stop(n + 1.9);
+      });
+      burst(0.5, 520, 0.8, 0.045, 'lowpass');
+    },
+  };
+})();
+
+const sndEl = document.getElementById('snd');
+sndEl.addEventListener('click', e => {
+  e.stopPropagation();
+  sound.kick();
+  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+
+// ── 기계의 순서 ─────────────────────────────────────────────────────────────
+const CAND_IN = 0.3, CAND_HOLD = 0.5, CAND_CUT = 0.28;
+
+function begin(i) {
+  wi = i;
+  ph = 'type'; t = 0; ci = 0; cs = 0;
+  done = [];
+  dash = 0; gloss = 0; churn = 0;
+  tried++;
+  sound.key();
+  hintOff();
+}
+
+function next() {
+  if (ph !== 'idle' && ph !== 'gloss' && ph !== 'done') { finishNow(); return; }
+  if (wi >= WORDS.length - 1) { begin(0); return; }
+  begin(wi + 1);
+}
+
+// 클릭이 급하면 기계는 결론부터 내놓는다
+function finishNow() {
+  const w = WORDS[wi];
+  done = w.cand.map(c => ({ c, in: 1, cut: 1 }));
+  ci = w.cand.length;
+  ph = 'gloss'; t = 0;
+  if (dash < 1) { dash = 1; sound.give(); }
+  gloss = 1;
+}
+
+function step(dt) {
+  t += dt;
+  lamp += dt;
+  flick += dt;
+  const w = WORDS[wi];
+  if (!w) return;
+
+  if (ph === 'type') {
+    if (t > 0.55) { ph = 'churn'; t = 0; churn = 1; sound.motor(820); }
+  } else if (ph === 'churn') {
+    if (t > 0.82) { ph = 'cand'; t = 0; cs = 0; ci = 0; churn = 0; sound.key(); }
+  } else if (ph === 'cand') {
+    cs += dt;
+    const cur = done[ci] || (done[ci] = { c: w.cand[ci], in: 0, cut: 0 });
+    if (cs < CAND_IN) {
+      const n = cur.in;
+      cur.in = cs / CAND_IN;
+      if (Math.floor(cur.in * cur.c.length) > Math.floor(n * cur.c.length)) sound.key();
+    } else if (cs < CAND_IN + CAND_HOLD) {
+      cur.in = 1;
+    } else if (cs < CAND_IN + CAND_HOLD + CAND_CUT) {
+      if (cur.cut === 0) sound.strike();
+      cur.cut = Math.min(1, (cs - CAND_IN - CAND_HOLD) / CAND_CUT);
+    } else {
+      cur.cut = 1;
+      ci++;
+      cs = 0;
+      if (ci >= w.cand.length) { ph = 'dash'; t = 0; sound.motor(460); }
+    }
+  } else if (ph === 'dash') {
+    if (t > 0.5 && dash === 0) sound.give();
+    dash = clamp((t - 0.5) / 0.5, 0, 1);
+    if (t > 1.35) { ph = 'gloss'; t = 0; }
+  } else if (ph === 'gloss') {
+    gloss = Math.min(1, gloss + dt / 0.7);
+    if (gloss >= 1 && t > 1.2) ph = 'done';
+  }
+}
+
+// ── 그리기 ─────────────────────────────────────────────────────────────────
+function mono(s, x, y, sz, col, al, wt) {
+  ctx.font = `${wt || 400} ${sz}px "Space Mono", monospace`;
+  ctx.textAlign = al || 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = col;
+  ctx.fillText(s, x, y);
+}
+function ko(s, x, y, sz, col, al, wt) {
+  ctx.font = `${wt || 400} ${sz}px "Nanum Myeongjo", serif`;
+  ctx.textAlign = al || 'left';
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = col;
+  ctx.fillText(s, x, y);
+}
+
+function panel() {
+  const g = ctx;
+  const bg = g.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#1b1e22');
+  bg.addColorStop(.55, '#15171a');
+  bg.addColorStop(1, '#101215');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, W, H);
+
+  // 주사선
+  g.fillStyle = 'rgba(255,255,255,.012)';
+  for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1);
+}
+
+function header() {
+  const g = ctx;
+  const y = H * 0.135, sz = Math.max(9, S * 0.0115);
+  g.strokeStyle = 'rgba(160,154,142,.22)';
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(W * 0.09, y); g.lineTo(W * 0.91, y); g.stroke();
+
+  mono('기계 번역 · KO → EN', W * 0.09, y - sz * 0.9, sz, 'rgba(186,180,166,.62)', 'left', 700);
+
+  // 램프
+  const lx = W * 0.09 - sz * 1.5, ly = y - sz * 1.25;
+  const pulse = ph === 'churn' || ph === 'dash' ? 0.5 + 0.5 * Math.sin(lamp * 17) : 0.22;
+  g.fillStyle = `rgba(226,146,52,${0.18 + pulse * 0.8})`;
+  g.beginPath(); g.arc(lx, ly, sz * 0.32, 0, TAU); g.fill();
+
+  const okTxt = `시도 ${String(tried).padStart(2, '0')}  ·  번역 가능 00`;
+  mono(okTxt, W * 0.91, y - sz * 0.9, sz, 'rgba(186,180,166,.42)', 'right');
+}
+
+const KSZ = PREVIEW ? 0.125 : 0.105;
+const CSZ = PREVIEW ? 0.034 : 0.030;
+const GSZ = PREVIEW ? 0.027 : 0.019;
+
+function fitKo(s, sz, maxw) {
+  let v = sz;
+  for (let k = 0; k < 14; k++) {
+    ctx.font = `800 ${v}px "Nanum Myeongjo", serif`;
+    if (ctx.measureText(s).width <= maxw) break;
+    v *= 0.92;
+  }
+  return v;
+}
+
+function wrap(s, sz, maxw) {
+  ctx.font = `400 ${sz}px "Nanum Myeongjo", serif`;
+  const words = s.split(' ');
+  const out = [];
+  let ln = '';
+  for (const w of words) {
+    const tryLn = ln ? ln + ' ' + w : w;
+    if (ctx.measureText(tryLn).width > maxw && ln) { out.push(ln); ln = w; }
+    else ln = tryLn;
+  }
+  if (ln) out.push(ln);
+  return out;
+}
+
+function stage() {
+  const g = ctx;
+  const w = WORDS[wi];
+  const midX = W * 0.5;
+  const topY = H * 0.21, botY = H * 0.845;
+
+  g.strokeStyle = 'rgba(160,154,142,.13)';
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(midX, topY); g.lineTo(midX, botY); g.stroke();
+
+  const asz = Math.max(9, S * 0.016);
+  mono('→', midX, H * 0.52 + asz * 0.35, asz, 'rgba(160,154,142,.3)', 'center');
+
+  if (!w) {
+    ko('번역 불가', W * 0.5, H * 0.52, S * 0.05, 'rgba(226,220,206,.22)', 'center', 800);
+    return;
+  }
+
+  // 왼쪽 — 원문
+  const kr = ph === 'type' ? w.ko.slice(0, Math.max(1, Math.ceil(t / 0.55 * w.ko.length))) : w.ko;
+  const ksz = fitKo(w.ko, S * KSZ, W * 0.33);
+  ko(kr, W * 0.29, H * 0.52, ksz, '#e8e2d4', 'center', 800);
+  mono(w.sub, W * 0.29, H * 0.52 + ksz * 0.72, Math.max(8, S * 0.013), 'rgba(170,164,150,.4)', 'center');
+
+  // 오른쪽 — 기계가 꺼내본 말들
+  const x = W * 0.565, csz = S * CSZ, lh = csz * 1.62;
+  let y = H * (PREVIEW ? 0.2 : 0.3);
+
+  if (ph === 'churn') {
+    const f = FLICKER[(flick * 15 | 0) % FLICKER.length];
+    mono(f, x, y, csz, 'rgba(190,184,170,.3)');
+    g.fillStyle = 'rgba(226,146,52,.5)';
+    g.font = `400 ${csz}px "Space Mono", monospace`;
+    g.fillRect(x + g.measureText(f).width + csz * 0.14, y - csz * 0.78, csz * 0.52, csz * 0.9);
+  }
+
+  for (let i = 0; i < done.length; i++) {
+    const c = done[i];
+    const vis = c.c.slice(0, Math.ceil(c.in * c.c.length));
+    const dim = c.cut >= 1 ? 0.3 : 0.72;
+    mono(vis, x, y, csz, `rgba(214,208,192,${dim})`);
+    g.font = `400 ${csz}px "Space Mono", monospace`;
+    const tw = g.measureText(c.c).width;
+    if (c.cut > 0) {
+      g.strokeStyle = `rgba(198,70,48,${0.5 + c.cut * 0.42})`;
+      g.lineWidth = Math.max(1.2, csz * 0.075);
+      g.beginPath();
+      g.moveTo(x - csz * 0.1, y - csz * 0.24);
+      g.lineTo(x - csz * 0.1 + (tw + csz * 0.2) * c.cut, y - csz * 0.24);
+      g.stroke();
+    } else if (ph === 'cand' && i === ci && (flick * 2.6 % 1) < 0.55) {
+      g.fillStyle = 'rgba(226,146,52,.6)';
+      g.fillRect(x + g.measureText(vis).width + csz * 0.14, y - csz * 0.78, csz * 0.52, csz * 0.9);
+    }
+    y += lh;
+  }
+
+  // 기계가 내놓은 답
+  if (dash > 0) {
+    const dw = S * (PREVIEW ? 0.1 : 0.088), dth = Math.max(2, S * 0.0052);
+    const dy = y + S * 0.05;
+    g.save();
+    g.shadowColor = `rgba(240,232,214,${0.55 * dash})`;
+    g.shadowBlur = S * 0.022 * dash;
+    g.fillStyle = '#f0e9db';
+    g.fillRect(x, dy, dw * dash, dth);
+    g.restore();
+    if (!PREVIEW) {
+      const nsz = Math.max(8, S * 0.0115);
+      mono('NO EQUIVALENT', x + dw + S * 0.024, dy + dth * 0.5 + nsz * 0.36, nsz, `rgba(198,70,48,${0.66 * dash})`, 'left', 700);
+    }
+  }
+
+  // 아래 — 잃어버린 뜻
+  if (gloss > 0) {
+    const gsz = S * GSZ;
+    const lines = wrap(w.gl, gsz, W * 0.74);
+    let gy = H * (PREVIEW ? 0.93 : 0.9) - (lines.length - 1) * gsz * 1.5;
+    for (const ln of lines) {
+      ko(ln, W * 0.5, gy, gsz, `rgba(206,199,184,${0.62 * gloss})`, 'center');
+      gy += gsz * 1.5;
+    }
+  }
+}
+
+function draw() {
+  panel();
+  if (!PREVIEW) header();
+  stage();
+  // 가장자리 어둡게
+  const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.78);
+  v.addColorStop(0, 'rgba(0,0,0,0)');
+  v.addColorStop(1, 'rgba(0,0,0,.5)');
+  ctx.fillStyle = v;
+  ctx.fillRect(0, 0, W, H);
+}
+
+function frame(ts) {
+  const dt = Math.min(0.045, (frame.p ? ts - frame.p : 16) / 1000);
+  frame.p = ts;
+  if (!PREVIEW) step(dt);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+// ── wiring ─────────────────────────────────────────────────────────────────
+const hint = document.getElementById('hint');
+let hintGone = false;
+function hintOff() { if (!hintGone) { hintGone = true; hint.classList.add('off'); } }
+
+function resize() {
+  W = innerWidth; H = innerHeight;
+  cv.width = Math.ceil(W * DPR); cv.height = Math.ceil(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  S = Math.min(W, H * 1.5);
+}
+addEventListener('resize', resize);
+
+addEventListener('pointerdown', e => {
+  if (e.target.closest('.snd') || e.target.closest('.home-btn')) return;
+  sound.kick();
+  next();
+});
+addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') { e.preventDefault(); sound.kick(); next(); }
+});
+
+(async () => {
+  try {
+    await Promise.all([
+      document.fonts.load('800 80px "Nanum Myeongjo"'),
+      document.fonts.load('400 20px "Nanum Myeongjo"'),
+      document.fonts.load('400 20px "Space Mono"'),
+      document.fonts.load('700 20px "Space Mono"'),
+    ]);
+  } catch (e) { /* 폰트가 늦으면 기본 활자로 간다 */ }
+  resize();
+  if (PREVIEW) {
+    begin(2);
+    for (let i = 0; i < 400; i++) step(0.03);
+  } else {
+    setTimeout(() => begin(0), 700);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
