@@ -665,7 +665,8 @@
         vx = -wx * 0.9; vy = -wy * 0.9;
       }
     } else {
-      const acc = 820 * (1 + alt * 2.5);   // there is less to slow you down up there
+      const glide = clamp((d - 2) / 4.5, 0, 1);   // there is less to slow you down out there
+      const acc = 820 * (1 + alt * 2.5);
       let ax = 0, ay = 0;
       if (keys.has('ArrowLeft') || keys.has('a')) ax -= 1;
       if (keys.has('ArrowRight') || keys.has('d')) ax += 1;
@@ -673,7 +674,18 @@
       if (keys.has('ArrowDown') || keys.has('s')) ay += 1;
       const m = Math.hypot(ax, ay) || 1;
       vx += ax / m * acc * dt; vy += ay / m * acc * dt;
-      vx *= Math.pow(0.12, dt); vy *= Math.pow(0.12, dt);
+
+      // once you are already heading out, it starts helping you along
+      const out = Math.hypot(wx, wy);
+      if (out > 1 && (vx * wx + vy * wy) > 0) {
+        const pull = 340 * glide * glide * (1 + alt * alt * 5) * clamp((15 - d) / 6, 0, 1);
+        vx += wx / out * pull * dt; vy += wy / out * pull * dt;
+      }
+
+      const fric = Math.pow(0.12 + 0.84 * glide, dt);
+      vx *= fric; vy *= fric;
+      const vmax = 1100 * (1 + alt * alt * 12), vm = Math.hypot(vx, vy);
+      if (vm > vmax) { vx = vx / vm * vmax; vy = vy / vm * vmax; }
       wx += vx * dt; wy += vy * dt;
     }
 
@@ -777,12 +789,13 @@
   });
   addEventListener('pointermove', e => {
     if (!dragging) return;
-    const k = Math.max(gs, Z0 * 0.22);
+    const k = Math.max(gs, Z0 * 0.5);
     const dx = (e.clientX - px0) / k, dy = (e.clientY - py0) / k;
     px0 = e.clientX; py0 = e.clientY;
     backing = 0;
-    wx -= dx; wy -= dy;
-    vx = -dx * 14; vy = -dy * 14;
+    const gain = 1 + clamp((d - 2) / 4.5, 0, 1) * 1.2;
+    wx -= dx * gain; wy -= dy * gain;
+    vx = -dx * 14 * gain; vy = -dy * 14 * gain;
   });
   addEventListener('pointerup', () => { dragging = false; document.body.classList.remove('drag'); });
   addEventListener('pointercancel', () => { dragging = false; document.body.classList.remove('drag'); });
