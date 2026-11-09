@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>오차 — THE DRIFT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #a3a19b; }
+  body { font-family: 'Space Mono', monospace; cursor: default; user-select: none; }
+  canvas { display: block; }
+
+  .home-btn {
+    position: fixed; left: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
+    color: #4c4a46; text-decoration: none; padding: 9px 13px;
+    border: 1px solid rgba(76,74,70,.3); background: rgba(236,233,225,.5);
+    transition: color .3s, border-color .3s;
+  }
+  .home-btn:hover { color: #b8402f; border-color: rgba(184,64,47,.5); }
+
+  .snd {
+    position: fixed; right: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
+    color: #4c4a46; padding: 9px 13px; cursor: pointer;
+    border: 1px solid rgba(76,74,70,.3); background: rgba(236,233,225,.5);
+    transition: color .3s, border-color .3s;
+  }
+  .snd:hover { color: #b8402f; border-color: rgba(184,64,47,.5); }
+
+  .hint {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
+    font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
+    color: rgba(60,58,54,.8); white-space: nowrap; pointer-events: none;
+    background: rgba(236,233,225,.62); padding: 8px 13px;
+    transition: opacity 1s ease;
+  }
+  .hint.off { opacity: 0; }
+
+  body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<a class="home-btn" href="../index.html">← INDEX</a>
+<div class="snd" id="snd">SOUND: ON</div>
+<div class="hint" id="hint">누르고 있으면 계속 복사됩니다</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+if (PREVIEW) document.body.classList.add('preview');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pad3 = n => String(n).padStart(3, '0');
+
+let W = 0, H = 0, S = 0;
+let SW = 0, SH = 0, SX = 0, SY = 0;   // the sheet, in screen pixels
+let FS = 0, MG = 0;                    // glyph size · registration margin
+
+// ── the stack ──────────────────────────────────────────────────────────────
+const MAXG = 100;
+const WORD = '오차';
+let gens = [];          // one accumulated transform per copy
+let gen = 0;
+let drift = 0;          // the path the corner mark has walked, in mm
+let off = 0;            // how far it now sits from where it started, in mm
+let MM = 1;             // sheet px → mm (a sheet is 297 mm across)
+let jam = 0;            // >0 once the machine gives up
+let scanT = -1;         // the lamp sweeping under the glass
+let holdT = -1, rate = 0.34;
+let stack = null, paper = null;
+
+const LEGIBLE = g => g <= 28 ? ['판독 가능', '#3b6b4a'] : g <= 62 ? ['판독 주의', '#8a6a24'] : g < MAXG ? ['판독 곤란', '#a8502c'] : ['판독 불가', '#b8402f'];
+
+// ── sound ──────────────────────────────────────────────────────────────────
+const sound = (() => {
+  let ac = null, master = null, hum = null, on = true;
+  const boot = () => {
+    if (ac) return;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = 0.9;
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.ratio.value = 7;
+    master.connect(comp); comp.connect(ac.destination);
+
+    // the machine idling, warm and almost inaudible
+    const o = ac.createOscillator(), g = ac.createGain(), f = ac.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 49;
+    f.type = 'lowpass'; f.frequency.value = 180;
+    g.gain.value = 0.018;
+    o.connect(f); f.connect(g); g.connect(master); o.start();
+    hum = { o, g };
+  };
+  const noiseBuf = () => {
+    const n = ac.sampleRate * 1.2, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < n; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.2; }
+    return b;
+  };
+  const env = (node, t0, a, peak, dur) => {
+    node.gain.setValueAtTime(0.0001, t0);
+    node.gain.exponentialRampToValueAtTime(peak, t0 + a);
+    node.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  };
+  return {
+    kick() { boot(); if (ac.state === 'suspended') ac.resume(); },
+    live() { return !!ac && ac.state === 'running' && on; },
+    toggle() { on = !on; if (master) master.gain.value = on ? 0.9 : 0; return on; },
+
+    // one copy: the lamp sweeps, the motor pulls, the tray clunks
+    copy(wear) {
+      if (!ac || !on) return;
+      const t = ac.currentTime;
+      const sweep = ac.createBufferSource(), sf = ac.createBiquadFilter(), sg = ac.createGain();
+      sweep.buffer = noiseBuf();
+      sf.type = 'bandpass'; sf.Q.value = 1.1;
+      sf.frequency.setValueAtTime(900, t);
+      sf.frequency.exponentialRampToValueAtTime(2400 - wear * 900, t + 0.26);
+      env(sg, t, 0.04, 0.16, 0.3);
+      sweep.connect(sf); sf.connect(sg); sg.connect(master);
+      sweep.start(t); sweep.stop(t + 0.34);
+
+      const m = ac.createOscillator(), mf = ac.createBiquadFilter(), mg = ac.createGain();
+      m.type = 'sawtooth';
+      m.frequency.setValueAtTime(76 - wear * 16, t);
+      m.frequency.linearRampToValueAtTime(62 - wear * 18, t + 0.3);
+      mf.type = 'lowpass'; mf.frequency.value = 520;
+      env(mg, t, 0.05, 0.13, 0.33);
+      m.connect(mf); mf.connect(mg); mg.connect(master);
+      m.start(t); m.stop(t + 0.36);
+
+      const c = ac.createOscillator(), cg = ac.createGain();
+      c.type = 'triangle'; c.frequency.setValueAtTime(128, t + 0.29);
+      c.frequency.exponentialRampToValueAtTime(58, t + 0.4);
+      env(cg, t + 0.29, 0.005, 0.22, 0.14);
+      c.connect(cg); cg.connect(master);
+      c.start(t + 0.29); c.stop(t + 0.46);
+    },
+
+    // it stops pulling paper
+    jam() {
+      if (!ac || !on) return;
+      const t = ac.currentTime;
+      const n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      n.buffer = noiseBuf();
+      f.type = 'bandpass'; f.Q.value = 3.4;
+      f.frequency.setValueAtTime(1800, t);
+      f.frequency.exponentialRampToValueAtTime(240, t + 0.9);
+      env(g, t, 0.02, 0.3, 1.1);
+      n.connect(f); f.connect(g); g.connect(master);
+      n.start(t); n.stop(t + 1.2);
+
+      const m = ac.createOscillator(), mg = ac.createGain();
+      m.type = 'sawtooth';
+      m.frequency.setValueAtTime(70, t);
+      m.frequency.exponentialRampToValueAtTime(21, t + 1.3);
+      env(mg, t, 0.03, 0.2, 1.5);
+      m.connect(mg); mg.connect(master);
+      m.start(t); m.stop(t + 1.6);
+
+      if (hum) hum.g.gain.setTargetAtTime(0.004, t + 1.1, 0.5);
+    },
+  };
+})();
+
+const sndEl = document.getElementById('snd');
+sndEl.addEventListener('click', e => {
+  e.stopPropagation();
+  sound.kick();
+  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+
+// ── the sheet ──────────────────────────────────────────────────────────────
+function mkCanvas(w, h) {
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(w * DPR); c.height = Math.ceil(h * DPR);
+  const g = c.getContext('2d');
+  g.scale(DPR, DPR);
+  return [c, g];
+}
+
+function bakePaper() {
+  const [c, g] = mkCanvas(SW, SH);
+  paper = c;
+
+  const pg = g.createLinearGradient(0, 0, SW * 0.3, SH);
+  pg.addColorStop(0, '#f2efe8');
+  pg.addColorStop(.6, '#ece8df');
+  pg.addColorStop(1, '#e4e0d6');
+  g.fillStyle = pg;
+  g.fillRect(0, 0, SW, SH);
+
+  // toner dust, the kind that settles along the feed edge
+  for (let i = 0; i < 2200; i++) {
+    const x = Math.random() * SW, y = Math.random() * SH;
+    const edge = Math.max(0, 1 - y / (SH * 0.14)) * 0.5 + 0.12;
+    if (Math.random() > edge) continue;
+    g.fillStyle = `rgba(90,88,84,${rnd(.02, .11)})`;
+    g.fillRect(x, y, rnd(.6, 1.7), rnd(.6, 1.7));
+  }
+
+  const lab = (t, x, y, sz, col, al) => {
+    g.font = `400 ${sz}px "Space Mono", monospace`;
+    g.textAlign = al || 'left'; g.textBaseline = 'alphabetic';
+    g.fillStyle = col;
+    g.fillText(t, x, y);
+  };
+  const ko = (t, x, y, sz, col, al, w) => {
+    g.font = `${w || 400} ${sz}px "Noto Sans KR", sans-serif`;
+    g.textAlign = al || 'left'; g.textBaseline = 'alphabetic';
+    g.fillStyle = col;
+    g.fillText(t, x, y);
+  };
+
+  const top = SH * 0.105;
+  g.strokeStyle = 'rgba(60,58,54,.28)';
+  g.lineWidth = 1;
+  g.beginPath(); g.moveTo(SW * 0.255, top); g.lineTo(SW * 0.745, top); g.stroke();
+
+  ko('복사 시험 용지', SW / 2, top - SH * 0.024, Math.max(10, SW * 0.0135), 'rgba(48,46,42,.78)', 'center', 700);
+  ko('원본 1매 · 사본 최대 100매 · 사본은 직전 사본에서 뜬다', SW / 2, top + SH * 0.038, Math.max(8, SW * 0.0105), 'rgba(80,78,72,.6)', 'center');
+  lab('FORM  OH-100', SW / 2, top + SH * 0.066, Math.max(7, SW * 0.009), 'rgba(90,88,82,.45)', 'center');
+
+  bakeStack();
+}
+
+function inkOf(i) {
+  const k = i / MAXG;
+  const r = Math.round(40 + k * 62), gg = Math.round(41 + k * 60), b = Math.round(45 + k * 58);
+  return [r, gg, b];
+}
+
+// one pass of the machine: the word and the four corner marks, all carrying
+// every error the copies before it already had
+function layer(g, i) {
+  const t = i === 0 ? { x: 0, y: 0, r: 0, s: 1, kx: 0 } : gens[i - 1];
+  const [r, gg, b] = inkOf(i);
+  g.save();
+  g.translate(SW / 2 + t.x, SH / 2 + t.y);
+  g.rotate(t.r);
+  g.transform(1, 0, t.kx, 1, 0, 0);
+  g.scale(t.s, t.s);
+
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `800 ${FS}px "Nanum Myeongjo", serif`;
+
+  if (i === 0) {
+    g.globalAlpha = 0.72;
+    g.fillStyle = `rgb(${r},${gg},${b})`;
+    g.fillText(WORD, 0, 0);
+  } else {
+    g.globalAlpha = 0.085;
+    g.fillStyle = `rgb(${r},${gg},${b})`;
+    g.fillText(WORD, 0, 0);
+    const lw = i * 0.05;                       // 토너가 매번 조금씩 번진다
+    if (lw > 0.25) {
+      g.lineWidth = lw;
+      g.lineJoin = 'round';
+      g.strokeStyle = `rgb(${r},${gg},${b})`;
+      g.strokeText(WORD, 0, 0);
+    }
+  }
+
+  // registration marks
+  const cx = SW / 2 - MG, cy = SH / 2 - MG, a = Math.max(5, SW * 0.011);
+  g.globalAlpha = i === 0 ? 0.6 : 0.2;
+  g.strokeStyle = `rgb(${r},${gg},${b})`;
+  g.lineWidth = i === 0 ? 1 : 1 + i * 0.012;
+  g.beginPath();
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+    g.moveTo(sx * cx - a, sy * cy); g.lineTo(sx * cx + a, sy * cy);
+    g.moveTo(sx * cx, sy * cy - a); g.lineTo(sx * cx, sy * cy + a);
+  }
+  g.stroke();
+  g.restore();
+}
+
+function bakeStack() {
+  const [c, g] = mkCanvas(SW, SH);
+  stack = c;
+  for (let i = 0; i <= gen; i++) layer(g, i);
+}
+
+function copyOnce() {
+  if (gen >= MAXG || jam > 0) return;
+  const p = gen === 0 ? { x: 0, y: 0, r: 0, s: 1, kx: 0 } : gens[gen - 1];
+  const t = {
+    x: p.x + rnd(-1, 1) * 0.010 * SW,
+    y: p.y + rnd(-1, 1) * 0.009 * SW,
+    r: p.r + rnd(-1, 1) * 0.0040,
+    s: p.s * (1 + rnd(-1, 1) * 0.0035),
+    kx: p.kx + rnd(-1, 1) * 0.0035,
+  };
+  const was = markAt(p), now = markAt(t);
+  gens.push(t);
+  gen++;
+  layer(stack.getContext('2d'), gen);
+  drift += Math.hypot(now[0] - was[0], now[1] - was[1]) * MM;
+  const home = markAt({ x: 0, y: 0, r: 0, s: 1, kx: 0 });
+  off = Math.hypot(now[0] - home[0], now[1] - home[1]) * MM;
+  scanT = 0;
+  sound.copy(gen / MAXG);
+  if (gen >= MAXG) { jam = 0.001; sound.jam(); }
+  hintOff();
+}
+
+// ── where a corner mark has wandered to ────────────────────────────────────
+function markAt(t) {
+  const cx = (SW / 2 - MG) * t.s + t.kx * (SH / 2 - MG) * t.s;
+  const cy = (SH / 2 - MG) * t.s;
+  const c = Math.cos(t.r), s = Math.sin(t.r);
+  return [SW / 2 + t.x + cx * c - cy * s, SH / 2 + t.y + cx * s + cy * c];
+}
+
+// ── draw ───────────────────────────────────────────────────────────────────
+function draw() {
+  const g = ctx;
+  const bg = g.createRadialGradient(W / 2, H * 0.42, S * 0.1, W / 2, H / 2, S * 0.95);
+  bg.addColorStop(0, '#b0aea7');
+  bg.addColorStop(1, '#8d8b85');
+  g.fillStyle = bg;
+  g.fillRect(0, 0, W, H);
+
+  g.save();
+  g.shadowColor = 'rgba(30,28,24,.42)';
+  g.shadowBlur = S * 0.035;
+  g.shadowOffsetY = S * 0.012;
+  g.fillStyle = '#efece5';
+  g.fillRect(SX, SY, SW, SH);
+  g.restore();
+
+  g.drawImage(paper, SX, SY, SW, SH);
+  g.drawImage(stack, SX, SY, SW, SH);
+
+  g.save();
+  g.beginPath(); g.rect(SX, SY, SW, SH); g.clip();
+  g.translate(SX, SY);
+  drawCallout(g);
+  drawReadout(g);
+  if (jam > 0) drawJam(g);
+  if (scanT >= 0) drawScan(g);
+  g.restore();
+}
+
+function drawScan(g) {
+  const k = scanT / 0.42;
+  const y = -SH * 0.1 + SH * 1.2 * k, bh = SH * 0.17;
+  const a = Math.sin(Math.min(1, k) * Math.PI) * 0.9;
+  const lg = g.createLinearGradient(0, y - bh, 0, y + bh);
+  lg.addColorStop(0, 'rgba(255,252,238,0)');
+  lg.addColorStop(.5, `rgba(255,252,238,${0.5 * a})`);
+  lg.addColorStop(1, 'rgba(255,252,238,0)');
+  g.fillStyle = lg;
+  g.fillRect(0, y - bh, SW, bh * 2);
+  g.fillStyle = `rgba(255,255,248,${0.75 * a})`;
+  g.fillRect(0, y - 1, SW, 2.4);
+}
+
+function drawCallout(g) {
+  if (gen === 0) return;
+  const home = markAt({ x: 0, y: 0, r: 0, s: 1, kx: 0 });
+  const now = markAt(gens[gen - 1]);
+  const red = jam > 0 ? '#b8402f' : 'rgba(184,64,47,.8)';
+  g.strokeStyle = red;
+  g.lineWidth = 1;
+  g.setLineDash([4, 3]);
+  g.beginPath(); g.moveTo(home[0], home[1]); g.lineTo(now[0], now[1]); g.stroke();
+  g.setLineDash([]);
+  g.beginPath(); g.arc(now[0], now[1], Math.max(3, SW * 0.0055), 0, TAU); g.stroke();
+
+  const fs = Math.max(9, SW * 0.0115);
+  g.font = `700 ${fs}px "Space Mono", monospace`;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  g.fillStyle = red;
+  const right = now[0] > SW * 0.78;
+  g.textAlign = right ? 'right' : 'left';
+  g.fillText('+' + off.toFixed(1) + ' mm', now[0] + (right ? -fs * 0.9 : fs * 0.9), now[1] + fs * 1.6);
+}
+
+function drawReadout(g) {
+  const y = SH - SH * 0.082;
+  const fs = Math.max(9, SW * 0.0125), ks = Math.max(8, SW * 0.0105);
+  const [word, col] = LEGIBLE(gen);
+  const items = [
+    ['복사 세대', pad3(gen) + ' / 100', 'rgba(44,42,38,.9)', 0],
+    ['누적 오차', drift.toFixed(1) + ' mm', 'rgba(44,42,38,.9)', 0],
+    ['판독', word, col, 1],
+  ];
+  const gap = SW * 0.028, sep = SW * 0.022;
+  let total = 0;
+  for (const [k, v, , ko] of items) {
+    g.font = `400 ${ks}px "Noto Sans KR", sans-serif`;
+    total += g.measureText(k).width + gap;
+    g.font = ko ? `700 ${fs}px "Noto Sans KR", sans-serif` : `700 ${fs}px "Space Mono", monospace`;
+    total += g.measureText(v).width;
+  }
+  total += sep * 2;
+
+  let x = SW / 2 - total / 2;
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
+  items.forEach(([k, v, c, ko], i) => {
+    g.font = `400 ${ks}px "Noto Sans KR", sans-serif`;
+    g.fillStyle = 'rgba(80,78,72,.6)';
+    g.fillText(k, x, y);
+    x += g.measureText(k).width + gap;
+    g.font = ko ? `700 ${fs}px "Noto Sans KR", sans-serif` : `700 ${fs}px "Space Mono", monospace`;
+    g.fillStyle = c;
+    g.fillText(v, x, y);
+    x += g.measureText(v).width;
+    if (i < 2) {
+      g.font = `400 ${ks}px "Space Mono", monospace`;
+      g.fillStyle = 'rgba(90,88,82,.4)';
+      g.fillText('·', x + sep * 0.38, y);
+      x += sep;
+    }
+  });
+}
+
+function drawJam(g) {
+  const a = Math.min(1, jam * 1.6);
+  const fs = Math.max(13, SW * 0.028);
+  g.save();
+  g.translate(SW * 0.19, SH * 0.3);
+  g.rotate(-0.13);
+  g.globalAlpha = a * 0.92;
+  g.strokeStyle = '#b8402f';
+  g.lineWidth = Math.max(2, fs * 0.1);
+  const pw = fs * 4.6, ph = fs * 1.85;
+  g.strokeRect(-pw / 2, -ph / 2, pw, ph);
+  g.font = `700 ${fs}px "Noto Sans KR", sans-serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = '#b8402f';
+  g.fillText('판독 불가', 0, fs * 0.06);
+  g.restore();
+
+  const b = clamp((jam - 0.9) * 0.8, 0, 1);
+  if (b <= 0) return;
+  g.globalAlpha = b * 0.82;
+  g.font = `400 ${Math.max(11, SW * 0.019)}px "Nanum Myeongjo", serif`;
+  g.textAlign = 'center'; g.textBaseline = 'alphabetic';
+  g.fillStyle = 'rgba(44,42,38,.95)';
+  g.fillText('어디서부터 어긋났는지 알 수 없다', SW / 2, SH / 2 + FS * 0.78);
+  g.globalAlpha = 1;
+}
+
+// ── loop ───────────────────────────────────────────────────────────────────
+function step(dt) {
+  if (scanT >= 0) { scanT += dt; if (scanT > 0.42) scanT = -1; }
+  if (jam > 0) jam += dt;
+  if (holdT >= 0) {
+    holdT += dt;
+    if (holdT >= rate) { holdT = 0; rate = Math.max(0.12, rate * 0.9); copyOnce(); }
+  }
+}
+
+function frame(ts) {
+  const dt = Math.min(0.05, (frame.p ? ts - frame.p : 16) / 1000);
+  frame.p = ts;
+  if (!PREVIEW) step(dt);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+// ── wiring ─────────────────────────────────────────────────────────────────
+const hint = document.getElementById('hint');
+let hintGone = false;
+function hintOff() { if (!hintGone) { hintGone = true; hint.classList.add('off'); } }
+
+function resize() {
+  W = innerWidth; H = innerHeight;
+  cv.width = Math.ceil(W * DPR); cv.height = Math.ceil(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  S = Math.min(W, H * 1.5);
+
+  if (PREVIEW) {
+    SW = W * 1.25; SH = SW / 1.414;
+    SX = (W - SW) / 2; SY = H - SH * 0.94;
+  } else {
+    SW = Math.min(W * 0.78, H * 0.84 * 1.414); SH = SW / 1.414;
+    SX = (W - SW) / 2; SY = (H - SH) / 2;
+  }
+  FS = SH * 0.33;
+  MG = Math.min(SW, SH) * 0.046;
+  MM = 297 / SW;
+  bakePaper();
+}
+
+addEventListener('resize', resize);
+addEventListener('pointerdown', e => {
+  if (e.target.closest('.snd') || e.target.closest('.home-btn')) return;
+  sound.kick();
+  holdT = 0; rate = 0.34;
+  copyOnce();
+});
+addEventListener('pointerup', () => { holdT = -1; rate = 0.34; });
+addEventListener('pointercancel', () => { holdT = -1; rate = 0.34; });
+
+(async () => {
+  try {
+    await Promise.all([
+      document.fonts.load('800 80px "Nanum Myeongjo"'),
+      document.fonts.load('400 20px "Nanum Myeongjo"'),
+      document.fonts.load('700 20px "Noto Sans KR"'),
+      document.fonts.load('400 20px "Noto Sans KR"'),
+      document.fonts.load('700 20px "Space Mono"'),
+      document.fonts.load('400 20px "Space Mono"'),
+    ]);
+  } catch (e) { /* 폰트가 늦으면 기본 활자로 간다 */ }
+  resize();
+  if (PREVIEW) {
+    for (let i = 0; i < 46; i++) copyOnce();
+    scanT = 0.17;
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
