@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>낙엽 — SWEEP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #26231f; }
+  body { font-family: 'Space Mono', monospace; cursor: crosshair; user-select: none; }
+  canvas { display: block; }
+
+  .home-btn {
+    position: fixed; left: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
+    color: #9a8a6e; text-decoration: none; padding: 9px 13px;
+    border: 1px solid rgba(154,138,110,.3); background: rgba(38,35,31,.6);
+    transition: color .3s, border-color .3s;
+  }
+  .home-btn:hover { color: #e0b878; border-color: rgba(224,184,120,.5); }
+
+  .snd {
+    position: fixed; right: 26px; top: 22px; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
+    color: #9a8a6e; padding: 9px 13px; cursor: pointer;
+    border: 1px solid rgba(154,138,110,.3); background: rgba(38,35,31,.6);
+    transition: color .3s, border-color .3s;
+  }
+  .snd:hover { color: #e0b878; border-color: rgba(224,184,120,.5); }
+
+  .hint {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
+    font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
+    color: rgba(154,138,110,.75); white-space: nowrap; pointer-events: none;
+    background: rgba(38,35,31,.68); padding: 8px 13px;
+    transition: opacity 1s ease;
+  }
+  .hint.off { opacity: 0; }
+
+  body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<a class="home-btn" href="../index.html">← INDEX</a>
+<div class="snd" id="snd">SOUND: ON</div>
+<div class="hint" id="hint">드래그해서 쓸어 보세요</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+if (PREVIEW) document.body.classList.add('preview');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rnd = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[(Math.random() * a.length) | 0];
+
+let W = 0, H = 0, S = 0, GY = 0;
+
+const LINES = [
+  '바람이 불면 다 같이 눕는다',
+  '쓸어도 금방 다시 덮인다',
+  '밟으면 소리부터 부서진다',
+  '다 떨어지고 나서야 가지가 보인다',
+];
+
+const HUE = ['#b5762e', '#9c4a24', '#7e6b23', '#a8873f', '#6d3c22', '#c08a3e', '#8e5a28'];
+
+const leaves = [];       // 글자 낙엽
+const plain = [];        // 글자 없는 낙엽
+let hmap = null, HCOL = 96;
+let broom = { on: false, x: 0, y: 0, px: 0, py: 0, sp: 0 };
+let touched = new Set();
+let line = null;         // 모여 있는 문장
+let shimmer = 0;
+let spawned = 0;
+
+// ── sound ──────────────────────────────────────────────────────────────────
+const sound = (() => {
+  let ac = null, master = null, on = true, rustle = null, wind = null;
+  const noiseBuf = (sec, brown) => {
+    const n = (ac.sampleRate * sec) | 0, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < n; i++) {
+      const w = Math.random() * 2 - 1;
+      if (brown) { last = (last + 0.021 * w) / 1.02; d[i] = last * 3.4; }
+      else d[i] = w;
+    }
+    return b;
+  };
+  const boot = () => {
+    if (ac) return;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = 0.9;
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -18; comp.ratio.value = 6;
+    master.connect(comp); comp.connect(ac.destination);
+
+    // 바람
+    const ws = ac.createBufferSource(), wf = ac.createBiquadFilter(), wg = ac.createGain();
+    ws.buffer = noiseBuf(4, true); ws.loop = true;
+    wf.type = 'bandpass'; wf.frequency.value = 330; wf.Q.value = 0.55;
+    wg.gain.value = 0.085;
+    ws.connect(wf); wf.connect(wg); wg.connect(master); ws.start();
+    const lfo = ac.createOscillator(), lg = ac.createGain();
+    lfo.frequency.value = 0.07; lg.gain.value = 170;
+    lfo.connect(lg); lg.connect(wf.frequency); lfo.start();
+    wind = wg;
+
+    // 비질 소리 — 드래그 속도에 따라 열린다
+    const rs = ac.createBufferSource(), rf = ac.createBiquadFilter(), rg = ac.createGain();
+    rs.buffer = noiseBuf(3, false); rs.loop = true;
+    rf.type = 'bandpass'; rf.frequency.value = 2600; rf.Q.value = 0.7;
+    rg.gain.value = 0.0001;
+    rs.connect(rf); rf.connect(rg); rg.connect(master); rs.start();
+    rustle = rg;
+  };
+  const env = (g, t0, a, peak, dur) => {
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0 + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  };
+  return {
+    kick() { boot(); if (ac.state === 'suspended') ac.resume(); },
+    live() { return !!ac && ac.state === 'running' && on; },
+    toggle() { on = !on; if (master) master.gain.value = on ? 0.9 : 0; return on; },
+    sweep(v) {
+      if (!ac || !on) return;
+      rustle.gain.setTargetAtTime(Math.min(0.1, v * 0.0016) + 0.0001, ac.currentTime, 0.06);
+    },
+    // 한 장이 바닥에 닿는 소리
+    tick() {
+      if (!ac || !on || Math.random() > 0.5) return;
+      const t = ac.currentTime;
+      const n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      n.buffer = noiseBuf(0.1, false);
+      f.type = 'bandpass'; f.frequency.value = rnd(1600, 4200); f.Q.value = 2.6;
+      env(g, t, 0.004, rnd(0.02, 0.06), 0.09);
+      n.connect(f); f.connect(g); g.connect(master);
+      n.start(t); n.stop(t + 0.12);
+    },
+    // 문장이 모일 때
+    gather() {
+      if (!ac || !on) return;
+      const t = ac.currentTime;
+      [146.8, 220, 329.6].forEach((f, i) => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = i === 2 ? 'triangle' : 'sine';
+        o.frequency.value = f;
+        env(g, t + i * 0.05, 0.12, 0.1 - i * 0.025, 2.4);
+        o.connect(g); g.connect(master);
+        o.start(t + i * 0.05); o.stop(t + i * 0.05 + 2.6);
+      });
+      const n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      n.buffer = noiseBuf(0.8, false);
+      f.type = 'bandpass'; f.frequency.setValueAtTime(5200, t);
+      f.frequency.exponentialRampToValueAtTime(1400, t + 0.7);
+      f.Q.value = 1.4;
+      env(g, t, 0.02, 0.05, 0.8);
+      n.connect(f); f.connect(g); g.connect(master);
+      n.start(t); n.stop(t + 0.9);
+    },
+    // 문장이 다시 흩어질 때
+    fall() {
+      if (!ac || !on) return;
+      const t = ac.currentTime;
+      const n = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      n.buffer = noiseBuf(0.9, false);
+      f.type = 'bandpass'; f.frequency.setValueAtTime(2800, t);
+      f.frequency.exponentialRampToValueAtTime(600, t + 0.8);
+      f.Q.value = 1.1;
+      env(g, t, 0.03, 0.055, 0.9);
+      n.connect(f); f.connect(g); g.connect(master);
+      n.start(t); n.stop(t + 1);
+    },
+  };
+})();
+
+const sndEl = document.getElementById('snd');
+sndEl.addEventListener('click', e => {
+  e.stopPropagation();
+  sound.kick();
+  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+
+// ── 가지 ───────────────────────────────────────────────────────────────────
+let treeCv = null, sd = 0;
+const srnd = () => (sd = (sd * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+
+function bough(g, x, y, a, len, w, d) {
+  const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
+  const q = (srnd() - 0.5) * 0.3;
+  g.lineWidth = Math.max(0.7, w);
+  g.beginPath();
+  g.moveTo(x, y);
+  g.quadraticCurveTo((x + x2) / 2 + Math.cos(a + 1.571) * len * q, (y + y2) / 2 + Math.sin(a + 1.571) * len * q, x2, y2);
+  g.stroke();
+  if (d <= 0) return;
+  const n = srnd() < 0.3 ? 3 : 2;
+  for (let i = 0; i < n; i++) bough(g, x2, y2, a + (srnd() - 0.44) * 1.0, len * (0.5 + srnd() * 0.28), w * 0.64, d - 1);
+}
+
+function bakeTree() {
+  treeCv = document.createElement('canvas');
+  treeCv.width = Math.ceil(W * DPR); treeCv.height = Math.ceil(H * DPR);
+  const g = treeCv.getContext('2d');
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.strokeStyle = 'rgba(21,18,14,.82)';
+  g.lineCap = 'round';
+  sd = 20261116;
+  bough(g, -W * 0.03, H * 0.05, 0.26, W * 0.26, S * 0.013, 6);
+  bough(g, W * 1.03, H * 0.04, Math.PI - 0.18, W * 0.1, S * 0.008, 4);
+}
+
+// ── 낙엽 ───────────────────────────────────────────────────────────────────
+function colAt(x) { return clamp(Math.floor(x / W * HCOL), 0, HCOL - 1); }
+function topAt(x) { return GY - hmap[colAt(x)]; }
+
+function seed() {
+  leaves.length = 0; plain.length = 0;
+  let order = [];
+  LINES.forEach((ln, si) => {
+    [...ln].forEach((ch, i) => { if (ch !== ' ') order.push({ ch, si, i }); });
+  });
+  // 떨어지는 순서는 섞여 있다
+  for (let i = order.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [order[i], order[j]] = [order[j], order[i]]; }
+  order.forEach((o, k) => {
+    leaves.push({
+      ch: o.ch, si: o.si, i: o.i,
+      x: rnd(W * 0.08, W * 0.92), y: -S * rnd(0.06, 1.5) - k * S * 0.018,
+      vx: 0, vy: 0, rot: rnd(-TAU, TAU), vr: rnd(-1.4, 1.4),
+      ph: rnd(0, TAU), sz: S * rnd(0.031, 0.044), col: pick(HUE),
+      st: 0, tx: 0, ty: 0, tr: 0, pr: 0, dep: 0, dc: 0,
+    });
+  });
+  for (let k = 0; k < 230; k++) plain.push(mkPlain(-S * rnd(0.05, 2.6)));
+}
+
+function mkPlain(y) {
+  return {
+    x: rnd(-W * 0.05, W * 1.05), y,
+    vx: 0, vy: 0, rot: rnd(-TAU, TAU), vr: rnd(-1.8, 1.8),
+    ph: rnd(0, TAU), sz: S * rnd(0.012, 0.026), col: pick(HUE),
+    st: 0, dep: 0, dc: 0,
+  };
+}
+
+// 너무 가파르게 쌓인 자리는 저절로 흘러내린다
+function relax() {
+  const lim = S * 0.011;
+  for (let c = 0; c < HCOL - 1; c++) {
+    const d = hmap[c] - hmap[c + 1];
+    if (d > lim) { const m = (d - lim) * 0.22; hmap[c] -= m; hmap[c + 1] += m; }
+    else if (d < -lim) { const m = (-d - lim) * 0.22; hmap[c] += m; hmap[c + 1] -= m; }
+  }
+}
+
+function pileAvg() {
+  let t = 0;
+  for (let c = 0; c < HCOL; c++) t += hmap[c];
+  return t / HCOL;
+}
+
+function fall(p, dt, t, isLeaf) {
+  p.vy += S * 0.33 * dt;
+  p.vy = Math.min(p.vy, S * (isLeaf ? 0.2 : 0.26));
+  p.vx += Math.sin(t * 1.5 + p.ph) * S * 0.33 * dt;
+  p.vx *= 0.985;
+  p.x += p.vx * dt; p.y += p.vy * dt;
+  p.rot += p.vr * dt;
+  p.vr *= 0.995;
+  if (p.x < -W * 0.06) p.x = W * 1.06;
+  if (p.x > W * 1.06) p.x = -W * 0.06;
+  const floor = topAt(p.x) - p.sz * 0.22;
+  if (p.y >= floor) {
+    p.y = floor;
+    p.vx = 0; p.vy = 0; p.vr = 0;
+    p.st = 1;
+    p.rot = p.rot % TAU;
+    const c = colAt(p.x);
+    const g = p.sz * (isLeaf ? 0.3 : 0.28);
+    p.dep = g; p.dc = c;
+    hmap[c] += g;
+    if (c > 0) hmap[c - 1] += g * 0.45;
+    if (c < HCOL - 1) hmap[c + 1] += g * 0.45;
+    if (isLeaf) sound.tick();
+  }
+}
+
+function undeposit(p) {
+  const c = p.dc, g = p.dep;
+  if (!g) return;
+  hmap[c] = Math.max(0, hmap[c] - g);
+  if (c > 0) hmap[c - 1] = Math.max(0, hmap[c - 1] - g * 0.45);
+  if (c < HCOL - 1) hmap[c + 1] = Math.max(0, hmap[c + 1] - g * 0.45);
+  p.dep = 0;
+}
+
+function lift(p, vx, vy) {
+  if (p.st !== 1) return;
+  p.st = 0;
+  p.vx = vx; p.vy = vy;
+  p.vr = rnd(-5, 5);
+  undeposit(p);
+}
+
+// ── 쓸기 ───────────────────────────────────────────────────────────────────
+function sweepAt(x, y, dx, dy) {
+  const R = S * 0.11, R2 = R * R;
+  const sp = Math.hypot(dx, dy);
+  for (const p of leaves) {
+    if (p.st !== 1) continue;
+    const ex = p.x - x, ey = p.y - y;
+    if (ex * ex + ey * ey > R2) continue;
+    lift(p, dx * rnd(7, 13) + rnd(-S * .07, S * .07), -Math.abs(dy) * 4 - rnd(S * 0.06, S * 0.26));
+    touched.add(p);
+  }
+  for (const p of plain) {
+    if (p.st !== 1) continue;
+    const ex = p.x - x, ey = p.y - y;
+    if (ex * ex + ey * ey > R2 * 1.3) continue;
+    lift(p, dx * rnd(6, 14) + rnd(-S * .08, S * .08), -Math.abs(dy) * 4 - rnd(S * 0.05, S * 0.3));
+  }
+  sound.sweep(sp);
+}
+
+// 비질이 끝나면, 가장 많이 쓸린 문장이 제 순서를 찾는다
+function gather(x) {
+  if (!touched.size) return;
+  const tally = [0, 0, 0, 0];
+  for (const p of touched) tally[p.si]++;
+  touched.clear();
+  let si = 0;
+  for (let i = 1; i < tally.length; i++) if (tally[i] > tally[si]) si = i;
+  if (tally[si] < 3) return;
+
+  const mem = leaves.filter(p => p.si === si).sort((a, b) => a.i - b.i);
+  const sz = clamp(W / (mem.length + 3) * 0.78, S * 0.022, S * 0.034);
+  const total = mem.length * sz * 1.06;
+  const x0 = clamp(x - total / 2, W * 0.06, Math.max(W * 0.06, W * 0.94 - total));
+  let base = GY - S * 0.035;
+  for (let k = 0; k < mem.length; k++) base = Math.min(base, topAt(x0 + sz * 1.06 * (k + 0.5)) - sz * 0.62);
+  mem.forEach((p, k) => {
+    if (p.st === 1) undeposit(p);
+    p.st = 2;
+    p.pr = 0;
+    p.tx = x0 + sz * 1.06 * (k + 0.5);
+    p.ty = base;
+    p.tr = rnd(-0.055, 0.055);
+    p.tsz = sz;
+    p.fx = p.x; p.fy = p.y; p.frot = p.rot;
+  });
+  line = { si, t: 0, mem };
+  shimmer = 1;
+  sound.gather();
+  hintOff();
+}
+
+function scatter() {
+  if (!line) return;
+  for (const p of line.mem) {
+    p.st = 0;
+    p.vx = rnd(-S * .06, S * .06);
+    p.vy = rnd(-S * .08, -S * .02);
+    p.vr = rnd(-3, 3);
+  }
+  line = null;
+  sound.fall();
+}
+
+// ── draw ───────────────────────────────────────────────────────────────────
+let T = 0, drip = 0;
+
+function drawPlain(g, p) {
+  g.save();
+  g.translate(p.x, p.y);
+  g.rotate(p.rot);
+  g.globalAlpha = p.st === 1 ? 0.5 : 0.62;
+  g.fillStyle = p.col;
+  g.beginPath();
+  g.ellipse(0, 0, p.sz * 0.52, p.sz * 0.26, 0, 0, TAU);
+  g.fill();
+  g.strokeStyle = 'rgba(28,24,20,.4)';
+  g.lineWidth = Math.max(0.6, p.sz * 0.035);
+  g.beginPath(); g.moveTo(-p.sz * 0.5, 0); g.lineTo(p.sz * 0.5, 0); g.stroke();
+  g.restore();
+}
+
+function drawLeaf(g, p) {
+  g.save();
+  g.translate(p.x, p.y);
+  if (p.st === 3 || p.st === 2) {
+    const k = p.st === 3 ? 1 : p.pr;
+    g.rotate(p.rot);
+    const sz = p.sz + (p.tsz - p.sz) * k;
+    g.font = `700 ${sz}px "Nanum Myeongjo", serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    if (shimmer > 0.01 && p.st === 3) {
+      g.shadowColor = `rgba(255,226,170,${0.5 * shimmer})`;
+      g.shadowBlur = sz * 0.5;
+    }
+    const mix = k;
+    g.fillStyle = `rgb(${Math.round(190 + 48 * mix)},${Math.round(150 + 72 * mix)},${Math.round(96 + 110 * mix)})`;
+    g.fillText(p.ch, 0, 0);
+    g.shadowBlur = 0;
+  } else {
+    g.rotate(p.rot);
+    g.font = `700 ${p.sz}px "Nanum Myeongjo", serif`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.globalAlpha = p.st === 1 ? 0.92 : 1;
+    g.fillStyle = 'rgba(22,18,15,.45)';
+    g.fillText(p.ch, p.sz * 0.045, p.sz * 0.05);
+    g.fillStyle = p.col;
+    g.fillText(p.ch, 0, 0);
+  }
+  g.restore();
+}
+
+function draw() {
+  const g = ctx;
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#3c3832');
+  sky.addColorStop(.55, '#302c27');
+  sky.addColorStop(1, '#232019');
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
+
+  if (treeCv) g.drawImage(treeCv, 0, 0, W, H);
+
+  // 바닥
+  const fg = g.createLinearGradient(0, GY - S * 0.18, 0, H);
+  fg.addColorStop(0, 'rgba(26,22,17,0)');
+  fg.addColorStop(.42, 'rgba(30,25,19,.85)');
+  fg.addColorStop(.62, '#211c16');
+  fg.addColorStop(1, '#14110d');
+  g.fillStyle = fg;
+  g.fillRect(0, GY - S * 0.18, W, H - GY + S * 0.18);
+
+  // 쌓인 더미의 능선
+  g.beginPath();
+  g.moveTo(0, H);
+  g.lineTo(0, GY - hmap[0]);
+  for (let c = 0; c < HCOL; c++) g.lineTo((c + .5) / HCOL * W, GY - hmap[c]);
+  g.lineTo(W, GY - hmap[HCOL - 1]);
+  g.lineTo(W, H);
+  g.closePath();
+  g.fillStyle = 'rgba(70,52,31,.5)';
+  g.fill();
+
+  for (const p of plain) if (p.st === 1) drawPlain(g, p);
+  for (const p of leaves) if (p.st === 1) drawLeaf(g, p);
+  for (const p of plain) if (p.st === 0) drawPlain(g, p);
+  for (const p of leaves) if (p.st === 0) drawLeaf(g, p);
+  for (const p of leaves) if (p.st >= 2) drawLeaf(g, p);
+
+  if (broom.on) {
+    g.strokeStyle = 'rgba(226,200,150,.14)';
+    g.lineWidth = 1.2;
+    g.beginPath(); g.arc(broom.x, broom.y, S * 0.11, 0, TAU); g.stroke();
+  }
+
+  g.globalAlpha = 1;
+}
+
+// ── loop ───────────────────────────────────────────────────────────────────
+function step(dt) {
+  T += dt;
+  relax();
+  drip -= dt;
+  if (drip <= 0) {
+    drip = rnd(0.2, 0.7);
+    if (plain.length < 330 && pileAvg() < S * 0.07) plain.push(mkPlain(-S * rnd(0.04, 0.3)));
+  }
+  for (const p of plain) if (p.st === 0) fall(p, dt, T, false);
+  for (const p of leaves) {
+    if (p.st === 0) fall(p, dt, T, true);
+    else if (p.st === 2) {
+      p.pr = Math.min(1, p.pr + dt / 0.9);
+      const e = 1 - Math.pow(1 - p.pr, 3);
+      p.x = p.fx + (p.tx - p.fx) * e;
+      p.y = p.fy + (p.ty - p.fy) * e;
+      p.rot = p.frot * (1 - e) + p.tr * e;
+      if (p.pr >= 1) p.st = 3;
+    }
+  }
+  if (shimmer > 0) shimmer = Math.max(0, shimmer - dt * 0.35);
+  if (line) {
+    line.t += dt;
+    if (line.t > 7.5) scatter();
+  }
+  if (!broom.on) sound.sweep(0);
+}
+
+function frame(ts) {
+  const dt = Math.min(0.045, (frame.p ? ts - frame.p : 16) / 1000);
+  frame.p = ts;
+  if (!PREVIEW) step(dt);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+// ── wiring ─────────────────────────────────────────────────────────────────
+const hint = document.getElementById('hint');
+let hintGone = false;
+function hintOff() { if (!hintGone) { hintGone = true; hint.classList.add('off'); } }
+
+function resize() {
+  W = innerWidth; H = innerHeight;
+  cv.width = Math.ceil(W * DPR); cv.height = Math.ceil(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  S = Math.min(W, H * 1.5);
+  GY = H * 0.82;
+  bakeTree();
+}
+
+addEventListener('resize', () => {
+  const ox = W || innerWidth, oy = H || innerHeight;
+  resize();
+  const kx = W / ox, ky = H / oy;
+  for (const p of [...leaves, ...plain]) { p.x *= kx; p.y *= ky; }
+});
+
+addEventListener('pointerdown', e => {
+  if (e.target.closest('.snd') || e.target.closest('.home-btn')) return;
+  sound.kick();
+  broom.on = true;
+  broom.x = broom.px = e.clientX;
+  broom.y = broom.py = e.clientY;
+  if (line) scatter();
+});
+addEventListener('pointermove', e => {
+  broom.x = e.clientX; broom.y = e.clientY;
+  if (!broom.on) return;
+  const dx = broom.x - broom.px, dy = broom.y - broom.py;
+  sweepAt(broom.x, broom.y, dx, dy);
+  broom.px = broom.x; broom.py = broom.y;
+});
+const release = () => {
+  if (!broom.on) return;
+  broom.on = false;
+  sound.sweep(0);
+  gather(broom.x);
+};
+addEventListener('pointerup', release);
+addEventListener('pointercancel', release);
+
+(async () => {
+  try {
+    await Promise.all([
+      document.fonts.load('700 60px "Nanum Myeongjo"'),
+      document.fonts.load('400 20px "Nanum Myeongjo"'),
+      document.fonts.load('700 20px "Space Mono"'),
+    ]);
+  } catch (e) { /* 폰트가 늦으면 기본 활자로 간다 */ }
+  resize();
+  hmap = new Float32Array(HCOL);
+  for (let c = 0; c < HCOL; c++) hmap[c] = S * 0.015 * (0.55 + 0.45 * Math.sin(c * 0.19 + 1.1)) * rnd(0.5, 1.5);
+  seed();
+  if (PREVIEW) {
+    for (let i = 0; i < 520; i++) step(0.03);
+    for (const p of leaves) if (p.si === 2) touched.add(p);
+    gather(W * 0.5);
+    for (let i = 0; i < 40; i++) step(0.03);
+    shimmer = 0.7;
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
