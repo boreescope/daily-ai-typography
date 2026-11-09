@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포장지 — Wrapping</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Batang:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #1a1512; }
+  body { cursor: crosshair; }
+  canvas { display: block; }
+
+  .home-btn {
+    position: fixed; top: 20px; left: 20px; z-index: 10;
+    padding: 7px 13px;
+    background: rgba(26,21,18,.52);
+    border: 1px solid rgba(240,228,204,.26);
+    color: rgba(240,228,204,.6);
+    font: 700 10px/1 'Space Mono', monospace;
+    letter-spacing: .14em; text-decoration: none;
+    transition: color .2s, border-color .2s;
+  }
+  .home-btn:hover { color: #f6eedd; border-color: rgba(246,238,221,.6); }
+
+  .snd {
+    position: fixed; top: 20px; right: 20px; z-index: 10;
+    padding: 7px 13px;
+    background: rgba(26,21,18,.52);
+    border: 1px solid rgba(240,228,204,.26);
+    color: rgba(240,228,204,.6);
+    font: 700 10px/1 'Space Mono', monospace;
+    letter-spacing: .14em;
+    user-select: none;
+  }
+  .snd:hover { color: #f6eedd; border-color: rgba(246,238,221,.6); }
+
+  .hint {
+    position: fixed; left: 0; right: 0; bottom: 26px; z-index: 9;
+    text-align: center;
+    color: rgba(246,238,221,.5);
+    font: 400 12px/1 'Gowun Batang', serif;
+    letter-spacing: .22em;
+    transition: opacity .8s;
+    mix-blend-mode: difference;
+  }
+  .hint.off { opacity: 0; }
+
+  body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<a class="home-btn" href="../index.html">← INDEX</a>
+<div class="snd" id="snd">SOUND: ON</div>
+<div class="hint" id="hint">드래그해서 찢어 보세요</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+if (PREVIEW) document.body.classList.add('preview');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+let W = 0, H = 0, S = 0;
+
+// 겹겹이 싸여 있다 — 한 겹을 찢으면 다음 말이 나온다
+const SHEETS = [
+  { w: '축하합니다', bg: '#b8392f', fg: '#f4e3c3', ac: '#e9b94c', rot: -0.17 },
+  { w: '고마워요',   bg: '#2f6a50', fg: '#f0e8d2', ac: '#d7ab4e', rot:  0.23 },
+  { w: '미안해',     bg: '#2b4878', fg: '#dde5f3', ac: '#93aed4', rot: -0.09 },
+  { w: '보고 싶어',  bg: '#ad4c78', fg: '#fae4ed', ac: '#f3c6d8', rot:  0.31 },
+  { w: '잘 지내',    bg: '#6a5a3c', fg: '#efe2c3', ac: '#c6a566', rot: -0.27 },
+];
+const CORE = '#f7f1e3';         // 찢긴 자리의 속종이
+const KRAFT = '#b59871';
+
+let lc = [];                     // 겹마다 한 장
+let torn = [];                   // 얼마나 찢겼나
+let gone = 0;                    // 떨어져 나간 겹
+let rewrap = -1;                 // 다시 쌀 때까지
+let lastPt = null, target = -1;
+let tearV = 0;
+
+// ── 소리 ───────────────────────────────────────────────────────────────────
+const sound = (() => {
+  let ac = null, master = null, on = true, nb = null;
+
+  function boot() {
+    if (ac) return;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = on ? 0.9 : 0;
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -16; comp.ratio.value = 9;
+    master.connect(comp); comp.connect(ac.destination);
+
+    const len = ac.sampleRate * 2;
+    nb = ac.createBuffer(1, len, ac.sampleRate);
+    const d = nb.getChannelData(0);
+    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }
+
+  function burst(dur, f0, f1, v, q) {
+    const s = ac.createBufferSource();
+    s.buffer = nb; s.loop = true;
+    const bp = ac.createBiquadFilter();
+    bp.type = 'bandpass'; bp.Q.value = q || 1.3;
+    const n = ac.currentTime;
+    bp.frequency.setValueAtTime(f0, n);
+    bp.frequency.exponentialRampToValueAtTime(f1, n + dur);
+    const g = ac.createGain();
+    g.gain.setValueAtTime(v, n);
+    g.gain.exponentialRampToValueAtTime(0.0001, n + dur);
+    s.connect(bp); bp.connect(g); g.connect(master);
+    s.start(n); s.stop(n + dur + 0.05);
+  }
+
+  return {
+    kick() { boot(); if (ac.state === 'suspended') ac.resume(); },
+    live() { return !!ac && ac.state === 'running'; },
+    toggle() { on = !on; if (master) master.gain.value = on ? 0.9 : 0; return on; },
+
+    // 종이가 결을 따라 갈라진다
+    rip(v) {
+      if (!ac) return;
+      burst(0.04 + v * 0.06, 1400 + v * 2600, 3600 + v * 3000, 0.1 + v * 0.14, 1.1);
+      if (Math.random() < 0.45) burst(0.09, 700, 320, 0.06 + v * 0.05, 0.8);
+    },
+    // 한 겹이 떨어진다
+    drop() {
+      if (!ac) return;
+      burst(0.5, 3000, 220, 0.22, 0.7);
+      const o = ac.createOscillator(), g = ac.createGain(), n = ac.currentTime;
+      o.type = 'sine'; o.frequency.setValueAtTime(140, n);
+      o.frequency.exponentialRampToValueAtTime(58, n + 0.4);
+      g.gain.setValueAtTime(0.14, n);
+      g.gain.exponentialRampToValueAtTime(0.0001, n + 0.5);
+      o.connect(g); g.connect(master); o.start(n); o.stop(n + 0.6);
+    },
+    // 다시 싼다
+    wrap() {
+      if (!ac) return;
+      burst(0.7, 240, 2200, 0.1, 0.6);
+    },
+  };
+})();
+
+const sndEl = document.getElementById('snd');
+sndEl.addEventListener('click', e => {
+  e.stopPropagation();
+  sound.kick();
+  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+
+// ── 겹 만들기 ──────────────────────────────────────────────────────────────
+let lg = [], fall = [], dead = [], wrapA = 1;
+
+function bakeSheet(i) {
+  const sh = SHEETS[i];
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(W * DPR); c.height = Math.ceil(H * DPR);
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+  g.fillStyle = sh.bg;
+  g.fillRect(0, 0, W, H);
+
+  g.save();
+  g.translate(W / 2, H / 2);
+  g.rotate(sh.rot);
+  const sz = S * (PREVIEW ? 0.072 : 0.029);
+  const R = Math.hypot(W, H) * 0.6 + sz * 3;
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.font = `700 ${sz}px 'Gowun Batang', serif`;
+  const wd = g.measureText(sh.w).width;
+  const sx = wd + sz * 1.35, sy = sz * 1.5;
+
+  for (let y = -R, r = 0; y <= R; y += sy, r++) {
+    const big = r % 2 === 0;
+    const fsz = big ? sz : sz * 0.56;
+    g.font = `700 ${fsz}px 'Gowun Batang', serif`;
+    g.fillStyle = big ? sh.fg : sh.ac;
+    g.globalAlpha = big ? 0.92 : 0.66;
+    const w2 = g.measureText(sh.w).width;
+    const step = big ? sx : w2 + fsz * 2.2;
+    for (let x = -R + (r % 2 ? step * 0.42 : 0); x <= R; x += step) {
+      g.fillText(sh.w, x, y);
+      if (!big) {
+        g.globalAlpha = 0.4;
+        g.beginPath();
+        g.arc(x + w2 + fsz * 1.1, y, fsz * 0.14, 0, TAU);
+        g.fill();
+        g.globalAlpha = 0.66;
+      }
+    }
+  }
+  g.restore();
+  g.globalAlpha = 1;
+
+  // 종이의 결
+  g.strokeStyle = 'rgba(255,255,255,.035)';
+  g.lineWidth = 1;
+  for (let k = 0; k < 90; k++) {
+    const y = rnd(0, H);
+    g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + rnd(-3, 3)); g.stroke();
+  }
+  g.fillStyle = 'rgba(0,0,0,.05)';
+  for (let k = 0; k < 400; k++) g.fillRect(rnd(0, W), rnd(0, H), rnd(1, 2.4), rnd(1, 2.4));
+
+  lc[i] = c; lg[i] = g;
+}
+
+function wrapAll() {
+  lc = []; lg = []; torn = []; fall = []; dead = [];
+  for (let i = 0; i < SHEETS.length; i++) { bakeSheet(i); torn[i] = 0; fall[i] = null; dead[i] = false; }
+  gone = 0; rewrap = -1; wrapA = 0;
+}
+
+// ── 찢기 ───────────────────────────────────────────────────────────────────
+function ragged(g, x, y, r) {
+  g.beginPath();
+  const n = 9;
+  for (let k = 0; k <= n; k++) {
+    const a = k / n * TAU, rr = r * (0.74 + Math.random() * 0.5);
+    const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr;
+    k ? g.lineTo(px, py) : g.moveTo(px, py);
+  }
+  g.closePath();
+  g.fill();
+}
+
+function punch(i, x, y, r) {
+  const g = lg[i];
+  g.globalCompositeOperation = 'source-atop';
+  g.fillStyle = CORE;
+  ragged(g, x, y, r * 1.34);
+  g.globalCompositeOperation = 'destination-out';
+  ragged(g, x, y, r);
+  g.globalCompositeOperation = 'source-over';
+  torn[i] += Math.PI * r * r / (W * H);
+}
+
+function topAt(x, y) {
+  for (let i = 0; i < SHEETS.length; i++) {
+    if (dead[i] || fall[i]) continue;
+    const d = lg[i].getImageData(Math.round(x * DPR), Math.round(y * DPR), 1, 1).data;
+    if (d[3] > 8) return i;
+  }
+  return -1;
+}
+
+function tearTo(x, y) {
+  if (target < 0 || dead[target] || fall[target]) return;
+  const p = lastPt || { x, y };
+  const dx = x - p.x, dy = y - p.y;
+  const dist = Math.hypot(dx, dy);
+  const r = S * 0.021;
+  const steps = Math.max(1, Math.ceil(dist / (r * 0.5)));
+  for (let k = 1; k <= steps; k++) {
+    const t = k / steps;
+    punch(target, p.x + dx * t, p.y + dy * t, r * rnd(0.82, 1.2));
+  }
+  lastPt = { x, y };
+  tearV = clamp(tearV + dist / S * 1.6, 0, 1);
+  if (dist > 2) sound.rip(clamp(dist / 60, 0.1, 1));
+
+  if (torn[target] > 0.4 && !fall[target]) {
+    fall[target] = { t: 0, dx: rnd(-0.5, 0.5) * W, r: rnd(-0.5, 0.5) };
+    sound.drop();
+    target = -1;
+  }
+}
+
+// ── 맨 아래 ────────────────────────────────────────────────────────────────
+let baseCv = null, mx = 0, my = 0, idle = 0;
+
+function bakeBase() {
+  baseCv = document.createElement('canvas');
+  baseCv.width = Math.ceil(W * DPR); baseCv.height = Math.ceil(H * DPR);
+  const g = baseCv.getContext('2d');
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.fillStyle = KRAFT;
+  g.fillRect(0, 0, W, H);
+
+  g.strokeStyle = 'rgba(92,70,44,.1)';
+  g.lineWidth = 1;
+  for (let k = 0; k < 160; k++) {
+    const y = rnd(0, H);
+    g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + rnd(-4, 4)); g.stroke();
+  }
+  g.fillStyle = 'rgba(92,70,44,.09)';
+  for (let k = 0; k < 900; k++) g.fillRect(rnd(0, W), rnd(0, H), rnd(1, 3), rnd(1, 3));
+
+  // 접힌 자국
+  g.strokeStyle = 'rgba(70,52,32,.16)';
+  g.lineWidth = Math.max(1, S * 0.0016);
+  [0.3, 0.7].forEach(f => {
+    g.beginPath(); g.moveTo(W * f, 0); g.lineTo(W * f + rnd(-6, 6), H); g.stroke();
+  });
+
+  const sz = S * (PREVIEW ? 0.075 : 0.044);
+  g.font = `400 ${sz}px 'Gowun Batang', serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = 'rgba(62,46,28,.86)';
+  g.fillText('포장지만 남았다', W / 2, H / 2);
+}
+
+// ── 그리기 ─────────────────────────────────────────────────────────────────
+function draw() {
+  ctx.fillStyle = '#1a1512';
+  ctx.fillRect(0, 0, W, H);
+  ctx.drawImage(baseCv, 0, 0, W, H);
+
+  for (let i = SHEETS.length - 1; i >= 0; i--) {
+    if (dead[i]) continue;
+    const f = fall[i];
+    ctx.save();
+    if (f) {
+      const e = f.t * f.t;
+      ctx.globalAlpha = clamp(1 - f.t * 1.1, 0, 1);
+      ctx.translate(W / 2 + f.dx * e, H / 2 + H * 1.25 * e);
+      ctx.rotate(f.r * e);
+      ctx.translate(-W / 2, -H / 2);
+    } else {
+      ctx.globalAlpha = wrapA;
+    }
+    ctx.drawImage(lc[i], 0, 0, W, H);
+    ctx.restore();
+  }
+
+  ctx.globalAlpha = 1;
+  const sg = ctx.createRadialGradient(mx, my, 0, mx, my, S * 0.55);
+  sg.addColorStop(0, 'rgba(255,248,230,.075)');
+  sg.addColorStop(0.5, 'rgba(255,248,230,.022)');
+  sg.addColorStop(1, 'rgba(255,248,230,0)');
+  ctx.fillStyle = sg;
+  ctx.fillRect(0, 0, W, H);
+
+  const vg = ctx.createRadialGradient(W / 2, H / 2, S * 0.3, W / 2, H / 2, S * 0.82);
+  vg.addColorStop(0, 'rgba(0,0,0,0)');
+  vg.addColorStop(1, `rgba(12,8,5,${0.4 - tearV * 0.12})`);
+  ctx.fillStyle = vg;
+  ctx.fillRect(0, 0, W, H);
+
+  if (!PREVIEW) {
+    const left = SHEETS.length - gone;
+    ctx.font = `700 ${Math.max(8, S * 0.011)}px 'Space Mono', monospace`;
+    ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = 'rgba(247,241,227,.46)';
+    ctx.fillText(left ? String(left).padStart(2, '0') + ' LAYERS LEFT' : 'NOTHING LEFT', 22, H - 24);
+  }
+}
+
+// ── 흐름 ───────────────────────────────────────────────────────────────────
+function step(dt) {
+  tearV = Math.max(0, tearV - dt * 1.1);
+  idle += dt;
+  if (idle > 2) {
+    mx += Math.cos(idle * 0.31) * dt * S * 0.09;
+    my += Math.sin(idle * 0.23) * dt * S * 0.07;
+    mx = clamp(mx, W * 0.15, W * 0.85);
+    my = clamp(my, H * 0.15, H * 0.85);
+  }
+  if (wrapA < 1) wrapA = Math.min(1, wrapA + dt * 1.6);
+
+  for (let i = 0; i < SHEETS.length; i++) {
+    if (!fall[i] || dead[i]) continue;
+    fall[i].t += dt * 1.15;
+    if (fall[i].t >= 1) { dead[i] = true; fall[i] = null; gone++; }
+  }
+
+  if (gone >= SHEETS.length && rewrap < 0) rewrap = 2.2;
+  if (rewrap > 0) {
+    rewrap -= dt;
+    if (rewrap <= 0) { wrapAll(); sound.wrap(); }
+  }
+}
+
+// ── 들어오기 ───────────────────────────────────────────────────────────────
+const hintEl = document.getElementById('hint');
+let hinted = false, tearing = false;
+const hintOff = () => { if (!hinted) { hinted = true; hintEl.classList.add('off'); } };
+
+cv.addEventListener('pointerdown', e => {
+  sound.kick();
+  hintOff();
+  tearing = true;
+  cv.setPointerCapture(e.pointerId);
+  target = topAt(e.clientX, e.clientY);
+  lastPt = { x: e.clientX, y: e.clientY };
+  if (target >= 0) { punch(target, e.clientX, e.clientY, S * 0.021); sound.rip(0.3); }
+});
+cv.addEventListener('pointermove', e => {
+  mx = e.clientX; my = e.clientY; idle = 0;
+  if (tearing) tearTo(e.clientX, e.clientY);
+});
+window.addEventListener('pointerup', () => { tearing = false; lastPt = null; target = -1; });
+
+// ── 자리 ───────────────────────────────────────────────────────────────────
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  S = Math.min(W, H);
+  cv.width = Math.ceil(W * DPR); cv.height = Math.ceil(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  bakeBase();
+  wrapAll();
+  wrapA = 1;
+  mx = W * 0.5; my = H * 0.38;
+}
+let rt = 0;
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(resize, 200); });
+
+let last = 0;
+function frame(ts) {
+  const dt = Math.min(0.05, (ts - last) / 1000 || 0);
+  last = ts;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (!PREVIEW) step(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+function swipe(i, x0, y0, x1, y1, r, wob) {
+  const n = 46;
+  for (let k = 0; k <= n; k++) {
+    const t = k / n;
+    const x = x0 + (x1 - x0) * t;
+    const y = y0 + (y1 - y0) * t + Math.sin(t * 7) * (wob || 0);
+    punch(i, x, y, r * (0.85 + Math.random() * 0.3));
+  }
+}
+
+async function boot() {
+  await Promise.all([
+    document.fonts.load("400 40px 'Gowun Batang'"),
+    document.fonts.load("700 40px 'Gowun Batang'"),
+    document.fonts.load("700 40px 'Space Mono'"),
+  ]);
+  resize();
+
+  if (PREVIEW) {
+    swipe(0, W * 0.06, H * 0.32, W * 0.96, H * 0.5, S * 0.085, H * 0.05);
+    swipe(1, W * 0.3, H * 0.42, W * 0.88, H * 0.53, S * 0.05, H * 0.02);
+    swipe(2, W * 0.55, H * 0.47, W * 0.84, H * 0.5, S * 0.026, 0);
+  }
+  requestAnimationFrame(frame);
+}
+boot();
+</script>
+</body>
+</html>
