@@ -38,12 +38,6 @@
   }
   .reroute:hover { transform: translateX(-50%) translateY(-1px); }
   .reroute:active { transform: translateX(-50%) translateY(1px); }
-  .back {
-    right: 24px; bottom: 28px; opacity: 0; pointer-events: none;
-    font: 700 12px/1 'Noto Sans KR', sans-serif; letter-spacing: .06em;
-    padding: 13px 18px;
-  }
-  .back.show { opacity: 1; pointer-events: auto; }
 
   /* out there the paper is black, so the cards turn over */
   body.space .chip {
@@ -69,7 +63,6 @@
   <a class="chip home-btn" href="../index.html">HOME</a>
   <button class="chip snd" id="snd">SOUND: OFF</button>
   <button class="chip reroute" id="rr">경로 재탐색</button>
-  <button class="chip back" id="bk">지구로 돌아가기</button>
   <div class="hint" id="hint">드래그 · 방향키 — 경로를 벗어나 보세요</div>
 
 <script>
@@ -139,11 +132,11 @@
   ];
   // what the button says back, per act, in the order you press it
   const RR = [
-    ['이미 경로 위에 있습니다', '정말 괜찮습니다', '목적지까지 12분 남았습니다'],
-    ['재탐색 중…', '새 경로를 찾았습니다', '아니요, 못 찾았습니다'],
-    ['재탐색 실패', '다시 시도합니다 …실패', '지도를 전부 뒤졌습니다'],
-    ['재탐색할 도로가 없습니다', '여기엔 아무것도 깔려 있지 않아요', '그만 누르셔도 됩니다'],
-    ['…', '자꾸 누르시네요', '좋아요, 계속 가 봅시다', '어디까지 가는지 봅시다'],
+    ['이미 경로 위에 있습니다', '정말 괜찮습니다', '목적지까지 2분 남았습니다'],
+    ['재탐색 중…', '경로를 찾았습니다', '원래 길로 돌아갑니다'],
+    ['지도를 다시 불러옵니다', '도로를 찾았습니다', '돌아가는 중입니다'],
+    ['고도를 낮춥니다', '지면이 보입니다', '곧 도로에 닿습니다'],
+    ['…좌표를 다시 잡았습니다', '삼선동으로 돌아갑니다', '처음부터 다시 안내합니다'],
   ];
 
   const actOf = d => { let k = 0; for (let i = 0; i < ACTS.length; i++) if (d >= ACTS[i].at) k = i; return k; };
@@ -709,7 +702,6 @@
     clipR = Math.min(Math.hypot(W, H), PR * gs);
 
     document.body.classList.toggle('space', night > 0.45);
-    bk.classList.toggle('show', night > 0.5 && backing === 0);
     if (d > 0.15) hint.classList.add('off');
 
     if (act !== prevAct) { lineAct = act; lineIdx = 0; forced = 0; say(ACTS[act].lines[0], act >= 4 ? 3 : act >= 1 ? 1 : 0); }
@@ -773,7 +765,6 @@
   const keys = new Set();
   const snd = document.getElementById('snd');
   const rr = document.getElementById('rr');
-  const bk = document.getElementById('bk');
   const hint = document.getElementById('hint');
 
   let dragging = false, px0 = 0, py0 = 0;
@@ -806,31 +797,15 @@
   function syncSnd() { snd.textContent = 'SOUND: ' + (sound.live() ? 'ON' : 'OFF'); }
   snd.addEventListener('click', () => { sound.toggle(); syncSnd(); });
 
-  // Pressing it is the whole interaction. Early on it refuses to help,
-  // later it quietly pushes you further out — which is how you get there.
+  // the one control. However far out you are, it walks you back to the map.
   rr.addEventListener('click', () => {
     sound.kick(); syncSnd();
     const act = actOf(d);
     const pool = RR[act];
-    const txt = pool[rrCount[act] % pool.length];
+    line = pool[rrCount[act] % pool.length]; lineT = 0; forced = 3.2;
     rrCount[act]++;
-    line = txt; lineT = 0; forced = 2.8;
     sound.ding(act >= 3 ? 3 : act >= 2 ? 2 : 1);
-    if (act >= 1) {
-      const a = hsh(rrCount[act], act, 23) * TAU;
-      const push = 220 + act * 260;
-      const cur = Math.hypot(wx, wy) || 1;
-      wx += wx / cur * push + Math.cos(a) * push * 0.5;
-      wy += wy / cur * push + Math.sin(a) * push * 0.5;
-      backing = 0;
-    }
-  });
-
-  bk.addEventListener('click', () => {
-    sound.kick(); syncSnd();
-    backing = 1;
-    line = '지구로 돌아갑니다'; lineT = 0; forced = 3.2;
-    sound.ding(0);
+    if (act >= 1) backing = 1;
   });
 
   function resize() {
@@ -855,7 +830,7 @@
   window.__st = () => ({
     d, alt, night, act: actOf(d), speed, line, frames,
     space: document.body.classList.contains('space'),
-    back: bk.classList.contains('show'),
+    back: backing > 0,
     live: sound.live(),
   });
 })();
