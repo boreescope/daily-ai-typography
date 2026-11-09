@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>알림음 — Chime Score</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0e1014; }
+  body { cursor: ew-resize; }
+  canvas { display: block; }
+
+  .home-btn {
+    position: fixed; top: 20px; left: 20px; z-index: 10;
+    padding: 7px 13px;
+    background: rgba(20,23,28,.6);
+    border: 1px solid rgba(150,160,175,.26);
+    color: #8a909b;
+    font: 700 10px/1 'Space Mono', monospace;
+    letter-spacing: .14em; text-decoration: none;
+    transition: color .2s, border-color .2s;
+  }
+  .home-btn:hover { color: #dfe4ea; border-color: rgba(223,228,234,.5); }
+
+  .snd {
+    position: fixed; top: 20px; right: 20px; z-index: 10;
+    padding: 7px 13px;
+    background: rgba(20,23,28,.6);
+    border: 1px solid rgba(150,160,175,.26);
+    color: #8a909b;
+    font: 700 10px/1 'Space Mono', monospace;
+    letter-spacing: .14em;
+    user-select: none;
+  }
+  .snd:hover { color: #dfe4ea; border-color: rgba(223,228,234,.5); }
+
+  .hint {
+    position: fixed; left: 0; right: 0; bottom: 26px; z-index: 9;
+    text-align: center;
+    color: rgba(190,198,210,.4);
+    font: 400 12px/1 'Nanum Myeongjo', serif;
+    letter-spacing: .22em;
+    transition: opacity .8s;
+  }
+  .hint.off { opacity: 0; }
+
+  body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
+</style>
+</head>
+<body>
+<canvas id="cv"></canvas>
+<a class="home-btn" href="../index.html">← INDEX</a>
+<div class="snd" id="snd">SOUND: ON</div>
+<div class="hint" id="hint">드래그해서 하루를 넘겨 보세요</div>
+
+<script>
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const PREVIEW = new URLSearchParams(location.search).has('preview');
+if (PREVIEW) document.body.classList.add('preview');
+
+const DPR = Math.min(window.devicePixelRatio || 1, 2);
+const TAU = Math.PI * 2;
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const rnd = (a, b) => a + Math.random() * (b - a);
+
+let W = 0, H = 0, S = 0;
+let BX = 0, BW = 0, BY = 0, BH = 0, LH = 0;   // 악보의 자리
+
+// 하루치 알림 — 소리마다 제 줄이 있다
+const LANES = [
+  { name: '메시지', ch: '띵',   col: '#74b8da', base: 1046.5, w: [.04,.02,0,0,0,0,.06,.2,.5,.8,.9,.75,.85,.7,.6,.65,.7,.8,.95,.9,.8,.7,.45,.2] },
+  { name: '메일',   ch: '딩',   col: '#cfa94e', base: 783.99, w: [0,0,0,0,0,0,.05,.2,.6,.85,.8,.7,.5,.75,.85,.8,.7,.55,.3,.15,.1,.05,.02,0] },
+  { name: '알람',   ch: '삐',   col: '#d9683f', base: 880.00, w: [0,0,0,0,0,.1,.9,1,.55,0,0,0,0,0,0,0,0,0,0,0,0,0,.05,.05] },
+  { name: '결제',   ch: '두둥', col: '#9486cc', base: 196.00, w: [0,0,0,0,0,0,0,.1,.25,.2,.25,.5,.9,.6,.3,.3,.35,.4,.7,.85,.6,.35,.15,.05] },
+  { name: '배달',   ch: '딩동', col: '#78bf87', base: 587.33, w: [0,0,0,0,0,0,0,0,.05,.1,.3,.8,.9,.5,.2,.25,.35,.6,.95,.9,.6,.3,.1,.02] },
+  { name: 'SNS',    ch: '톡',   col: '#d583ad', base: 1318.5, w: [.08,.04,.02,0,0,0,.05,.25,.5,.6,.65,.7,.75,.65,.6,.65,.7,.75,.8,.9,.95,1,.85,.4] },
+];
+
+const DAY = 56;            // 하루가 지나가는 데 걸리는 시간(초)
+let notes = [];
+let now = 0;               // 0 ~ 24
+let playing = true;
+let pops = [];
+let drag = false;
+let lone = null;           // 새벽 3시 47분의 그것
+let ridge = null, rmax = 1;
+
+let sd = 20261118;
+const srnd = () => (sd = (sd * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+
+function buildDay() {
+  notes = [];
+  sd = 20261118;
+  LANES.forEach((ln, li) => {
+    for (let h = 0; h < 24; h++) {
+      const n = Math.round(ln.w[h] * 7 * (0.55 + srnd() * 0.9));
+      for (let k = 0; k < n; k++) {
+        notes.push({ li, t: h + srnd(), v: 0.45 + srnd() * 0.55, hit: 0, lone: false });
+      }
+    }
+  });
+  // 아무도 깨어 있지 않은 시각에 하나
+  lone = { li: 0, t: 3 + 47 / 60, v: 1, hit: 0, lone: true };
+  notes.push(lone);
+  notes.sort((a, b) => a.t - b.t);
+
+  ridge = new Float32Array(24);
+  notes.forEach(p => { ridge[Math.floor(p.t)] += p.v; });
+  rmax = Math.max(...ridge, 1);
+}
+
+// ── 소리 ───────────────────────────────────────────────────────────────────
+const sound = (() => {
+  let ac = null, master = null, on = true, room = null;
+
+  function boot() {
+    if (ac) return;
+    ac = new (window.AudioContext || window.webkitAudioContext)();
+    master = ac.createGain();
+    master.gain.value = on ? 0.85 : 0;
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.value = -17; comp.ratio.value = 8;
+    master.connect(comp); comp.connect(ac.destination);
+
+    // 방의 공기
+    const len = ac.sampleRate * 3;
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i++) { last = (last + (Math.random() * 2 - 1) * 0.06) * 0.985; d[i] = last; }
+    const src = ac.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 420;
+    const g = ac.createGain(); g.gain.value = 0.3;
+    src.connect(lp); lp.connect(g); g.connect(master); src.start();
+    room = g;
+  }
+
+  const env = (g, a, p, d, v) => {
+    g.gain.setValueAtTime(0.0001, a);
+    g.gain.exponentialRampToValueAtTime(v, a + p);
+    g.gain.exponentialRampToValueAtTime(0.0001, a + p + d);
+  };
+
+  function tone(f, at, dur, v, type, q) {
+    const o = ac.createOscillator();
+    o.type = type || 'sine';
+    o.frequency.value = f;
+    const g = ac.createGain();
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = q || 5200;
+    o.connect(lp); lp.connect(g); g.connect(master);
+    env(g, at, 0.006, dur, v);
+    o.start(at); o.stop(at + dur + 0.1);
+  }
+
+  return {
+    kick() { boot(); if (ac.state === 'suspended') ac.resume(); },
+    live() { return !!ac && ac.state === 'running'; },
+    toggle() { on = !on; if (master) master.gain.value = on ? 0.85 : 0; return on; },
+    night(v) { if (room) room.gain.setTargetAtTime(0.18 + v * 0.3, ac.currentTime, 0.4); },
+
+    // 줄마다 제 소리가 있다
+    ring(li, v, lonely) {
+      if (!ac) return;
+      const n = ac.currentTime, b = LANES[li].base, a = v * (lonely ? 1 : 0.62);
+      if (li === 0) {               // 메시지 — 두 음
+        tone(b, n, 0.26, 0.16 * a);
+        tone(b * 1.335, n + 0.075, 0.34, 0.14 * a);
+        tone(b * 2, n, 0.12, 0.04 * a);
+      } else if (li === 1) {        // 메일 — 종 하나
+        tone(b, n, 0.7, 0.11 * a);
+        tone(b * 2.76, n, 0.42, 0.035 * a);
+      } else if (li === 2) {        // 알람 — 세 번
+        for (let k = 0; k < 3; k++) tone(b, n + k * 0.13, 0.08, 0.11 * a, 'square', 2200);
+      } else if (li === 3) {        // 결제 — 낮게 둘
+        tone(b, n, 0.3, 0.18 * a, 'triangle', 900);
+        tone(b * 0.75, n + 0.1, 0.42, 0.16 * a, 'triangle', 760);
+      } else if (li === 4) {        // 배달 — 올라가는 셋
+        [1, 1.26, 1.5].forEach((m, k) => tone(b * m, n + k * 0.09, 0.22, 0.1 * a));
+      } else {                      // SNS — 짧게
+        tone(b, n, 0.1, 0.1 * a, 'triangle', 4200);
+        tone(b * 1.5, n + 0.04, 0.14, 0.06 * a);
+      }
+    },
+  };
+})();
+
+const sndEl = document.getElementById('snd');
+sndEl.addEventListener('click', e => {
+  e.stopPropagation();
+  sound.kick();
+  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+
+// ── 그리기 ─────────────────────────────────────────────────────────────────
+let cnt = 0, loneAt = -99, endGlow = 0;
+
+const TSZ = PREVIEW ? 0.115 : 0.078;
+const LSZ = PREVIEW ? 0.030 : 0.018;
+const PSZ = PREVIEW ? 0.052 : 0.033;
+
+function mono(t, x, y, sz, c, al, wt) {
+  ctx.font = `${wt || 400} ${sz}px 'Space Mono', monospace`;
+  ctx.fillStyle = c; ctx.textAlign = al || 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(t, x, y);
+}
+function serif(t, x, y, sz, c, al, wt) {
+  ctx.font = `${wt || 400} ${sz}px 'Nanum Myeongjo', serif`;
+  ctx.fillStyle = c; ctx.textAlign = al || 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillText(t, x, y);
+}
+
+const xAt = t => BX + (t / 24) * BW;
+const yAt = li => BY + LH * (li + 0.5);
+// 낮의 밝기 — 새벽 4시에 가장 어둡다
+const light = t => clamp((Math.cos((t - 14) / 24 * TAU) * -0.5 + 0.5) ** 1.6, 0, 1);
+
+function hhmm(t) {
+  const h = Math.floor(t) % 24, m = Math.floor((t % 1) * 60);
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0');
+}
+
+function draw() {
+  const L = light(now), px = xAt(now);
+
+  ctx.fillStyle = '#0b0d11';
+  ctx.fillRect(0, 0, W, H);
+
+  // 하늘 — 시간에 따라 색이 돈다
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  const warm = clamp(1 - Math.abs(now - 7) / 2.4, 0, 1);
+  const dusk = clamp(1 - Math.abs(now - 18.4) / 2.6, 0, 1);
+  sky.addColorStop(0, `rgba(${22 + L * 26 + warm * 40 + dusk * 46}, ${25 + L * 30 + warm * 18 + dusk * 10}, ${32 + L * 34 + dusk * 24}, 1)`);
+  sky.addColorStop(0.55, `rgba(${13 + L * 10}, ${15 + L * 12}, ${20 + L * 14}, 1)`);
+  sky.addColorStop(1, 'rgba(9,11,14,1)');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
+  // 재생 머리 둘레의 빛
+  const gl = ctx.createRadialGradient(px, BY + BH * 0.5, 0, px, BY + BH * 0.5, S * 0.42);
+  gl.addColorStop(0, `rgba(190,205,230,${0.055 + L * 0.05})`);
+  gl.addColorStop(1, 'rgba(190,205,230,0)');
+  ctx.fillStyle = gl;
+  ctx.fillRect(0, 0, W, H);
+
+  // 하루의 모양 — 시간마다 몇 번 울렸나
+  const RB = BY - S * (PREVIEW ? 0.2 : 0.175), RH = H * (PREVIEW ? 0.09 : 0.175);
+  const rp = h => ({ x: xAt(h + 0.5), y: RB - (ridge[h] / rmax) * RH });
+  const line = () => {
+    ctx.beginPath();
+    ctx.moveTo(BX, RB);
+    let a0 = rp(0);
+    ctx.lineTo(a0.x, a0.y);
+    for (let h = 0; h < 23; h++) {
+      const c = rp(h), d = rp(h + 1);
+      ctx.quadraticCurveTo(c.x, c.y, (c.x + d.x) / 2, (c.y + d.y) / 2);
+    }
+    const z = rp(23);
+    ctx.lineTo(z.x, z.y);
+    ctx.lineTo(BX + BW, RB);
+  };
+
+  ctx.save();
+  line(); ctx.closePath();
+  const rg = ctx.createLinearGradient(0, RB - RH, 0, RB);
+  rg.addColorStop(0, 'rgba(150,172,206,.055)');
+  rg.addColorStop(1, 'rgba(150,172,206,.01)');
+  ctx.fillStyle = rg; ctx.fill();
+  ctx.clip();
+  const lg = ctx.createLinearGradient(0, RB - RH, 0, RB);
+  lg.addColorStop(0, `rgba(206,220,242,${0.02 + L * 0.02})`);
+  lg.addColorStop(1, `rgba(206,220,242,${0.085 + L * 0.05})`);
+  ctx.fillStyle = lg;
+  ctx.fillRect(BX, RB - RH, px - BX, RH);
+  ctx.restore();
+
+  ctx.save();
+  line();
+  ctx.strokeStyle = 'rgba(206,220,242,.3)';
+  ctx.lineWidth = Math.max(1, S * 0.0013);
+  ctx.stroke();
+  ctx.restore();
+
+  // 줄
+  LANES.forEach((ln, li) => {
+    const y = yAt(li);
+    ctx.strokeStyle = 'rgba(200,212,230,.07)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(BX, y); ctx.lineTo(BX + BW, y); ctx.stroke();
+
+    const lsz = S * LSZ;
+    serif(ln.name, BX - S * (PREVIEW ? 0.105 : 0.066), y + lsz * 0.36, lsz, 'rgba(206,214,228,.5)', 'right');
+    serif(ln.ch, BX - S * 0.018, y + lsz * 0.36, lsz * 0.92, ln.col + 'c8', 'right');
+  });
+
+  // 눈금
+  const rsz = Math.max(7, S * (PREVIEW ? 0.019 : 0.0105));
+  for (let h = 0; h <= 24; h += 3) {
+    const x = xAt(h);
+    ctx.strokeStyle = 'rgba(200,212,230,.1)';
+    ctx.beginPath(); ctx.moveTo(x, BY - S * 0.012); ctx.lineTo(x, BY + BH + S * 0.014); ctx.stroke();
+    mono(String(h).padStart(2, '0'), x, BY + BH + S * 0.038, rsz, 'rgba(190,200,216,.34)', 'center', 700);
+  }
+
+  // 음표
+  const nw = Math.max(1.6, S * 0.0022);
+  notes.forEach(p => {
+    const x = xAt(p.t), y = yAt(p.li);
+    const h = LH * (p.lone ? 0.6 : 0.44) * p.v;
+    const done = p.t <= now;
+    const a = done ? 0.4 + p.hit * 0.55 : 0.13;
+    ctx.fillStyle = p.li === 0 ? `rgba(116,184,218,${a})`
+      : p.li === 1 ? `rgba(207,169,78,${a})`
+      : p.li === 2 ? `rgba(217,104,63,${a})`
+      : p.li === 3 ? `rgba(148,134,204,${a})`
+      : p.li === 4 ? `rgba(120,191,135,${a})`
+      : `rgba(213,131,173,${a})`;
+    if (p.hit > 0.02) {
+      ctx.save();
+      ctx.shadowColor = LANES[p.li].col;
+      ctx.shadowBlur = S * 0.02 * p.hit;
+      ctx.fillRect(x - nw / 2, y - h / 2 - h * p.hit * 0.3, nw, h * (1 + p.hit * 0.6));
+      ctx.restore();
+    } else {
+      ctx.fillRect(x - nw / 2, y - h / 2, nw, h);
+    }
+  });
+
+  // 재생 머리
+  ctx.strokeStyle = `rgba(238,243,250,${0.5 + L * 0.3})`;
+  ctx.lineWidth = Math.max(1, S * 0.0014);
+  ctx.beginPath();
+  ctx.moveTo(px, BY - S * 0.03); ctx.lineTo(px, BY + BH + S * 0.03);
+  ctx.stroke();
+
+  // 터진 글자
+  pops.forEach(q => {
+    const k = 1 - q.l / q.ttl;
+    const sz = S * PSZ * q.s * (0.72 + k * 0.5);
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, q.l / q.ttl * 2.2) * 0.95;
+    ctx.shadowColor = q.col; ctx.shadowBlur = S * 0.018;
+    serif(q.ch, q.x, q.y - k * S * 0.05, sz, q.col, 'center', 800);
+    ctx.restore();
+  });
+
+  // 시각
+  const tsz = S * TSZ;
+  mono(hhmm(now), W / 2, BY - S * (PREVIEW ? 0.055 : 0.075), tsz, `rgba(240,244,250,${0.78 + L * 0.18})`, 'center', 700);
+  if (!PREVIEW) {
+    serif('하루치 알림', W / 2, BY - S * 0.048, S * 0.016, 'rgba(190,200,216,.42)', 'center');
+    mono(String(cnt).padStart(3, '0') + ' RUNG', BX, BY + BH + S * 0.072, Math.max(8, S * 0.011), 'rgba(190,200,216,.3)', 'left', 700);
+  }
+
+  // 새벽 3시 47분
+  const dl = clamp(1 - (now - loneAt) / 1.6, 0, 1);
+  if (dl > 0.01) {
+    const a = dl * dl;
+    serif('아무도 보지 않은 하나', W / 2, BY + BH + S * (PREVIEW ? 0.08 : 0.105), S * (PREVIEW ? 0.03 : 0.021), `rgba(226,232,242,${0.66 * a})`, 'center');
+  }
+
+  if (endGlow > 0.01) {
+    ctx.fillStyle = `rgba(9,11,14,${endGlow * 0.74})`;
+    ctx.fillRect(0, 0, W, H);
+    serif('오늘 ' + shown + '번', W / 2, H / 2 + S * 0.02, S * 0.058, `rgba(240,244,250,${endGlow})`, 'center', 800);
+  }
+}
+
+// ── 흐름 ───────────────────────────────────────────────────────────────────
+let shown = 0;
+
+function pop(p) {
+  pops.push({
+    ch: p.lone ? '띵' : LANES[p.li].ch,
+    x: xAt(p.t) + rnd(-1, 1) * S * 0.022, y: yAt(p.li) - LH * 0.58,
+    col: LANES[p.li].col, s: p.lone ? 1.6 : 0.6 + p.v * 0.6,
+    l: 0, ttl: p.lone ? 2.6 : 1.1,
+  });
+  if (pops.length > 40) pops.shift();
+}
+
+function fire(a, b) {
+  let n = 0;
+  for (const p of notes) {
+    if (p.t <= a || p.t > b) continue;
+    p.hit = 1;
+    cnt++;
+    if (n++ < 5) { sound.ring(p.li, p.v, p.lone); pop(p); }
+    if (p.lone) loneAt = now;
+  }
+}
+
+function step(dt) {
+  notes.forEach(p => { if (p.hit > 0) p.hit = Math.max(0, p.hit - dt * 1.9); });
+  for (let i = pops.length - 1; i >= 0; i--) {
+    pops[i].l += dt;
+    if (pops[i].l > pops[i].ttl) pops.splice(i, 1);
+  }
+
+  if (playing && !drag) {
+    const nx = now + dt * 24 / DAY;
+    if (nx >= 24) {
+      fire(now, 24);
+      shown = cnt;
+      now = 0; cnt = 0;
+      notes.forEach(p => { p.hit = 0; });
+      loneAt = -99;
+    } else {
+      fire(now, nx);
+      now = nx;
+    }
+  }
+
+  if (now > 23.3) { shown = cnt; endGlow = Math.min(1, endGlow + dt * 1.4); }
+  else endGlow = Math.max(0, endGlow - dt * 1.3);
+
+  sound.night(1 - light(now));
+}
+
+// ── 들어오기 ───────────────────────────────────────────────────────────────
+const hintEl = document.getElementById('hint');
+let hinted = false;
+const hintOff = () => { if (!hinted) { hinted = true; hintEl.classList.add('off'); } };
+
+function scrub(cx) {
+  const t = clamp((cx - BX) / BW * 24, 0, 23.999);
+  if (t > now) fire(now, t);
+  else notes.forEach(p => { if (p.t > t) { p.hit = 0; } });
+  now = t;
+}
+
+cv.addEventListener('pointerdown', e => {
+  sound.kick();
+  hintOff();
+  drag = true;
+  cv.setPointerCapture(e.pointerId);
+  scrub(e.clientX);
+});
+cv.addEventListener('pointermove', e => { if (drag) scrub(e.clientX); });
+window.addEventListener('pointerup', () => { drag = false; });
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); sound.kick(); playing = !playing; hintOff(); }
+});
+
+// ── 자리 ───────────────────────────────────────────────────────────────────
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  S = Math.min(W, H);
+  cv.width = Math.ceil(W * DPR); cv.height = Math.ceil(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+
+  BX = W * (PREVIEW ? 0.2 : 0.17);
+  BW = W * (PREVIEW ? 0.74 : 0.76);
+  BH = H * (PREVIEW ? 0.4 : 0.36);
+  BY = H * (PREVIEW ? 0.4 : 0.42);
+  LH = BH / LANES.length;
+}
+window.addEventListener('resize', resize);
+
+let last = 0;
+function frame(ts) {
+  const dt = Math.min(0.05, (ts - last) / 1000 || 0);
+  last = ts;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (!PREVIEW) step(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+async function boot() {
+  await Promise.all([
+    document.fonts.load("400 40px 'Nanum Myeongjo'"),
+    document.fonts.load("800 40px 'Nanum Myeongjo'"),
+    document.fonts.load("700 40px 'Space Mono'"),
+    document.fonts.load("400 40px 'Space Mono'"),
+  ]);
+  resize();
+  buildDay();
+
+  if (PREVIEW) {
+    now = 19.62;
+    const past = notes.filter(p => p.t <= now);
+    past.slice(-3).forEach((p, k) => { p.hit = 0.5 + k * 0.2; pop(p); });
+    pops.forEach((q, k) => { q.l = q.ttl * (0.5 - k * 0.14); });
+  } else {
+    sound.kick();
+    setTimeout(() => sound.kick(), 400);
+  }
+  requestAnimationFrame(frame);
+}
+boot();
+</script>
+</body>
+</html>
