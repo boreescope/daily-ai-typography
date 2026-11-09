@@ -102,10 +102,13 @@
   const PR = 30000;          // how big the planet is, once it becomes one
   const GRID = 110;          // ordinary streets
   const BIG = 440;           // the ones with names
-  const DEST = [980, -1560]; // where we were actually going
+  const DEST = [426, -301]; // 성신여대입구역, where we were actually going
 
+  // traced off the basemap itself: 삼선교로 to 보문로36길 to the station
   const ROUTE = (() => {
-    const p = [[0, 0], [0, -340], [330, -340], [330, -880], [760, -880], [760, -1300], [980, -1300], DEST];
+    const p = [[0, 0], [38, -21], [78, -34], [112, -64], [132, -102], [172, -117],
+      [210, -138], [250, -153], [291, -167], [325, -195], [344, -233], [382, -254],
+      [397, -293], DEST];
     const out = [];
     for (let i = 0; i < p.length - 1; i++) {
       const [x0, y0] = p[i], [x1, y1] = p[i + 1];
@@ -117,10 +120,11 @@
 
   const PARKS = [[-620, -240, 380, 260], [520, 180, 300, 340], [-340, 700, 460, 220],
                  [880, -620, 250, 250], [-1100, -860, 320, 300]];
+  // the piece sits on 삼선동, 성북구. One world unit is one metre from there.
   const PLACES = [
-    [-180, -210, '시청'], [430, -520, '중앙공원'], [-520, 340, '대학병원'],
-    [760, 240, '터미널'], [120, 620, '강변로'], [-860, -120, '시장'],
-    [340, -1180, '호수'], [-1280, 420, '공단'], [1180, -260, '전망대'],
+    [-450, 45, '한성대입구역'], [-1059, -723, '성북동'], [895, -954, '미아리고개'],
+    [1400, -790, '개운산'], [688, 423, '보문역'], [1588, 312, '안암역'],
+    [1562, -89, '고려대'], [-864, 757, '혜화역'], [-370, 1002, '낙산공원'],
   ];
 
   // ── the voice ──────────────────────────────────────────────────────────
@@ -259,10 +263,10 @@
   // the one thing the app did not draw itself. If it never loads we keep
   // drawing our own planet and nobody finds out
   const tex = {};
-  for (const k of ['earth', 'clouds']) {
+  for (const [k, src] of [['map', 'map.webp'], ['earth', 'earth.jpg'], ['clouds', 'clouds.jpg']]) {
     const im = new Image();
     im.onload = () => { tex[k] = im; };
-    im.src = k + '.jpg';
+    im.src = src;
   }
 
   let Z0 = 0.6, gs = 0.6, gcx = 0, gcy = 0, clipR = 9e4;
@@ -334,8 +338,13 @@
     const detail = 1 - ease(clamp(alt / 0.34, 0, 1));
     if (detail > 0.01) {
       g.globalAlpha = detail;
-      parksRiver(g);
-      streets(g);
+      if (tex.map) {
+        const md = MAPR * gs;
+        g.drawImage(tex.map, ox - md, oy - md, md * 2, md * 2);
+      } else {
+        parksRiver(g);
+        streets(g);
+      }
       g.globalAlpha = 1;
     }
     g.restore();
@@ -623,7 +632,7 @@
 
   function readout() {
     const km = d * 1.2, act = actOf(d);
-    if (act === 0) return `${km.toFixed(1)} km  ·  ${Math.max(1, Math.round(km * 3.4))}분  ·  경로 정상`;
+    if (act === 0) { const rem = 0.52 + km; return `성신여대입구역  ·  ${rem.toFixed(1)} km  ·  ${Math.max(1, Math.round(rem * 3.4))}분`; }
     if (act === 1) return `${km.toFixed(1)} km  ·  재계산 중  ·  경로 이탈`;
     if (act === 2) return `${Math.round(km * 840).toLocaleString('en-US')} km  ·  ―  ·  도로 없음`;
     if (act === 3) return `고도 ${Math.round(alt * 412).toLocaleString('en-US')} km  ·  ―  ·  신호 없음`;
@@ -638,6 +647,8 @@
     g.fillStyle = night > 0.4 ? 'rgba(159,180,207,.42)' : 'rgba(58,63,70,.4)';
     const bars = Math.max(0, 4 - Math.round(clamp(d / 1.4, 0, 4)));
     g.fillText(`GPS ${'▮'.repeat(bars)}${'▯'.repeat(4 - bars)}   ACT ${actOf(d) + 1}/5`, 24, H - 34);
+    g.globalAlpha = 0.62;
+    g.fillText('MAP \u00a9 OpenStreetMap contributors', 24, H - 20);
     g.restore();
   }
 
