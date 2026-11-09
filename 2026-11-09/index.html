@@ -256,6 +256,15 @@
   const C_LAND = [222, 219, 210], C_PARK = [205, 222, 198], C_WATER = [186, 209, 226];
   const C_NODATA = [222, 222, 220], C_SEA = [40, 78, 124], C_CONT = [104, 124, 86];
 
+  // the one thing the app did not draw itself. If it never loads we keep
+  // drawing our own planet and nobody finds out
+  const tex = {};
+  for (const k of ['earth', 'clouds']) {
+    const im = new Image();
+    im.onload = () => { tex[k] = im; };
+    im.src = k + '.jpg';
+  }
+
   let Z0 = 0.6, gs = 0.6, gcx = 0, gcy = 0, clipR = 9e4;
   // the camera sits on us at ground level and slides back toward the start
   // as we climb, so the planet stays in frame while we leave it
@@ -291,6 +300,23 @@
       g.globalAlpha = 1;
     }
 
+    // high enough, and the drawing gives way to the photograph
+    const photo = tex.earth ? ease(clamp((alt - 0.68) / 0.26, 0, 1)) : 0;
+    if (photo > 0.001) {
+      const pd = PR * gs;
+      g.globalAlpha = photo;
+      g.drawImage(tex.earth, ox - pd, oy - pd, pd * 2, pd * 2);
+      if (tex.clouds) {
+        g.save();
+        g.globalCompositeOperation = 'screen';
+        g.globalAlpha = photo * 0.46;
+        g.translate(ox, oy); g.rotate(T * 0.015);
+        g.drawImage(tex.clouds, -pd, -pd, pd * 2, pd * 2);
+        g.restore();
+      }
+      g.globalAlpha = 1;
+    }
+
     // what a map app shows when it has nothing to show: the seams of tiles
     // that never arrived, each one still politely telling you its address
     voidTiles(g, detailOf() * clamp((Math.hypot(wx, wy) - 1300) / 900, 0, 1) * clamp(gs / (Z0 * 0.4), 0, 1));
@@ -300,8 +326,10 @@
     if (mr < 1) return g.restore();
     g.save();
     g.beginPath(); g.arc(ox, oy, mr, 0, TAU); g.clip();
+    g.globalAlpha = 1 - photo;
     g.fillStyle = rgb(mix(C_LAND, [138, 152, 104], ease(clamp(alt / 0.45, 0, 1)) * 0.82));
     g.fillRect(0, 0, W, H);
+    g.globalAlpha = 1;
 
     const detail = 1 - ease(clamp(alt / 0.34, 0, 1));
     if (detail > 0.01) {
@@ -313,7 +341,7 @@
     g.restore();
 
     // weather, which no map app has ever had to admit to
-    const cl = Math.sin(clamp((alt - 0.14) / 0.72, 0, 1) * Math.PI);
+    const cl = Math.sin(clamp((alt - 0.14) / 0.72, 0, 1) * Math.PI) * (1 - photo);
     if (cl > 0.02) {
       g.globalAlpha = cl * 0.55;
       g.fillStyle = '#ffffff';
@@ -510,9 +538,10 @@
 
   // the arrow. It never stops being sure of itself, which is the joke.
   function me(g) {
-    const s = clamp(1 - ease(alt) * 0.86, 0.14, 1);
+    const s = clamp(1 - ease(alt) * 0.72, 0.3, 1);
+    const esc = ease(clamp((alt - 0.7) / 0.3, 0, 1));
     g.save();
-    g.translate(sx(wx), sy(wy));
+    g.translate(lerp(sx(wx), ox, esc), lerp(sy(wy), oy - clipR - 40, esc));
     const pulse = 1 + Math.sin(T * 2.4) * 0.07;
     g.fillStyle = `rgba(22,104,227,${0.14 * (1 - night * 0.6)})`;
     g.beginPath(); g.arc(0, 0, 34 * s * pulse, 0, TAU); g.fill();
