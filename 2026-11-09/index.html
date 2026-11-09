@@ -95,18 +95,18 @@
   const PR = 30000;          // how big the planet is, once it becomes one
   const GRID = 110;          // ordinary streets
   const BIG = 440;           // the ones with names
-  // walked off the basemap's own road pixels, one point every 18 m, 701 m in all.
-  // 삼선교로 to 보문로36길 to the station — 99.6% of it lands on drawn road.
+  // traced along the centreline of the basemap's own roads, one point every 20 m, 838 m in all.
+  // 삼선동 골목에서 동소문로로 나와 성신여대입구역까지 — 98.9%가 그려진 길 위에 있다.
   const ROUTE = [
-    [0, 0], [17, -2], [28, 11], [42, 21], [57, 13], [72, 6], [89, 0], [106, -4], [121, -17],
-    [125, -36], [136, -51], [132, -68], [125, -85], [125, -102], [140, -110], [153, -121],
-    [168, -131], [185, -134], [202, -142], [220, -148], [237, -151], [252, -161], [269, -168],
-    [286, -174], [303, -180], [318, -187], [333, -195], [331, -212], [325, -229], [331, -246],
-    [343, -259], [361, -259], [380, -259], [399, -263], [397, -282], [397, -299], [413, -307],
-    [422, -305],
+    [0, 4], [18, -5], [13, -25], [7, -46], [-4, -63], [-17, -82], [-32, -97], [-44, -114],
+    [-57, -132], [-70, -151], [-66, -167], [-49, -178], [-31, -190], [-13, -201], [6, -209],
+    [23, -222], [41, -237], [58, -250], [70, -264], [88, -275], [108, -285], [125, -296],
+    [147, -299], [163, -308], [181, -325], [196, -337], [215, -344], [235, -353], [254, -362],
+    [274, -369], [296, -373], [315, -378], [335, -380], [356, -382], [377, -386], [382, -366],
+    [384, -345], [389, -324], [386, -303], [404, -304], [422, -314],
   ];
   const DEST = ROUTE[ROUTE.length - 1];   // 성신여대입구역, where we were actually going
-  const RSTEP = 18;                       // metres between route points
+  const RSTEP = 20;                       // metres between route points
 
   // how far is left to drive, from any point along the route
   const RLEN = (() => {
@@ -512,14 +512,14 @@
   function route(g, a) {
     g.save();
     g.globalAlpha = a;
-    g.strokeStyle = '#1668e3'; g.lineWidth = Math.max(2.5, 19 * gs);
+    g.strokeStyle = '#1668e3'; g.lineWidth = Math.max(2.5, 11 * gs);   // the alleys here are 8 m wide. a fatter line would cover them
     g.lineJoin = 'round'; g.lineCap = 'round';
     g.beginPath();
     g.moveTo(sx(wx), sy(wy));   // the line starts where you are, not where you were
     for (let i = Math.max(1, Math.ceil(prog)); i < ROUTE.length; i++)
       g.lineTo(sx(ROUTE[i][0]), sy(ROUTE[i][1]));
     g.stroke();
-    g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = Math.max(1, 6 * gs);
+    g.strokeStyle = 'rgba(255,255,255,.5)'; g.lineWidth = Math.max(1, 3.5 * gs);
     g.stroke();
 
     const px = sx(DEST[0]), py = sy(DEST[1]);
@@ -686,7 +686,7 @@
       const rp = routePt(prog);
       if (!dragging && keys.size === 0 && prog < ROUTE.length - 1 &&
           Math.hypot(wx - rp[0], wy - rp[1]) < 90) {
-        prog = Math.min(ROUTE.length - 1, prog + dt * 12 / RSTEP);   // 12 m/s, city pace
+        prog = Math.min(ROUTE.length - 1, prog + dt * 14 / RSTEP);   // 14 m/s, city pace
         const np = routePt(prog), k = Math.min(1, dt * 4);
         const want = Math.atan2(np[1] - wy, np[0] - wx);
         wx += (np[0] - wx) * k; wy += (np[1] - wy) * k;
