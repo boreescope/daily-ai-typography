@@ -67,10 +67,10 @@
 <body>
   <canvas id="c"></canvas>
   <a class="home-btn" href="../index.html">HOME</a>
-  <button class="snd" id="snd">SOUND: TAP TO START</button>
+  <button class="snd" id="snd">SOUND: OFF</button>
   <div class="hud" id="hud"><b id="coord">127°02′ 37°34′</b><br><span id="place">한양</span></div>
   <div class="sheet" id="sheet"><b id="edge">0</b>리 · 지면 끝까지</div>
-  <div class="hint" id="hint">DRAG THE MAP · KEEP GOING PAST THE EDGE</div>
+  <div class="hint" id="hint">DRAG THE MAP · SCROLL TO ZOOM · KEEP GOING PAST THE EDGE</div>
 
 <script>
   const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
@@ -219,11 +219,31 @@
   const SHORE = smooth(COAST, true, 13, 3);
 
   // ── the engraving ──
-  let sheet = null;
+  let sheet = null, tex = null;
+
+  // The one asset on disk. If it never arrives the procedural paper underneath
+  // still stands on its own, so a slow network delays nothing.
+  const loadTex = () => new Promise(res => {
+    const im = new Image();
+    im.onload = () => { tex = im; res(); };
+    im.onerror = () => res();
+    im.src = 'paper.jpg';
+  });
 
   function paper(g) {
     g.fillStyle = '#d9cbab';
     g.fillRect(0, 0, SW, SH);
+    // The sheet's own surface: a scan of aged laid paper, generated for this
+    // piece. It carries the fibre, the chain lines and the foxing that the
+    // procedural grain below could only imply, so the grain is now a top-up.
+    if (tex) {
+      g.save();
+      g.globalAlpha = 0.9;
+      g.drawImage(tex, 0, 0, SW, SH);
+      g.globalAlpha = 0.42; g.globalCompositeOperation = 'multiply';
+      g.fillStyle = '#cdbb98'; g.fillRect(0, 0, SW, SH);
+      g.restore();
+    }
     // stain: a few wide washes, darker toward the edges where a folded sheet
     // takes the light and the handling
     for (let i = 0; i < 46; i++) {
@@ -250,12 +270,32 @@
       d[i + 3] = v > 0.86 ? 26 : v < 0.1 ? 14 : 0;
     }
     nc.getContext('2d').putImageData(id, 0, 0);
-    g.save(); g.globalAlpha = 0.5; g.imageSmoothingEnabled = true;
+    g.save(); g.globalAlpha = tex ? 0.24 : 0.5; g.imageSmoothingEnabled = true;
     g.drawImage(nc, 0, 0, SW, SH); g.restore();
+  }
 
-    // laid lines — the chain of a hand-made sheet, barely there
-    g.save(); g.globalAlpha = 0.055; g.strokeStyle = '#6b573a'; g.lineWidth = 1;
-    for (let x = 0; x < SW; x += 27) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, SH); g.stroke(); }
+  // Where the sheet has been folded to fit a satchel: two down, three across.
+  // A crease is one bright ridge with a shadow on either side of it, which is
+  // also the only thing on the paper that was not put there by the engraver.
+  function folds(g) {
+    g.save();
+    const E = 30;
+    const band = (gr) => {
+      gr.addColorStop(0, 'rgba(96,74,44,0)');
+      gr.addColorStop(0.42, 'rgba(96,74,44,.085)');
+      gr.addColorStop(0.5, 'rgba(255,246,221,.2)');
+      gr.addColorStop(0.58, 'rgba(96,74,44,.085)');
+      gr.addColorStop(1, 'rgba(96,74,44,0)');
+      return gr;
+    };
+    for (const x of [SW / 3, SW * 2 / 3]) {
+      g.fillStyle = band(g.createLinearGradient(x - E, 0, x + E, 0));
+      g.fillRect(x - E, 0, E * 2, SH);
+    }
+    for (const y of [SH / 4, SH / 2, SH * 3 / 4]) {
+      g.fillStyle = band(g.createLinearGradient(0, y - E, 0, y + E));
+      g.fillRect(0, y - E, SW, E * 2);
+    }
     g.restore();
   }
 
@@ -276,7 +316,7 @@
     g.moveTo(SHORE[0][0], SHORE[0][1]);
     for (let i = SHORE.length - 1; i >= 0; i--) g.lineTo(SHORE[i][0], SHORE[i][1]);
     g.closePath();
-    g.fillStyle = 'rgba(96,110,116,.13)';
+    g.fillStyle = tex ? 'rgba(88,102,110,.17)' : 'rgba(96,110,116,.13)';
     g.fill('evenodd');
 
     // then parallels off the shore, each fainter and more broken than the last
@@ -295,7 +335,7 @@
   function land(g) {
     g.save();
     path(g, SHORE, true);
-    g.fillStyle = 'rgba(232,218,184,.8)'; g.fill();
+    g.fillStyle = tex ? 'rgba(236,224,194,.4)' : 'rgba(232,218,184,.8)'; g.fill();
     g.strokeStyle = INK; g.lineWidth = 3.4; g.stroke();
     g.lineWidth = 1; g.strokeStyle = 'rgba(46,36,24,.3)';
     path(g, offset(SHORE, -9), true); g.stroke();
@@ -310,7 +350,7 @@
       const s = smooth(pts, true, 2.2, i.x);
       g.save();
       path(g, s, true);
-      g.fillStyle = 'rgba(232,218,184,.9)'; g.fill();
+      g.fillStyle = tex ? 'rgba(236,224,194,.5)' : 'rgba(232,218,184,.9)'; g.fill();
       g.strokeStyle = INK; g.lineWidth = 2.2; g.stroke();
       g.restore();
     }
@@ -485,7 +525,7 @@
     c.width = SW; c.height = SH;
     const g = c.getContext('2d');
     paper(g); graticule(g); sea(g); land(g); ridges(g); rivers(g);
-    cartouche(g); compass(g); scalebar(g); border(g); deckle(g);
+    cartouche(g); compass(g); scalebar(g); border(g); folds(g); deckle(g);
 
     // the shadow goes in once. Asking the compositor to blur a 2320×3100 image
     // sixty times a second costs about half the frame budget on its own.
@@ -533,7 +573,12 @@
   // ── the view ──
   // ox,oy is the sheet coordinate under the middle of the window. Everything
   // in the piece is a function of how far that point has left the paper.
-  let K = 1, ox = 1050, oy = 1480, vx = 0, vy = 0, out = 0, offd = 0;
+  // K is the one thing the reader can change that is not position: how far the
+  // sheet is held from the eye. KFIT is the whole sheet on the table, KREAD is
+  // close enough to read a town's name. The piece opens at the first and
+  // settles into the second, and the wheel goes anywhere between.
+  let K = 1, KREAD = 1, KFIT = 1, kTarget = 1, kMin = 0.05, kMax = 4, bootT = 0;
+  let ox = 1050, oy = 1480, vx = 0, vy = 0, out = 0, offd = 0;
   const LIMIT = 1700;   // how far past the edge the drag will go at all
   const sx = x => (x - ox) * K + W / 2;
   const sy = y => (y - oy) * K + H / 2;
@@ -555,7 +600,7 @@
   let DS = [18, 25, 32, 39, 46];   // five sizes, so the glyph cache stays small
 
   function spawn() {
-    if (drift.length > 130) return;
+    if (drift.length > 180) return;
     // anywhere across the window and a little beyond it. Ringing them round the
     // outside left the middle of the dark empty, which read as a bug
     const d = 2.4 + Math.random() * 2.2;
@@ -574,14 +619,14 @@
   // A sheet's edge is a cartographer admitting something. These are the notes
   // they wrote there, one at a time, the further out you go.
   const PHRASES = [
-    { at: 0.16, t: '이름 없음' },
-    { at: 0.34, t: '물 끝' },
-    { at: 0.53, t: '여기 용이 있다' },
-    { at: 0.72, t: '돌아온 배 없음' },
-    { at: 0.92, t: '여기부터 그리지 않았다' },
+    { at: 0.11, t: '이름 없음' },
+    { at: 0.28, t: '물 끝' },
+    { at: 0.46, t: '여기 용이 있다' },
+    { at: 0.66, t: '돌아온 배 없음' },
+    { at: 0.86, t: '여기부터 그리지 않았다' },
   ];
   let phr = null, said = 0;
-  const PH_IN = 2.2, PH_HOLD = 4.4, PH_OUT = 2.6;
+  const PH_IN = 1.7, PH_HOLD = 3.1, PH_OUT = 2.0;
 
   function sayIt(t) {
     const ch = [...t], n = ch.length, gap = PS * 1.22 / K;
@@ -699,6 +744,14 @@
 
     return {
       live: () => !!ac && ac.state === 'running' && on,
+      // woken twice at boot and again on the first touch, because a context
+      // built before the gesture starts suspended and stays that way
+      kick() {
+        if (!ac) build();
+        if (ac.state === 'suspended') ac.resume();
+        on = true;
+        return ac.state === 'running';
+      },
       toggle() {
         if (!ac) build();
         on = !on;
@@ -752,6 +805,43 @@
     }
   }
 
+  // The graticule carries on past the deckle. The sheet stops; the coordinate
+  // system it claimed does not, and goes on ruling empty dark at the same
+  // interval. Drawn under the sheet, so the paper covers its own share of it.
+  function voidGrid(g) {
+    const a = 0.05 + out * 0.075;
+    const S = 160;
+    g.save();
+    g.strokeStyle = `rgba(158,134,92,${a.toFixed(3)})`;
+    g.lineWidth = 1;
+    const xa = ox - W / 2 / K, xb = ox + W / 2 / K;
+    const ya = oy - H / 2 / K, yb = oy + H / 2 / K;
+    for (let x = Math.ceil(xa / S) * S; x <= xb; x += S) {
+      const px = Math.round(sx(x)) + 0.5;
+      g.beginPath(); g.moveTo(px, 0); g.lineTo(px, H); g.stroke();
+    }
+    for (let y = Math.ceil(ya / S) * S; y <= yb; y += S) {
+      const py = Math.round(sy(y)) + 0.5;
+      g.beginPath(); g.moveTo(0, py); g.lineTo(W, py); g.stroke();
+    }
+    // and it keeps labelling. A degree printed over nothing is still a degree.
+    if (out > 0.08 && S * K > 72) {
+      g.font = `400 ${Math.max(8, Math.round(9 * Math.min(1, K / 0.6)))}px "Space Mono", monospace`;
+      g.textAlign = 'left'; g.textBaseline = 'top';
+      g.fillStyle = `rgba(176,150,104,${(0.1 + out * 0.17).toFixed(3)})`;
+      for (let x = Math.ceil(xa / S) * S; x <= xb; x += S) {
+        if ((x / S) % 2) continue;
+        for (let y = Math.ceil(ya / S) * S; y <= yb; y += S) {
+          if ((y / S) % 2) continue;
+          if (x > -S && x < SW + S && y > -S && y < SH + S) continue;
+          g.fillText(`${(124 + x / SW * 8).toFixed(1)} ${(43.5 - y / SH * 10.5).toFixed(1)}`,
+            sx(x) + 6, sy(y) + 5);
+        }
+      }
+    }
+    g.restore();
+  }
+
   function drawSheet(g) {
     if (!sheet) return;
     const w = (SW + PAD * 2) * K, h = (SH + PAD * 2) * K, x = sx(-PAD), y = sy(-PAD);
@@ -795,6 +885,7 @@
   function draw() {
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
     voidField(ctx);
+    voidGrid(ctx);
     drawSheet(ctx);
     drawNames(ctx);
     drawDrift(ctx);
@@ -802,7 +893,7 @@
     // the dark closing in from the corners, stronger the further out you are
     const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.78);
     vg.addColorStop(0, 'rgba(6,5,4,0)');
-    vg.addColorStop(1, `rgba(6,5,4,${0.34 + out * 0.2})`);
+    vg.addColorStop(1, `rgba(6,5,4,${0.2 + out * 0.12})`);
     ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
   }
 
@@ -833,6 +924,9 @@
   // ── the clock ──
   function step(dt) {
     if (PREVIEW) return;
+    // the opening: the whole sheet is held up for a moment, then brought close
+    if (bootT > 0) { bootT -= dt; if (bootT <= 0) kTarget = KREAD; }
+    K += (kTarget - K) * (1 - Math.pow(0.58, dt));
     ox += vx * dt; oy += vy * dt;
     vx *= Math.pow(0.0016, dt); vy *= Math.pow(0.0016, dt);
 
@@ -849,7 +943,7 @@
 
     if (out > 0.02) {
       spawnT -= dt;
-      if (spawnT <= 0) { spawnT = 0.09 / (0.2 + out); spawn(); }
+      if (spawnT <= 0) { spawnT = 0.07 / (0.2 + out); spawn(); }
     }
     for (let i = drift.length - 1; i >= 0; i--) {
       const p = drift[i];
@@ -900,6 +994,7 @@
   }
   function start(e) {
     if (e.target.closest('.home-btn,.snd')) return;
+    sound.kick(); syncSnd();
     down = true; moved = 0;
     [lx, ly] = pos(e);
     vx = vy = 0;
@@ -923,7 +1018,18 @@
   addEventListener('pointerup', end);
   addEventListener('pointercancel', end);
 
+  addEventListener('wheel', e => {
+    kTarget = clamp(kTarget * Math.exp(-e.deltaY * 0.0013), kMin, kMax);
+    bootT = 0;
+    hintEl.classList.add('off');
+    e.preventDefault();
+  }, { passive: false });
+
   addEventListener('keydown', e => {
+    if (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '_') {
+      kTarget = clamp(kTarget * (e.key === '-' || e.key === '_' ? 0.8 : 1.25), kMin, kMax);
+      bootT = 0; hintEl.classList.add('off'); e.preventDefault(); return;
+    }
     const s = e.shiftKey ? 900 : 320;
     if (e.key === 'ArrowLeft') vx = -s; else if (e.key === 'ArrowRight') vx = s;
     else if (e.key === 'ArrowUp') vy = -s; else if (e.key === 'ArrowDown') vy = s;
@@ -933,19 +1039,31 @@
   });
 
   const sndBtn = el('snd');
-  sndBtn.addEventListener('click', () => {
-    const on = sound.toggle();
+  const syncSnd = () => {
+    const on = sound.live();
     sndBtn.classList.toggle('on', on);
     sndBtn.textContent = on ? 'SOUND: ON' : 'SOUND: OFF';
+  };
+  sndBtn.addEventListener('click', () => {
+    sound.toggle();
+    syncSnd();
   });
 
   function resize() {
     W = innerWidth; H = innerHeight;
     cv.width = W * DPR; cv.height = H * DPR;
     cv.style.width = W + 'px'; cv.style.height = H + 'px';
-    // the sheet just overflows the window: the whole country reads at once, and
-    // the edge is one short drag away in any direction rather than on screen
-    K = Math.max(W / SW, H / SH) * 1.22;
+    // Two scales. KREAD overflows the window, so a name is legible and the
+    // edge is one short drag away rather than already on screen; KFIT puts the
+    // whole sheet on the table with dark around it. A resize keeps whatever
+    // the reader was holding, in proportion.
+    const prev = KREAD;
+    KREAD = Math.max(W / SW, H / SH) * 1.22;
+    KFIT = Math.min(W / (SW + PAD * 2 + 150), H / (SH + PAD * 2 + 150));
+    kMin = KFIT * 0.4; kMax = KREAD * 1.9;
+    const r = KREAD / prev;
+    K = clamp(K * r, kMin, kMax);
+    kTarget = clamp(kTarget * r, kMin, kMax);
     PS = Math.round(clamp(Math.min(W, H) * 0.062, 15, 54));
     const q = clamp(Math.min(W, H) / 760, 0.4, 1);
     DS = [18, 25, 32, 39, 46].map(v => Math.round(v * q));
@@ -955,6 +1073,8 @@
   // ── boot ──
   (async () => {
     resize();
+    K = kTarget = KFIT;
+    bootT = 1.9;
     try {
       await Promise.all([
         document.fonts.load('800 62px "Nanum Myeongjo"', '地圖밖한양백두산여기용있다'),
@@ -963,12 +1083,14 @@
       ]);
       await document.fonts.ready;
     } catch (err) { /* fallback faces are acceptable; a blocked font is not */ }
+    await loadTex();
     bake();
 
     if (PREVIEW) {
       // one frozen moment: the paper's edge at the right, the dark already
       // talking. Nothing moves, so the thumbnail is the same every time.
       ox = -300; oy = 1520;
+      K = kTarget = KREAD * 1.45;
       offd = offDist(); out = clamp(offd / 1250, 0, 1);
       for (let i = 0; i < 52; i++) {
         spawn();
@@ -980,6 +1102,8 @@
       for (const q of phr.g) { q.x = q.tx; q.y = q.ty; q.rot = 0; }
     } else {
       readout();
+      sound.kick(); syncSnd();
+      setTimeout(() => { sound.kick(); syncSnd(); }, 400);
     }
     requestAnimationFrame(loop);
   })();
