@@ -3,749 +3,213 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>지도 밖 — OFF THE MAP</title>
+<title>경로를 벗어났습니다 — REROUTING</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0a08; }
-  body { font-family: 'Space Mono', monospace; cursor: grab; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #eceae4; }
+  body { font-family: 'Noto Sans KR', sans-serif; cursor: grab; }
   body.drag { cursor: grabbing; }
   canvas { display: block; position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
 
-  .home-btn {
-    position: fixed; left: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
-    color: #b59a63; text-decoration: none;
-    padding: 9px 13px; border: 1px solid rgba(181,154,99,.35);
-    background: rgba(11,10,8,.5);
+  /* every chip is the same card. It only changes which side of the sky it is on */
+  .chip {
+    position: fixed; z-index: 20;
+    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .14em;
+    color: #3a3f46; text-decoration: none; white-space: nowrap;
+    padding: 11px 14px; border-radius: 9px; border: 1px solid rgba(20,24,30,.1);
+    background: rgba(255,255,255,.88);
+    box-shadow: 0 2px 10px rgba(20,24,30,.1);
+    cursor: pointer; user-select: none;
+    transition: background .8s ease, color .8s ease, border-color .8s ease,
+                box-shadow .8s ease, opacity .5s ease, transform .35s ease;
   }
-  .home-btn:hover { color: #e8cd94; border-color: rgba(232,205,148,.7); }
+  .chip:hover { transform: translateY(-1px); }
+  .chip:active { transform: translateY(1px); }
 
-  .snd {
-    position: fixed; right: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
-    color: #b59a63; background: rgba(11,10,8,.5); border: 1px solid rgba(181,154,99,.35);
-    padding: 9px 13px; cursor: pointer;
+  .home-btn { left: 24px; top: 22px; }
+  .snd { right: 24px; top: 22px; }
+  .reroute {
+    left: 50%; bottom: 28px; transform: translateX(-50%);
+    font: 700 12px/1 'Noto Sans KR', sans-serif; letter-spacing: .06em;
+    padding: 13px 22px; color: #1668e3; border-color: rgba(22,104,227,.3);
   }
-  .snd:hover, .snd.on { color: #e8cd94; border-color: rgba(232,205,148,.7); }
+  .reroute:hover { transform: translateX(-50%) translateY(-1px); }
+  .reroute:active { transform: translateX(-50%) translateY(1px); }
+  .back {
+    right: 24px; bottom: 28px; opacity: 0; pointer-events: none;
+    font: 700 12px/1 'Noto Sans KR', sans-serif; letter-spacing: .06em;
+    padding: 13px 18px;
+  }
+  .back.show { opacity: 1; pointer-events: auto; }
 
-  /* the survey readout. It keeps working until the sheet runs out, and then
-     it keeps printing anyway, which is the whole joke of a coordinate */
-  .hud {
-    position: fixed; left: 26px; bottom: 24px; z-index: 20;
-    font: 400 11px/1.9 'Space Mono', monospace; letter-spacing: .12em;
-    color: rgba(181,154,99,.62); pointer-events: none;
-    background: rgba(9,8,6,.62); padding: 6px 11px;
+  /* out there the paper is black, so the cards turn over */
+  body.space .chip {
+    color: #9fb4cf; border-color: rgba(159,180,207,.22);
+    background: rgba(8,11,18,.6); box-shadow: none;
   }
-  .hud b { font-weight: 700; color: rgba(232,205,148,.9); }
-  .hud.lost b { color: #d4654a; }
-
-  .sheet {
-    position: fixed; right: 26px; bottom: 24px; z-index: 20; text-align: right;
-    font: 400 11px/1.9 'Space Mono', monospace; letter-spacing: .12em;
-    color: rgba(181,154,99,.62); pointer-events: none;
-    background: rgba(9,8,6,.62); padding: 6px 11px;
-  }
-  .sheet b { font: 700 30px/1 'Space Mono', monospace; color: #e8cd94; display: block; margin-bottom: 5px; }
-  .sheet.lost b { color: #d4654a; }
+  body.space .reroute { color: #8fd0ff; border-color: rgba(143,208,255,.28); }
 
   .hint {
-    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20;
-    font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
-    color: rgba(181,154,99,.62); white-space: nowrap; pointer-events: none;
-    background: rgba(9,8,6,.62); padding: 8px 13px;
-    transition: opacity 1.4s ease;
+    position: fixed; left: 50%; bottom: 84px; transform: translateX(-50%); z-index: 19;
+    font: 400 11px/1 'Space Mono', monospace; letter-spacing: .18em;
+    color: rgba(58,63,70,.5); white-space: nowrap; pointer-events: none;
+    transition: opacity 1.2s ease;
   }
   .hint.off { opacity: 0; }
+  body.space .hint { color: rgba(159,180,207,.4); }
 
-  body.preview .home-btn, body.preview .snd,
-  body.preview .hud, body.preview .sheet, body.preview .hint { display: none; }
+  body.preview .chip, body.preview .hint { display: none; }
 </style>
 </head>
 <body>
   <canvas id="c"></canvas>
-  <a class="home-btn" href="../index.html">HOME</a>
-  <button class="snd" id="snd">SOUND: OFF</button>
-  <div class="hud" id="hud"><b id="coord">127°02′ 37°34′</b><br><span id="place">한양</span></div>
-  <div class="sheet" id="sheet"><b id="edge">0</b>리 · 지면 끝까지</div>
-  <div class="hint" id="hint">DRAG THE MAP · SCROLL TO ZOOM · KEEP GOING PAST THE EDGE</div>
+  <a class="chip home-btn" href="../index.html">HOME</a>
+  <button class="chip snd" id="snd">SOUND: OFF</button>
+  <button class="chip reroute" id="rr">경로 재탐색</button>
+  <button class="chip back" id="bk">지구로 돌아가기</button>
+  <div class="hint" id="hint">드래그 · 방향키 — 경로를 벗어나 보세요</div>
 
 <script>
+(() => {
+  'use strict';
+  const TAU = Math.PI * 2;
+  const cv = document.getElementById('c'), ctx = cv.getContext('2d', { alpha: false });
   const PREVIEW = new URLSearchParams(location.search).get('preview') === '1';
   if (PREVIEW) document.body.classList.add('preview');
 
-  const cv = document.getElementById('c');
-  const ctx = cv.getContext('2d');
-  const DPR = Math.min(window.devicePixelRatio || 1, 2);
-  let W = 0, H = 0;
-
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const lerp = (a, b, t) => a + (b - a) * t;
-  const TAU = Math.PI * 2;
-
-  // ── the sheet ──
-  // World units are the paper, not the country. The map is drawn once into an
-  // offscreen canvas this size and panned with drawImage; redrawing engraved
-  // hatching every frame would cost more than the whole rest of the piece.
-  const SW = 2320, SH = 3100;        // the sheet
-  const MG = 118;                     // blank margin inside the neat-line
-  const INK = '#2e2418', INK2 = 'rgba(46,36,24,.55)', SEA = 'rgba(70,86,96,.5)';
-
-  // Korea, as a hand of control points. Not a dataset — an engraver's memory
-  // of a shape, which is what every map on paper actually is.
-  const COAST = [
-    [560, 470], [500, 600], [630, 790], [548, 930], [668, 1110], [590, 1272],
-    [726, 1408], [648, 1556], [788, 1724], [688, 1884], [826, 2074], [766, 2254],
-    [924, 2418], [1104, 2516], [1284, 2448], [1444, 2486], [1544, 2340],
-    [1584, 2118], [1514, 1920], [1564, 1720], [1504, 1520], [1554, 1320],
-    [1484, 1100], [1544, 900], [1454, 700], [1504, 540], [1206, 400], [874, 322],
-  ];
-
-  const ISLES = [
-    { x: 1028, y: 2706, rx: 96, ry: 52, n: '제주' },
-    { x: 1806, y: 1516, rx: 30, ry: 26, n: '울릉' },
-    { x: 668,  y: 1540, rx: 34, ry: 30, n: '강화' },
-    { x: 1372, y: 2480, rx: 44, ry: 26, n: '거제' },
-    { x: 896,  y: 2536, rx: 32, ry: 24, n: '진도' },
-    { x: 1932, y: 1592, rx: 13, ry: 11, n: '독도' },
-    { x: 742,  y: 2340, rx: 20, ry: 16, n: '흑산' },
-  ];
-
-  // the spine, and the four rivers that matter on a sheet this size
-  const RIDGE = [
-    [[880, 360], [980, 620], [1060, 880], [1180, 1180], [1268, 1460],
-     [1330, 1760], [1398, 2040], [1430, 2260]],
-    [[1070, 900], [940, 1060], [840, 1180]],
-    [[1272, 1470], [1130, 1620], [980, 1700]],
-  ];
-  const RIVERS = [
-    [[906, 420], [760, 452], [612, 470]],                       // 압록
-    [[1082, 980], [900, 1052], [700, 1096]],                    // 대동
-    [[1330, 1472], [1100, 1512], [860, 1534], [690, 1548]],     // 한
-    [[1392, 1830], [1340, 2040], [1262, 2250], [1198, 2430]],   // 낙동
-  ];
-
-  // Engraved names. `s` is point size on the sheet, `k` the kind: a province
-  // sits large and loose-tracked, a town small and tight, water in italic-ish
-  // grey. The piece is about these coming off the paper, so they are the one
-  // thing drawn with any care.
-  const NAMES = [
-    { x: 1012, y: 1498, s: 44, k: 'cap', t: '漢陽', sub: '한양' },
-    { x: 760,  y: 1030, s: 30, k: 'town', t: '평양' },
-    { x: 616,  y: 548,  s: 24, k: 'town', t: '의주' },
-    { x: 1372, y: 742,  s: 24, k: 'town', t: '함흥' },
-    { x: 1430, y: 2070, s: 26, k: 'town', t: '경주' },
-    { x: 878,  y: 1900, s: 26, k: 'town', t: '전주' },
-    { x: 848,  y: 2200, s: 24, k: 'town', t: '나주' },
-    { x: 1200, y: 1830, s: 22, k: 'town', t: '상주' },
-    { x: 1092, y: 1650, s: 22, k: 'town', t: '충주' },
-    { x: 1488, y: 1392, s: 22, k: 'town', t: '강릉' },
-    { x: 1420, y: 2300, s: 22, k: 'town', t: '동래' },
-    { x: 826,  y: 300,  s: 30, k: 'mtn',  t: '白頭山', sub: '백두산' },
-    { x: 1430, y: 1300, s: 24, k: 'mtn',  t: '金剛山', sub: '금강산' },
-    { x: 1060, y: 2130, s: 24, k: 'mtn',  t: '智異山', sub: '지리산' },
-    { x: 1028, y: 2706, s: 22, k: 'mtn',  t: '漢拏山', sub: '한라산' },
-    { x: 1790, y: 980,  s: 40, k: 'sea',  t: '東海' },
-    { x: 330,  y: 1420, s: 40, k: 'sea',  t: '西海' },
-    { x: 1140, y: 2860, s: 36, k: 'sea',  t: '南海' },
-    { x: 770,  y: 440,  s: 18, k: 'river', t: '鴨綠江' },
-    { x: 880,  y: 1072, s: 18, k: 'river', t: '大同江' },
-    { x: 830,  y: 1576, s: 18, k: 'river', t: '漢江' },
-    { x: 1330, y: 2060, s: 18, k: 'river', t: '洛東江' },
-  ];
-  for (const i of ISLES) NAMES.push({ x: i.x, y: i.y + i.ry + 26, s: 19, k: 'isle', t: i.n });
-
-  // one stable hash, used for paper grain, coastline crinkle and letter drift
-  const hsh = (a, b, k) => {
-    let h = Math.imul(a + 0x9e37, 0x85eb) ^ Math.imul(b + 0x27d4, 0xc2b2) ^ Math.imul(k + 0x165e, 0x27d4);
-    h = Math.imul(h ^ (h >>> 15), 0x2545) ;
-    return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
+  const mix = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)];
+  const rgb = c => `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})`;
+  const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+  // one deterministic hash so the same street is the same street every reload
+  const hsh = (a, b, c) => {
+    let s = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453;
+    return s - Math.floor(s);
   };
+  const ease = t => t * t * (3 - 2 * t);
 
-  // ── curves ──
-  // Catmull-Rom through the control points, then a fractal wobble normal to the
-  // line. A coastline drawn as a smooth spline reads as a logo; the wobble is
-  // what makes it read as surveyed.
-  function smooth(pts, closed, amp, seed) {
-    const n = pts.length, out = [], STEP = 10;
-    const at = i => pts[closed ? (i + n) % n : clamp(i, 0, n - 1)];
-    const last = closed ? n : n - 1;
-    for (let i = 0; i < last; i++) {
-      const p0 = at(i - 1), p1 = at(i), p2 = at(i + 1), p3 = at(i + 2);
-      for (let j = 0; j < STEP; j++) {
-        const t = j / STEP, t2 = t * t, t3 = t2 * t;
-        out.push([
-          0.5 * ((2 * p1[0]) + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
-          0.5 * ((2 * p1[1]) + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3),
-        ]);
-      }
+  let W = 0, H = 0, DPR = 1;
+
+  // ── the world ──────────────────────────────────────────────────────────
+  // One world unit is one metre. The map data stops at MAPR; past that the
+  // app has nothing to draw and says so. Everything in the piece is driven by
+  // `d`, the distance from the start divided by 1200 — one variable, five lives.
+  const MAPR = 2600;
+  const PR = 30000;          // how big the planet is, once it becomes one
+  const GRID = 110;          // ordinary streets
+  const BIG = 440;           // the ones with names
+  const DEST = [980, -1560]; // where we were actually going
+
+  const ROUTE = (() => {
+    const p = [[0, 0], [0, -340], [330, -340], [330, -880], [760, -880], [760, -1300], [980, -1300], DEST];
+    const out = [];
+    for (let i = 0; i < p.length - 1; i++) {
+      const [x0, y0] = p[i], [x1, y1] = p[i + 1];
+      for (let t = 0; t < 1; t += 0.06) out.push([lerp(x0, x1, t), lerp(y0, y1, t)]);
     }
-    if (!closed) out.push(pts[n - 1].slice());
-    if (!amp) return out;
-    const m = out.length;
-    for (let i = 0; i < m; i++) {
-      const a = out[(i - 1 + m) % m], b = out[(i + 1) % m];
-      const dx = b[0] - a[0], dy = b[1] - a[1], d = Math.hypot(dx, dy) || 1;
-      const w = (hsh(i, seed, 7) - 0.5) * amp + (hsh(i >> 2, seed, 19) - 0.5) * amp * 2.2;
-      out[i][0] += -dy / d * w; out[i][1] += dx / d * w;
-    }
+    out.push(DEST);
     return out;
-  }
-
-  const path = (g, pts, closed) => {
-    g.beginPath();
-    g.moveTo(pts[0][0], pts[0][1]);
-    for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
-    if (closed) g.closePath();
-  };
-
-  // the same closed curve, pushed outward by d — the parallel rules an engraver
-  // runs round a coast to say "this is water"
-  function offset(pts, d) {
-    const n = pts.length, cx = 1060, cy = 1480, out = [];
-    for (let i = 0; i < n; i++) {
-      const a = pts[(i - 1 + n) % n], b = pts[(i + 1) % n], p = pts[i];
-      let dx = b[0] - a[0], dy = b[1] - a[1];
-      const l = Math.hypot(dx, dy) || 1;
-      let nx = dy / l, ny = -dx / l;
-      if ((p[0] - cx) * nx + (p[1] - cy) * ny < 0) { nx = -nx; ny = -ny; }
-      out.push([p[0] + nx * d, p[1] + ny * d]);
-    }
-    return out;
-  }
-
-  const SHORE = smooth(COAST, true, 13, 3);
-
-  // ── the engraving ──
-  let sheet = null, tex = null;
-
-  // The one asset on disk. If it never arrives the procedural paper underneath
-  // still stands on its own, so a slow network delays nothing.
-  const loadTex = () => new Promise(res => {
-    const im = new Image();
-    im.onload = () => { tex = im; res(); };
-    im.onerror = () => res();
-    im.src = 'paper.jpg';
-  });
-
-  function paper(g) {
-    g.fillStyle = '#d9cbab';
-    g.fillRect(0, 0, SW, SH);
-    // The sheet's own surface: a scan of aged laid paper, generated for this
-    // piece. It carries the fibre, the chain lines and the foxing that the
-    // procedural grain below could only imply, so the grain is now a top-up.
-    if (tex) {
-      g.save();
-      g.globalAlpha = 0.9;
-      g.drawImage(tex, 0, 0, SW, SH);
-      g.globalAlpha = 0.42; g.globalCompositeOperation = 'multiply';
-      g.fillStyle = '#cdbb98'; g.fillRect(0, 0, SW, SH);
-      g.restore();
-    }
-    // stain: a few wide washes, darker toward the edges where a folded sheet
-    // takes the light and the handling
-    for (let i = 0; i < 46; i++) {
-      const x = hsh(i, 1, 2) * SW, y = hsh(i, 2, 3) * SH, r = 160 + hsh(i, 3, 4) * 520;
-      const gr = g.createRadialGradient(x, y, 0, x, y, r);
-      const tone = hsh(i, 4, 5) > 0.5 ? '150,116,66' : '94,78,52';
-      gr.addColorStop(0, `rgba(${tone},${0.03 + hsh(i, 5, 6) * 0.05})`);
-      gr.addColorStop(1, `rgba(${tone},0)`);
-      g.fillStyle = gr; g.fillRect(x - r, y - r, r * 2, r * 2);
-    }
-    const vg = g.createRadialGradient(SW / 2, SH / 2, SH * 0.2, SW / 2, SH / 2, SH * 0.72);
-    vg.addColorStop(0, 'rgba(90,70,42,0)');
-    vg.addColorStop(1, 'rgba(90,70,42,.3)');
-    g.fillStyle = vg; g.fillRect(0, 0, SW, SH);
-
-    // grain, at a third the resolution and scaled up — full-res per-pixel noise
-    // on a 2320×3100 sheet costs about a second and looks no different
-    const nw = SW / 3 | 0, nh = SH / 3 | 0;
-    const nc = document.createElement('canvas'); nc.width = nw; nc.height = nh;
-    const id = nc.getContext('2d').createImageData(nw, nh), d = id.data;
-    for (let i = 0; i < d.length; i += 4) {
-      const v = Math.random();
-      d[i] = 120; d[i + 1] = 100; d[i + 2] = 70;
-      d[i + 3] = v > 0.86 ? 26 : v < 0.1 ? 14 : 0;
-    }
-    nc.getContext('2d').putImageData(id, 0, 0);
-    g.save(); g.globalAlpha = tex ? 0.24 : 0.5; g.imageSmoothingEnabled = true;
-    g.drawImage(nc, 0, 0, SW, SH); g.restore();
-  }
-
-  // Where the sheet has been folded to fit a satchel: two down, three across.
-  // A crease is one bright ridge with a shadow on either side of it, which is
-  // also the only thing on the paper that was not put there by the engraver.
-  function folds(g) {
-    g.save();
-    const E = 30;
-    const band = (gr) => {
-      gr.addColorStop(0, 'rgba(96,74,44,0)');
-      gr.addColorStop(0.42, 'rgba(96,74,44,.085)');
-      gr.addColorStop(0.5, 'rgba(255,246,221,.2)');
-      gr.addColorStop(0.58, 'rgba(96,74,44,.085)');
-      gr.addColorStop(1, 'rgba(96,74,44,0)');
-      return gr;
-    };
-    for (const x of [SW / 3, SW * 2 / 3]) {
-      g.fillStyle = band(g.createLinearGradient(x - E, 0, x + E, 0));
-      g.fillRect(x - E, 0, E * 2, SH);
-    }
-    for (const y of [SH / 4, SH / 2, SH * 3 / 4]) {
-      g.fillStyle = band(g.createLinearGradient(0, y - E, 0, y + E));
-      g.fillRect(0, y - E, SW, E * 2);
-    }
-    g.restore();
-  }
-
-  function graticule(g) {
-    g.save();
-    g.strokeStyle = 'rgba(70,56,36,.2)'; g.lineWidth = 1;
-    for (let x = MG + 160; x < SW - MG; x += 160) { g.beginPath(); g.moveTo(x, MG); g.lineTo(x, SH - MG); g.stroke(); }
-    for (let y = MG + 160; y < SH - MG; y += 160) { g.beginPath(); g.moveTo(MG, y); g.lineTo(SW - MG, y); g.stroke(); }
-    g.restore();
-  }
-
-  function sea(g) {
-    g.save();
-    // a wash over the water only, so land and sea are not the same paper. Fill
-    // the whole sheet and punch the coast out of it with the even-odd rule.
-    g.beginPath();
-    g.rect(0, 0, SW, SH);
-    g.moveTo(SHORE[0][0], SHORE[0][1]);
-    for (let i = SHORE.length - 1; i >= 0; i--) g.lineTo(SHORE[i][0], SHORE[i][1]);
-    g.closePath();
-    g.fillStyle = tex ? 'rgba(88,102,110,.17)' : 'rgba(96,110,116,.13)';
-    g.fill('evenodd');
-
-    // then parallels off the shore, each fainter and more broken than the last
-    let ring = SHORE;
-    for (let i = 1; i <= 6; i++) {
-      ring = offset(ring, 13 + i * 2.5);
-      g.strokeStyle = `rgba(70,86,96,${0.3 - i * 0.042})`;
-      g.lineWidth = 1.5 - i * 0.12;
-      g.setLineDash(i > 3 ? [26, 14 + i * 5] : []);
-      path(g, ring, true); g.stroke();
-    }
-    g.setLineDash([]);
-    g.restore();
-  }
-
-  function land(g) {
-    g.save();
-    path(g, SHORE, true);
-    g.fillStyle = tex ? 'rgba(236,224,194,.4)' : 'rgba(232,218,184,.8)'; g.fill();
-    g.strokeStyle = INK; g.lineWidth = 3.4; g.stroke();
-    g.lineWidth = 1; g.strokeStyle = 'rgba(46,36,24,.3)';
-    path(g, offset(SHORE, -9), true); g.stroke();
-    g.restore();
-
-    for (const i of ISLES) {
-      const pts = [];
-      for (let a = 0; a < 14; a++) {
-        const th = a / 14 * TAU, r = 0.84 + hsh(i.x, a, 11) * 0.34;
-        pts.push([i.x + Math.cos(th) * i.rx * r, i.y + Math.sin(th) * i.ry * r]);
-      }
-      const s = smooth(pts, true, 2.2, i.x);
-      g.save();
-      path(g, s, true);
-      g.fillStyle = tex ? 'rgba(236,224,194,.5)' : 'rgba(232,218,184,.9)'; g.fill();
-      g.strokeStyle = INK; g.lineWidth = 2.2; g.stroke();
-      g.restore();
-    }
-  }
-
-  // Mountains the way an old Korean sheet draws them: not contours but a run of
-  // little peaked strokes along the ridge, each one a hill seen from the side.
-  function ridges(g) {
-    g.save();
-    g.lineJoin = 'round'; g.lineCap = 'round';
-    for (let c = 0; c < RIDGE.length; c++) {
-      const s = smooth(RIDGE[c], false, 9, 5 + c);
-      // two rows of peaks, the back one smaller and paler, so a range has depth
-      for (const row of [{ o: -16, k: 0.72, a: 0.3 }, { o: 6, k: 1, a: 0.66 }]) {
-        g.strokeStyle = `rgba(46,36,24,${row.a})`;
-        g.fillStyle = `rgba(46,36,24,${row.a * 0.13})`;
-        for (let i = 1; i < s.length - 1; i += 2) {
-          const p = s[i];
-          const h = (15 + hsh(i, c, 13) * 13) * row.k;
-          const w = (9 + hsh(i, c, 17) * 5) * row.k;
-          const x = p[0] + row.o + (hsh(i, c, 29) - 0.5) * 9, y = p[1] + (hsh(i, c, 31) - 0.5) * 9;
-          g.lineWidth = 1.5 * row.k;
-          g.beginPath();
-          g.moveTo(x - w, y);
-          g.lineTo(x - w * 0.3, y - h * 0.72);
-          g.lineTo(x, y - h);
-          g.lineTo(x + w * 0.42, y - h * 0.6);
-          g.lineTo(x + w, y);
-          g.fill(); g.stroke();
-        }
-      }
-    }
-    g.restore();
-  }
-
-  function rivers(g) {
-    g.save();
-    g.strokeStyle = 'rgba(52,62,70,.62)'; g.lineCap = 'round';
-    for (const r of RIVERS) {
-      const s = smooth(r, false, 5, 23);
-      for (let i = 1; i < s.length; i++) {
-        g.lineWidth = lerp(3.4, 1, i / s.length);
-        g.beginPath(); g.moveTo(s[i - 1][0], s[i - 1][1]); g.lineTo(s[i][0], s[i][1]); g.stroke();
-      }
-    }
-    g.restore();
-  }
-
-  // the title block, sitting in the empty south-west water where there is room
-  function cartouche(g) {
-    const x = 196, y = 2480, w = 430, h = 212;
-    g.save();
-    g.fillStyle = 'rgba(217,203,171,.82)';
-    g.fillRect(x, y, w, h);
-    g.strokeStyle = INK; g.lineWidth = 3; g.strokeRect(x, y, w, h);
-    g.lineWidth = 1; g.strokeRect(x + 9, y + 9, w - 18, h - 18);
-    g.fillStyle = INK; g.textAlign = 'center'; g.textBaseline = 'alphabetic';
-    g.font = '800 62px "Nanum Myeongjo", serif';
-    g.fillText('地圖 밖', x + w / 2, y + 96);
-    g.font = '400 20px "Nanum Myeongjo", serif';
-    g.fillStyle = 'rgba(46,36,24,.72)';
-    g.fillText('끝까지 끌어 보시오', x + w / 2, y + 140);
-    g.font = '400 15px "Space Mono", monospace';
-    g.fillStyle = 'rgba(46,36,24,.5)';
-    g.fillText('ONE SHEET · EDGE UNSURVEYED', x + w / 2, y + 176);
-    g.restore();
-  }
-
-  function compass(g) {
-    const x = 1842, y = 2246, r = 86;
-    g.save();
-    g.translate(x, y);
-    g.strokeStyle = INK2; g.lineWidth = 1.4;
-    g.beginPath(); g.arc(0, 0, r, 0, TAU); g.stroke();
-    g.beginPath(); g.arc(0, 0, r * 0.76, 0, TAU); g.stroke();
-    for (let i = 0; i < 16; i++) {
-      const a = i / 16 * TAU - Math.PI / 2, lg = i % 4 === 0 ? r : r * 0.86;
-      g.beginPath();
-      g.moveTo(Math.cos(a) * r * 0.76, Math.sin(a) * r * 0.76);
-      g.lineTo(Math.cos(a) * lg, Math.sin(a) * lg);
-      g.stroke();
-    }
-    for (let i = 0; i < 8; i++) {
-      const a = i / 8 * TAU - Math.PI / 2;
-      g.beginPath();
-      g.moveTo(0, 0);
-      g.lineTo(Math.cos(a + 0.19) * r * 0.26, Math.sin(a + 0.19) * r * 0.26);
-      g.lineTo(Math.cos(a) * r * 0.72, Math.sin(a) * r * 0.72);
-      g.lineTo(Math.cos(a - 0.19) * r * 0.26, Math.sin(a - 0.19) * r * 0.26);
-      g.closePath();
-      g.fillStyle = i % 2 ? 'rgba(46,36,24,.14)' : 'rgba(46,36,24,.6)';
-      g.fill();
-      g.strokeStyle = INK2; g.lineWidth = 1; g.stroke();
-    }
-    g.fillStyle = INK; g.font = '700 22px "Nanum Myeongjo", serif';
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.fillText('北', 0, -r - 20);
-    g.restore();
-  }
-
-  function scalebar(g) {
-    const x = 1612, y = 2786, w = 320, h = 15;
-    g.save();
-    g.strokeStyle = INK; g.lineWidth = 1.6;
-    g.strokeRect(x, y, w, h);
-    for (let i = 0; i < 8; i++) {
-      if (i % 2) { g.fillStyle = INK; g.fillRect(x + i * w / 8, y, w / 8, h); }
-    }
-    g.fillStyle = INK; g.font = '400 17px "Space Mono", monospace';
-    g.textAlign = 'center'; g.textBaseline = 'top';
-    g.fillText('0', x, y + h + 9);
-    g.fillText('200', x + w / 2, y + h + 9);
-    g.fillText('400 리', x + w, y + h + 9);
-    g.restore();
-  }
-
-  // The neat-line, and then the paper's torn edge outside it. The border is the
-  // promise the sheet makes; the deckle is where the promise stops.
-  const DECKLE = (() => {
-    const p = [], E = 26;
-    const push = (x, y, i) => p.push([x + (hsh(i, 31, 3) - 0.5) * E, y + (hsh(i, 37, 5) - 0.5) * E]);
-    let i = 0;
-    for (let x = 0; x < SW; x += 54) push(x, 0, i++);
-    for (let y = 0; y < SH; y += 54) push(SW, y, i++);
-    for (let x = SW; x > 0; x -= 54) push(x, SH, i++);
-    for (let y = SH; y > 0; y -= 54) push(0, y, i++);
-    return smooth(p, true, 5, 71);
   })();
 
-  function border(g) {
-    g.save();
-    g.strokeStyle = INK; g.lineWidth = 5;
-    g.strokeRect(MG, MG, SW - MG * 2, SH - MG * 2);
-    g.lineWidth = 1.6;
-    g.strokeRect(MG + 13, MG + 13, SW - MG * 2 - 26, SH - MG * 2 - 26);
-    // ticked rule between the two lines, a degree every 160 units
-    g.lineWidth = 1.4;
-    for (let x = MG; x <= SW - MG; x += 160) {
-      g.beginPath(); g.moveTo(x, MG); g.lineTo(x, MG + 13); g.stroke();
-      g.beginPath(); g.moveTo(x, SH - MG - 13); g.lineTo(x, SH - MG); g.stroke();
-    }
-    for (let y = MG; y <= SH - MG; y += 160) {
-      g.beginPath(); g.moveTo(MG, y); g.lineTo(MG + 13, y); g.stroke();
-      g.beginPath(); g.moveTo(SW - MG - 13, y); g.lineTo(SW - MG, y); g.stroke();
-    }
-    g.restore();
-  }
-
-  function deckle(g) {
-    g.save();
-    // a shadow just inside the tear, so the paper has thickness
-    g.globalCompositeOperation = 'source-atop';
-    g.lineWidth = 26; g.strokeStyle = 'rgba(92,72,44,.26)';
-    path(g, DECKLE, true); g.stroke();
-    g.lineWidth = 7; g.strokeStyle = 'rgba(92,72,44,.3)';
-    path(g, DECKLE, true); g.stroke();
-    // then cut everything outside it away
-    g.globalCompositeOperation = 'destination-out';
-    g.beginPath();
-    g.rect(-80, -80, SW + 160, SH + 160);
-    g.moveTo(DECKLE[0][0], DECKLE[0][1]);
-    for (let i = DECKLE.length - 1; i >= 0; i--) g.lineTo(DECKLE[i][0], DECKLE[i][1]);
-    g.closePath();
-    g.fill('evenodd');
-    g.restore();
-  }
-
-  const PAD = 72;   // room around the sheet for its baked drop shadow
-
-  function bake() {
-    const c = document.createElement('canvas');
-    c.width = SW; c.height = SH;
-    const g = c.getContext('2d');
-    paper(g); graticule(g); sea(g); land(g); ridges(g); rivers(g);
-    cartouche(g); compass(g); scalebar(g); border(g); folds(g); deckle(g);
-
-    // the shadow goes in once. Asking the compositor to blur a 2320×3100 image
-    // sixty times a second costs about half the frame budget on its own.
-    sheet = document.createElement('canvas');
-    sheet.width = SW + PAD * 2; sheet.height = SH + PAD * 2;
-    const g2 = sheet.getContext('2d');
-    g2.shadowColor = 'rgba(0,0,0,.76)';
-    g2.shadowBlur = 44; g2.shadowOffsetY = 12;
-    g2.drawImage(c, PAD, PAD);
-  }
-
-  // ── loose syllables, pre-rendered ──
-  // Each one is a glyph plus its halo, drawn once into a small canvas. Live
-  // ctx.filter on a hundred of them is what dropped the frame rate to 21.
-  const gcache = new Map();
-
-  function glyph(ch, px, mode) {
-    const key = ch + '|' + px + '|' + mode;
-    let c = gcache.get(key);
-    if (c) return c;
-    const pad = Math.ceil(px * 0.8);
-    c = document.createElement('canvas');
-    c.width = Math.ceil(px * 1.3) + pad * 2;
-    c.height = Math.ceil(px * 1.6) + pad * 2;
-    const g = c.getContext('2d');
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-    g.font = `400 ${px}px "Nanum Myeongjo", serif`;
-    const x = c.width / 2, y = c.height / 2;
-    if (mode === 'say') {
-      g.globalAlpha = 0.34; g.filter = `blur(${(px * 0.2).toFixed(1)}px)`;
-      g.fillStyle = '#ffeece'; g.fillText(ch, x, y);
-      g.globalAlpha = 1; g.filter = `blur(${(px * 0.018).toFixed(2)}px)`;
-      g.fillStyle = '#f3e6ca'; g.fillText(ch, x, y);
-    } else {
-      g.globalAlpha = 0.3; g.filter = `blur(${Math.max(2, px * 0.13).toFixed(1)}px)`;
-      g.fillStyle = '#e0cea9'; g.fillText(ch, x, y);
-      g.globalAlpha = 0.84; g.filter = 'none';
-      g.fillStyle = '#cebe9e'; g.fillText(ch, x, y);
-    }
-    c.cx = x; c.cy = y;
-    gcache.set(key, c);
-    return c;
-  }
-
-  // ── the view ──
-  // ox,oy is the sheet coordinate under the middle of the window. Everything
-  // in the piece is a function of how far that point has left the paper.
-  // K is the one thing the reader can change that is not position: how far the
-  // sheet is held from the eye. KFIT is the whole sheet on the table, KREAD is
-  // close enough to read a town's name. The piece opens at the first and
-  // settles into the second, and the wheel goes anywhere between.
-  let K = 1, KREAD = 1, KFIT = 1, kTarget = 1, kMin = 0.05, kMax = 4, bootT = 0;
-  let ox = 1050, oy = 1480, vx = 0, vy = 0, out = 0, offd = 0;
-  const LIMIT = 1700;   // how far past the edge the drag will go at all
-  const sx = x => (x - ox) * K + W / 2;
-  const sy = y => (y - oy) * K + H / 2;
-
-  function offDist() {
-    const ex = Math.max(-ox, ox - SW, 0), ey = Math.max(-oy, oy - SH, 0);
-    return Math.hypot(ex, ey);
-  }
-
-  // ── letters that have come off ──
-  // One syllable each, in sheet coordinates, so they stay out in the dark where
-  // they are instead of riding the window.
-  const POOL = [];
-  for (const n of NAMES) for (const ch of (n.sub || n.t)) POOL.push(ch);
-  for (const ch of '여기물끝용돌아온배없음이름그리지않았다') POOL.push(ch);
-
-  let drift = [], spawnT = 0, seed = 0;
-
-  let DS = [18, 25, 32, 39, 46];   // five sizes, so the glyph cache stays small
-
-  function spawn() {
-    if (drift.length > 180) return;
-    // anywhere across the window and a little beyond it. Ringing them round the
-    // outside left the middle of the dark empty, which read as a bug
-    const d = 2.4 + Math.random() * 2.2;
-    drift.push({
-      x: ox + (Math.random() - 0.5) * W * 1.7 / K,
-      y: oy + (Math.random() - 0.5) * H * 1.7 / K,
-      vx: (Math.random() - 0.5) * d, vy: (Math.random() - 0.5) * d - 1.4,
-      rot: Math.random() * TAU, vr: (Math.random() - 0.5) * 0.22,
-      ch: POOL[(Math.random() * POOL.length) | 0],
-      s: DS[(Math.random() * DS.length) | 0],
-      a: 0, life: 0,
-    });
-  }
-
-  // ── what the dark eventually says ──
-  // A sheet's edge is a cartographer admitting something. These are the notes
-  // they wrote there, one at a time, the further out you go.
-  const PHRASES = [
-    { at: 0.11, t: '이름 없음' },
-    { at: 0.28, t: '물 끝' },
-    { at: 0.46, t: '여기 용이 있다' },
-    { at: 0.66, t: '돌아온 배 없음' },
-    { at: 0.86, t: '여기부터 그리지 않았다' },
+  const PARKS = [[-620, -240, 380, 260], [520, 180, 300, 340], [-340, 700, 460, 220],
+                 [880, -620, 250, 250], [-1100, -860, 320, 300]];
+  const PLACES = [
+    [-180, -210, '시청'], [430, -520, '중앙공원'], [-520, 340, '대학병원'],
+    [760, 240, '터미널'], [120, 620, '강변로'], [-860, -120, '시장'],
+    [340, -1180, '호수'], [-1280, 420, '공단'], [1180, -260, '전망대'],
   ];
-  let phr = null, said = 0;
-  const PH_IN = 1.7, PH_HOLD = 3.1, PH_OUT = 2.0;
 
-  function sayIt(t) {
-    const ch = [...t], n = ch.length, gap = PS * 1.22 / K;
-    const w = (n - 1) * gap;
-    phr = {
-      t: 0,
-      g: ch.map((c, i) => {
-        const a = Math.random() * TAU, r = 700 + Math.random() * 900;
-        return {
-          c, fx: ox + Math.cos(a) * r, fy: oy + Math.sin(a) * r,
-          fr: (Math.random() - 0.5) * 3,
-          tx: ox - w / 2 + i * gap, ty: oy,
-          x: 0, y: 0, rot: 0,
-        };
-      }),
-    };
-  }
+  // ── the voice ──────────────────────────────────────────────────────────
+  // Five lives, and the type falls apart at the seam between the third and
+  // the fourth. `wob` is how badly the letters are shaking when it speaks.
+  const ACTS = [
+    { at: 0,   wob: 0,    lines: ['300m 앞에서 우회전입니다', '잠시 후 좌회전입니다', '계속 직진하세요', '전방에 과속 단속 구간입니다'] },
+    { at: 1,   wob: 0.12, lines: ['경로를 벗어났습니다', '경로를 재탐색합니다', '가능한 곳에서 유턴하세요', '유턴할 수 있는 곳이 없습니다'] },
+    { at: 2,   wob: 0.45, lines: ['이 길은 등록되어 있지 않습니다', '어… 잠시만요', '지금 어디 계신가요', '도로를 찾을 수 없습니다'] },
+    { at: 3.5, wob: 0.85, lines: ['고도가 올라가고 있습니다', '아래가 아니라 위로 가고 계세요', '도로가 보이지 않습니다', '괜찮아요. 저도 처음입니다'] },
+    { at: 5.5, wob: 0.1,  lines: ['목적지를 다시 설정합니다', '가장 가까운 항성까지 4.2광년', '도착 예정 시각 : 계산할 수 없음', '창밖을 보세요', '여기서부터는 안내할 수 있는 게 없습니다', '그래도 같이 가 드릴게요'] },
+  ];
+  // what the button says back, per act, in the order you press it
+  const RR = [
+    ['이미 경로 위에 있습니다', '정말 괜찮습니다', '목적지까지 12분 남았습니다'],
+    ['재탐색 중…', '새 경로를 찾았습니다', '아니요, 못 찾았습니다'],
+    ['재탐색 실패', '다시 시도합니다 …실패', '지도를 전부 뒤졌습니다'],
+    ['재탐색할 도로가 없습니다', '여기엔 아무것도 깔려 있지 않아요', '그만 누르셔도 됩니다'],
+    ['…', '자꾸 누르시네요', '좋아요, 계속 가 봅시다', '어디까지 가는지 봅시다'],
+  ];
 
-  // ── names on the paper ──
-  // Drawn live rather than baked, because they are the one thing that has to
-  // come apart. A name near the edge you crossed loses its syllables first.
-  const FACE = { cap: '800', town: '700', mtn: '700', sea: '400', river: '400', isle: '400' };
-  const TINT = {
-    cap: 'rgba(40,30,18,', town: 'rgba(46,36,24,', mtn: 'rgba(46,36,24,',
-    sea: 'rgba(62,76,88,', river: 'rgba(52,62,70,', isle: 'rgba(46,36,24,',
-  };
+  const actOf = d => { let k = 0; for (let i = 0; i < ACTS.length; i++) if (d >= ACTS[i].at) k = i; return k; };
 
-  function drawNames(g) {
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (let i = 0; i < NAMES.length; i++) {
-      const n = NAMES[i];
-      const px = sx(n.x), py = sy(n.y);
-      const pad = 260;
-      if (px < -pad || px > W + pad || py < -pad || py > H + pad) continue;
+  // ── state ──────────────────────────────────────────────────────────────
+  let wx = 0, wy = 0;              // where we are, in metres from the start
+  let vx = 0, vy = 0, speed = 0;   // how hard the hand is pushing
+  let head = -Math.PI / 2;         // which way the arrow points
+  let d = 0, alt = 0, night = 0;   // the one variable, and what it grows into
+  let T = 0;
+  let line = ACTS[0].lines[0], lineT = 0, lineAct = 0, lineIdx = 0;
+  let forced = 0;                  // a line from the button outranks the clock
+  let rrCount = [0, 0, 0, 0, 0];
+  let backing = 0;                 // the ride home
+  let stars = [], clouds = [];
 
-      // how much of the pull this name feels: strongest nearest the window
-      const d = Math.hypot(n.x - ox, n.y - oy);
-      const pull = clamp(1 - d / 2300, 0, 1);
-      const lo = clamp(out * 2.1 * pull - 0.06, 0, 1);
-      if (lo > 0.985) continue;
-
-      const size = n.s * K;
-      if (size < 5) continue;
-      const chars = [...n.t];
-      const cw = size * (n.k === 'sea' ? 1.5 : 1.12);
-      const x0 = px - (chars.length - 1) * cw / 2;
-
-      g.save();
-      g.globalAlpha = 1 - lo * 0.82;
-      for (let j = 0; j < chars.length; j++) {
-        const k1 = hsh(i, j, 3) - 0.5, k2 = hsh(i, j, 9) - 0.5, k3 = hsh(i, j, 15) - 0.5;
-        const e = lo * lo;
-        g.save();
-        g.translate(x0 + j * cw + k1 * 220 * e * K, py + k2 * 200 * e * K);
-        g.rotate(k3 * 1.7 * e);
-        g.font = `${FACE[n.k]} ${size}px "Nanum Myeongjo", serif`;
-        g.fillStyle = TINT[n.k] + (n.k === 'sea' ? 0.52 : 0.92) + ')';
-        g.fillText(chars[j], 0, 0);
-        g.restore();
-      }
-      g.restore();
-
-      // the hangul reading under a name written in hanja
-      if (n.sub && size > 13 && lo < 0.5) {
-        g.save();
-        g.globalAlpha = (1 - lo * 2) * 0.62;
-        g.font = `400 ${size * 0.42}px "Nanum Myeongjo", serif`;
-        g.fillStyle = 'rgba(46,36,24,.9)';
-        g.fillText(n.sub, px, py + size * 0.82);
-        g.restore();
-      }
+  function world() {
+    stars = [];
+    for (let i = 0; i < 420; i++) {
+      stars.push({ x: hsh(i, 1, 3), y: hsh(i, 2, 5), r: 0.3 + hsh(i, 3, 7) * 1.5,
+                   a: 0.25 + hsh(i, 4, 9) * 0.75, tw: hsh(i, 5, 11) * TAU });
+    }
+    clouds = [];
+    for (let i = 0; i < 26; i++) {
+      clouds.push({ x: (hsh(i, 7, 2) - 0.5) * 16000, y: (hsh(i, 8, 4) - 0.5) * 16000,
+                    r: 700 + hsh(i, 9, 6) * 1500, a: 0.3 + hsh(i, 10, 8) * 0.5 });
     }
   }
 
-  // ── sound ──
-  // A sheet of paper being dragged over a table, and under it a room tone that
-  // only exists off the edge. Everything synthesised; nothing is a recording.
+  // ── sound ──────────────────────────────────────────────────────────────
+  // Tyres on asphalt while there is asphalt, then wind, then the long note
+  // that is left when there is nothing to make a sound against.
   const sound = (() => {
-    let ac = null, on = false, mas, dr = [], drg, rub, rubg, rubf, sub;
+    let ac = null, on = false, mas, rd, rdf, rdg, drg, osc = [], sub;
 
     function build() {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       mas = ac.createDynamicsCompressor();
-      mas.threshold.value = -16; mas.ratio.value = 7;
+      mas.threshold.value = -15; mas.ratio.value = 7;
       mas.connect(ac.destination);
 
-      // the dark: two voices a beat apart, plus a sub you feel rather than hear
+      const len = ac.sampleRate * 2, buf = ac.createBuffer(1, len, ac.sampleRate);
+      const a = buf.getChannelData(0);
+      let v = 0;
+      for (let i = 0; i < len; i++) { v = (v + (Math.random() * 2 - 1) * 0.07) * 0.982; a[i] = v * 5; }
+      rd = ac.createBufferSource(); rd.buffer = buf; rd.loop = true;
+      rdf = ac.createBiquadFilter(); rdf.type = 'bandpass';
+      rdf.frequency.value = 520; rdf.Q.value = 0.7;
+      rdg = ac.createGain(); rdg.gain.value = 0;
+      rd.connect(rdf); rdf.connect(rdg); rdg.connect(mas); rd.start();
+
       drg = ac.createGain(); drg.gain.value = 0;
       const lp = ac.createBiquadFilter();
-      lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 1.4;
+      lp.type = 'lowpass'; lp.frequency.value = 520; lp.Q.value = 1.1;
       drg.connect(lp); lp.connect(mas);
-      for (const f of [55, 82.4, 110.3, 164.2]) {
+      for (const f of [49, 73.4, 98, 146.8]) {
         const o = ac.createOscillator(), g = ac.createGain();
         o.type = 'triangle'; o.frequency.value = f;
-        g.gain.value = f > 100 ? 0.09 : 0.2;
+        g.gain.value = f > 90 ? 0.08 : 0.19;
         o.connect(g); g.connect(drg); o.start();
-        dr.push(o);
+        osc.push(o);
       }
       sub = ac.createOscillator();
-      const sg = ac.createGain(); sg.gain.value = 0.3;
-      sub.type = 'sine'; sub.frequency.value = 27.5;
+      const sg = ac.createGain(); sg.gain.value = 0.26;
+      sub.type = 'sine'; sub.frequency.value = 24.5;
       sub.connect(sg); sg.connect(drg); sub.start();
-
-      // paper on wood: noise through a bandpass that opens with the hand
-      const len = ac.sampleRate * 2, buf = ac.createBuffer(1, len, ac.sampleRate);
-      const d = buf.getChannelData(0);
-      let v = 0;
-      for (let i = 0; i < len; i++) { v = (v + (Math.random() * 2 - 1) * 0.06) * 0.985; d[i] = v * 5; }
-      rub = ac.createBufferSource(); rub.buffer = buf; rub.loop = true;
-      rubf = ac.createBiquadFilter(); rubf.type = 'bandpass';
-      rubf.frequency.value = 900; rubf.Q.value = 0.8;
-      rubg = ac.createGain(); rubg.gain.value = 0;
-      rub.connect(rubf); rubf.connect(rubg); rubg.connect(mas); rub.start();
     }
 
     return {
       live: () => !!ac && ac.state === 'running' && on,
-      // woken twice at boot and again on the first touch, because a context
-      // built before the gesture starts suspended and stays that way
       kick() {
         if (!ac) build();
         if (ac.state === 'suspended') ac.resume();
@@ -756,357 +220,605 @@
         if (!ac) build();
         on = !on;
         if (on && ac.state === 'suspended') ac.resume();
-        if (!on) { drg.gain.setTargetAtTime(0, ac.currentTime, 0.1); rubg.gain.setTargetAtTime(0, ac.currentTime, 0.05); }
+        if (!on) { rdg.gain.setTargetAtTime(0, ac.currentTime, 0.08); drg.gain.setTargetAtTime(0, ac.currentTime, 0.1); }
         return on;
       },
-      // the drone belongs to the void, the rub to the hand
-      set(o, speed) {
+      set(sp, altv, nightv) {
         if (!this.live()) return;
         const t = ac.currentTime;
-        drg.gain.setTargetAtTime(Math.pow(o, 1.4) * 0.5, t, 0.4);
-        for (let i = 0; i < dr.length; i++) dr[i].detune.setTargetAtTime(-o * 70 + Math.sin(t * 0.3 + i) * 9, t, 0.6);
-        rubg.gain.setTargetAtTime(clamp(speed / 1600, 0, 1) * 0.5, t, 0.05);
-        rubf.frequency.setTargetAtTime(600 + clamp(speed, 0, 2600) * 0.7, t, 0.08);
+        rdg.gain.setTargetAtTime(clamp(sp / 1500, 0, 1) * 0.42 * (1 - nightv), t, 0.06);
+        rdf.frequency.setTargetAtTime(380 + clamp(sp, 0, 2400) * 0.5 + altv * 1500, t, 0.1);
+        rdf.Q.setTargetAtTime(0.7 + altv * 3.2, t, 0.2);
+        drg.gain.setTargetAtTime(Math.pow(nightv, 1.3) * 0.52, t, 0.5);
+        for (let i = 0; i < osc.length; i++) osc[i].detune.setTargetAtTime(Math.sin(t * 0.22 + i) * 11 - nightv * 40, t, 0.7);
       },
-      // a struck note when the dark finally spells something
-      chime(n) {
+      // the two notes a navigation app makes before it says anything
+      ding(kind) {
         if (!this.live()) return;
         const t = ac.currentTime;
-        for (let i = 0; i < 3; i++) {
+        const pairs = [[880, 1174.7], [587.3, 440], [392, 329.6], [1046.5, 1568]][kind] || [880, 1174.7];
+        pairs.forEach((f, i) => {
           const o = ac.createOscillator(), g = ac.createGain();
-          o.type = 'sine';
-          o.frequency.value = [220, 329.6, 494][i] * (n % 2 ? 1 : 0.75);
-          g.gain.setValueAtTime(0, t);
-          g.gain.linearRampToValueAtTime(0.16 / (i + 1), t + 0.01);
-          g.gain.exponentialRampToValueAtTime(0.0001, t + 3.4 + i);
-          o.connect(g); g.connect(mas); o.start(t); o.stop(t + 5);
-        }
+          o.type = kind === 3 ? 'sine' : 'triangle';
+          o.frequency.value = f;
+          const t0 = t + i * (kind === 3 ? 0.26 : 0.13);
+          g.gain.setValueAtTime(0, t0);
+          g.gain.linearRampToValueAtTime(kind === 3 ? 0.1 : 0.14, t0 + 0.012);
+          g.gain.exponentialRampToValueAtTime(0.0001, t0 + (kind === 3 ? 2.8 : 0.42));
+          o.connect(g); g.connect(mas); o.start(t0); o.stop(t0 + 3.2);
+        });
       },
     };
   })();
 
-  // ── drawing ──
-  let PS = 40;
+  // ── painting the ground ────────────────────────────────────────────────
+  const C_MAP = [236, 234, 228], C_SKY = [150, 186, 222], C_SPACE = [4, 5, 9];
+  const C_LAND = [222, 219, 210], C_PARK = [205, 222, 198], C_WATER = [186, 209, 226];
+  const C_NODATA = [222, 222, 220], C_SEA = [40, 78, 124], C_CONT = [104, 124, 86];
 
-  function voidField(g) {
-    g.fillStyle = '#0b0a08';
+  let Z0 = 0.6, gs = 0.6, gcx = 0, gcy = 0, clipR = 9e4;
+  // the camera sits on us at ground level and slides back toward the start
+  // as we climb, so the planet stays in frame while we leave it
+  let camx = 0, camy = 0, ox = 0, oy = 0;
+
+  const sx = x => (x - camx) * gs + gcx;
+  const sy = y => (y - camy) * gs + gcy;
+
+  // the river is the same sine every time, which is why it looks like a river
+  const riverY = x => 540 + Math.sin(x * 0.0012) * 190 + Math.sin(x * 0.0037 + 1.2) * 70;
+
+  function ground(g) {
+    const diag = Math.hypot(W, H);
+    g.save();
+    if (clipR < diag) { g.beginPath(); g.arc(ox, oy, clipR, 0, TAU); g.clip(); }
+
+    // everything the app does not have: grey at ground level, a planet from above
+    const outside = mix(C_NODATA, C_SEA, ease(clamp(alt / 0.55, 0, 1)));
+    g.fillStyle = rgb(outside);
     g.fillRect(0, 0, W, H);
-    // specks fixed to the dark, one per grid cell, so they pan with it and
-    // give the emptiness a sense of distance instead of being flat black
-    const C = 340;
-    const x0 = Math.floor((ox - W / 2 / K) / C), x1 = Math.ceil((ox + W / 2 / K) / C);
-    const y0 = Math.floor((oy - H / 2 / K) / C), y1 = Math.ceil((oy + H / 2 / K) / C);
-    g.fillStyle = 'rgba(206,188,154,.3)';
-    for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) {
-      const r = hsh(i, j, 3);
-      if (r > 0.62) continue;
-      const px = sx((i + hsh(i, j, 11)) * C), py = sy((j + hsh(i, j, 23)) * C);
-      g.fillRect(px, py, 1 + (r > 0.4 ? 1 : 0), 1 + (r > 0.4 ? 1 : 0));
+
+    // continents, which were always there, just not in the dataset
+    if (alt > 0.1) {
+      g.globalAlpha = clamp((alt - 0.1) / 0.32, 0, 1);
+      for (let i = 0; i < 18; i++) {
+        const a2 = hsh(i, 21, 3) * TAU, rr2 = Math.sqrt(hsh(i, 24, 9)) * PR * 0.92;
+        const cx2 = Math.cos(a2) * rr2, cy2 = Math.sin(a2) * rr2;
+        g.fillStyle = rgb(mix(C_CONT, [138, 152, 104], hsh(i, 25, 11)));
+        blob(g, cx2, cy2, 3400 + hsh(i, 23, 7) * 7200, i);
+        g.fill();
+        g.strokeStyle = 'rgba(62,78,52,.45)'; g.lineWidth = 1.6; g.stroke();
+      }
+      g.globalAlpha = 1;
+    }
+
+    // what a map app shows when it has nothing to show: the seams of tiles
+    // that never arrived, each one still politely telling you its address
+    voidTiles(g, detailOf() * clamp((Math.hypot(wx, wy) - 1300) / 900, 0, 1) * clamp(gs / (Z0 * 0.4), 0, 1));
+
+    // the sheet the app does have, a disc of actual data
+    const mr = MAPR * gs;
+    if (mr < 1) return g.restore();
+    g.save();
+    g.beginPath(); g.arc(ox, oy, mr, 0, TAU); g.clip();
+    g.fillStyle = rgb(mix(C_LAND, [138, 152, 104], ease(clamp(alt / 0.45, 0, 1)) * 0.82));
+    g.fillRect(0, 0, W, H);
+
+    const detail = 1 - ease(clamp(alt / 0.34, 0, 1));
+    if (detail > 0.01) {
+      g.globalAlpha = detail;
+      parksRiver(g);
+      streets(g);
+      g.globalAlpha = 1;
+    }
+    g.restore();
+
+    // weather, which no map app has ever had to admit to
+    const cl = Math.sin(clamp((alt - 0.14) / 0.72, 0, 1) * Math.PI);
+    if (cl > 0.02) {
+      g.globalAlpha = cl * 0.55;
+      g.fillStyle = '#ffffff';
+      for (let i = 0; i < clouds.length; i++) {
+        const c = clouds[i];
+        blob(g, c.x, c.y, c.r, i + 40);
+        g.globalAlpha = cl * 0.32 * c.a;
+        g.fill();
+      }
+      g.globalAlpha = 1;
+    }
+
+    // the edge of the data. It never moves; we do
+    if (mr < diag * 2 && mr > 3) {
+      g.save();
+      g.globalAlpha = detail * 0.5 + (1 - detail) * 0.75;
+      g.strokeStyle = detail > 0.5 ? '#9aa0a8' : 'rgba(255,255,255,.8)';
+      g.lineWidth = 1.4; g.setLineDash([9, 7]);
+      g.beginPath(); g.arc(ox, oy, mr, 0, TAU); g.stroke();
+      if (detail < 0.5 && mr > 14 && mr < 420) {
+        g.setLineDash([]);
+        g.font = "400 10px 'Space Mono', monospace";
+        g.textAlign = 'center'; g.textBaseline = 'bottom';
+        g.fillStyle = 'rgba(255,255,255,.75)';
+        g.fillText('지도 범위', ox, oy - mr - 7);
+      }
+      g.restore();
+    }
+    g.restore();
+
+    // a planet is a disc with one side turned away
+    if (clipR < diag) {
+      const gr = ctx.createRadialGradient(ox - clipR * 0.3, oy - clipR * 0.3, clipR * 0.2, ox, oy, clipR * 1.05);
+      gr.addColorStop(0, 'rgba(255,255,255,.1)');
+      gr.addColorStop(0.55, 'rgba(0,0,0,0)');
+      gr.addColorStop(1, 'rgba(2,6,16,.72)');
+      g.save();
+      g.beginPath(); g.arc(ox, oy, clipR, 0, TAU); g.clip();
+      g.fillStyle = gr; g.fillRect(0, 0, W, H);
+      g.restore();
+      g.strokeStyle = `rgba(138,190,255,${0.3 * night})`;
+      g.lineWidth = 2.5;
+      g.beginPath(); g.arc(ox, oy, clipR + 1.5, 0, TAU); g.stroke();
     }
   }
 
-  // The graticule carries on past the deckle. The sheet stops; the coordinate
-  // system it claimed does not, and goes on ruling empty dark at the same
-  // interval. Drawn under the sheet, so the paper covers its own share of it.
-  function voidGrid(g) {
-    const a = 0.05 + out * 0.075;
-    const S = 160;
+  // one soft closed shape, the same one every time
+  function blob(g, cx2, cy2, rr, seed) {
+    const N = 11, pts = [];
+    for (let a = 0; a < N; a++) {
+      const th = a / N * TAU, k = 0.6 + hsh(seed, a, 13) * 0.6;
+      pts.push([cx2 + Math.cos(th) * rr * k, cy2 + Math.sin(th) * rr * k]);
+    }
+    const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    let m = mid(pts[N - 1], pts[0]);
+    g.beginPath();
+    g.moveTo(sx(m[0]), sy(m[1]));
+    for (let a = 0; a < N; a++) {
+      const q = mid(pts[a], pts[(a + 1) % N]);
+      g.quadraticCurveTo(sx(pts[a][0]), sy(pts[a][1]), sx(q[0]), sy(q[1]));
+    }
+    g.closePath();
+  }
+
+  const detailOf = () => 1 - ease(clamp(alt / 0.34, 0, 1));
+
+  function voidTiles(g, a) {
+    if (a <= 0.01) return;
+    const TS = 330;
+    const x0 = Math.floor((camx - gcx / gs) / TS) * TS;
+    const y0 = Math.floor((camy - gcy / gs) / TS) * TS;
+    const nx = Math.ceil((W / gs) / TS) + 1, ny = Math.ceil((H / gs) / TS) + 1;
+    if (nx > 40 || ny > 40) return;
     g.save();
-    g.strokeStyle = `rgba(158,134,92,${a.toFixed(3)})`;
-    g.lineWidth = 1;
-    const xa = ox - W / 2 / K, xb = ox + W / 2 / K;
-    const ya = oy - H / 2 / K, yb = oy + H / 2 / K;
-    for (let x = Math.ceil(xa / S) * S; x <= xb; x += S) {
-      const px = Math.round(sx(x)) + 0.5;
+    g.globalAlpha = a;
+    g.strokeStyle = 'rgba(146,151,158,.45)'; g.lineWidth = 1;
+    g.setLineDash([5, 6]);
+    for (let i = 0; i <= nx; i++) {
+      const px = sx(x0 + i * TS);
       g.beginPath(); g.moveTo(px, 0); g.lineTo(px, H); g.stroke();
     }
-    for (let y = Math.ceil(ya / S) * S; y <= yb; y += S) {
-      const py = Math.round(sy(y)) + 0.5;
+    for (let j = 0; j <= ny; j++) {
+      const py = sy(y0 + j * TS);
       g.beginPath(); g.moveTo(0, py); g.lineTo(W, py); g.stroke();
     }
-    // and it keeps labelling. A degree printed over nothing is still a degree.
-    if (out > 0.08 && S * K > 72) {
-      g.font = `400 ${Math.max(8, Math.round(9 * Math.min(1, K / 0.6)))}px "Space Mono", monospace`;
-      g.textAlign = 'left'; g.textBaseline = 'top';
-      g.fillStyle = `rgba(176,150,104,${(0.1 + out * 0.17).toFixed(3)})`;
-      for (let x = Math.ceil(xa / S) * S; x <= xb; x += S) {
-        if ((x / S) % 2) continue;
-        for (let y = Math.ceil(ya / S) * S; y <= yb; y += S) {
-          if ((y / S) % 2) continue;
-          if (x > -S && x < SW + S && y > -S && y < SH + S) continue;
-          g.fillText(`${(124 + x / SW * 8).toFixed(1)} ${(43.5 - y / SH * 10.5).toFixed(1)}`,
-            sx(x) + 6, sy(y) + 5);
-        }
+    g.setLineDash([]);
+    g.font = "400 10px 'Space Mono', monospace";
+    g.textAlign = 'left'; g.textBaseline = 'top';
+    for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+      const tx = x0 + i * TS, ty = y0 + j * TS;
+      const px = sx(tx) + 12, py = sy(ty) + 11;
+      if (px < -60 || px > W || py < -20 || py > H) continue;
+      g.fillStyle = 'rgba(138,143,150,.72)';
+      g.fillText(`${Math.round(tx / TS)} / ${Math.round(ty / TS)}`, px, py);
+      const k = hsh(tx, ty, 31);
+      if (k > 0.72) {
+        g.fillStyle = 'rgba(138,143,150,.5)';
+        g.fillText('타일 없음', px, py + 15);
+      } else if (k < 0.1) {
+        // the one tile that is still trying
+        const cx2 = sx(tx + TS / 2), cy2 = sy(ty + TS / 2), r = Math.min(13, 44 * gs);
+        g.strokeStyle = 'rgba(138,143,150,.6)'; g.lineWidth = 2;
+        g.beginPath(); g.arc(cx2, cy2, r, T * 2.6, T * 2.6 + 1.9); g.stroke();
       }
     }
     g.restore();
   }
 
-  function drawSheet(g) {
-    if (!sheet) return;
-    const w = (SW + PAD * 2) * K, h = (SH + PAD * 2) * K, x = sx(-PAD), y = sy(-PAD);
-    if (x > W || y > H || x + w < 0 || y + h < 0) return;
-    g.drawImage(sheet, x, y, w, h);
+  function parksRiver(g) {
+    g.fillStyle = rgb(C_PARK);
+    for (const [x, y, w2, h2] of PARKS) {
+      g.beginPath(); g.roundRect(sx(x), sy(y), w2 * gs, h2 * gs, 14 * gs); g.fill();
+    }
+    g.strokeStyle = rgb(C_WATER);
+    g.lineWidth = Math.max(2, 118 * gs); g.lineCap = 'round';
+    g.beginPath();
+    for (let x = -MAPR; x <= MAPR; x += 120) {
+      const px = sx(x), py = sy(riverY(x));
+      x === -MAPR ? g.moveTo(px, py) : g.lineTo(px, py);
+    }
+    g.stroke();
   }
 
-  function drawDrift(g) {
-    for (const p of drift) {
-      const px = sx(p.x), py = sy(p.y);
-      if (px < -90 || px > W + 90 || py < -90 || py > H + 90) continue;
-      const bm = glyph(p.ch, p.s, 'drift');
-      g.save();
-      g.globalAlpha = p.a;
-      g.translate(px, py);
-      g.rotate(p.rot);
-      g.drawImage(bm, -bm.cx, -bm.cy);
-      g.restore();
+  // Streets are a grid that forgets itself here and there, which is what makes
+  // it look like a city instead of graph paper.
+  function streets(g) {
+    const pad = 200;
+    const x0 = Math.floor((camx - (gcx + pad) / gs) / GRID) * GRID;
+    const x1 = Math.ceil((camx + (W - gcx + pad) / gs) / GRID) * GRID;
+    const y0 = Math.floor((camy - (gcy + pad) / gs) / GRID) * GRID;
+    const y1 = Math.ceil((camy + (H - gcy + pad) / gs) / GRID) * GRID;
+    if ((x1 - x0) / GRID > 400 || (y1 - y0) / GRID > 400) return;
+
+    g.lineCap = 'butt';
+    for (let pass = 0; pass < 2; pass++) {
+      g.strokeStyle = pass ? '#ffffff' : '#e3e1db';
+      for (let x = x0; x <= x1; x += GRID) {
+        const big = Math.abs(x % BIG) < 1;
+        if (!big && hsh(x, 0, 17) < 0.26) continue;
+        g.lineWidth = Math.max(pass ? 1.2 : 2.2, (big ? 26 : 12) * gs * (pass ? 0.72 : 1));
+        g.beginPath(); g.moveTo(sx(x), sy(y0)); g.lineTo(sx(x), sy(y1)); g.stroke();
+      }
+      for (let y = y0; y <= y1; y += GRID) {
+        const big = Math.abs(y % BIG) < 1;
+        if (!big && hsh(0, y, 19) < 0.26) continue;
+        g.lineWidth = Math.max(pass ? 1.2 : 2.2, (big ? 26 : 12) * gs * (pass ? 0.72 : 1));
+        g.beginPath(); g.moveTo(sx(x0), sy(y)); g.lineTo(sx(x1), sy(y)); g.stroke();
+      }
     }
   }
 
-  function drawPhrase(g) {
-    if (!phr) return;
-    const t = phr.t;
-    const a = t < PH_IN ? Math.pow(clamp(t / PH_IN, 0, 1), 1.6)
-      : t < PH_IN + PH_HOLD ? 1
-      : clamp(1 - (t - PH_IN - PH_HOLD) / PH_OUT, 0, 1);
-    if (a <= 0.003) return;
-    for (const q of phr.g) {
-      const px = sx(q.x), py = sy(q.y);
-      const bm = glyph(q.c, PS, 'say');
-      g.save();
-      g.globalAlpha = a;
-      g.translate(px, py);
-      g.rotate(q.rot);
-      g.drawImage(bm, -bm.cx, -bm.cy);
-      g.restore();
+  function route(g, a) {
+    g.save();
+    g.globalAlpha = a;
+    g.strokeStyle = '#1668e3'; g.lineWidth = Math.max(3, 34 * gs);
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    g.beginPath();
+    for (let i = 0; i < ROUTE.length; i++) {
+      const p = ROUTE[i];
+      i ? g.lineTo(sx(p[0]), sy(p[1])) : g.moveTo(sx(p[0]), sy(p[1]));
     }
+    g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = Math.max(1, 10 * gs);
+    g.stroke();
+
+    const px = sx(DEST[0]), py = sy(DEST[1]);
+    g.fillStyle = '#e4453c';
+    g.beginPath(); g.arc(px, py, Math.max(5, 46 * gs), 0, TAU); g.fill();
+    g.fillStyle = '#fff';
+    g.beginPath(); g.arc(px, py, Math.max(2, 18 * gs), 0, TAU); g.fill();
+    g.restore();
+  }
+
+  function places(g, a, wob) {
+    g.save();
+    g.globalAlpha = a;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    const fs = clamp(14 * gs / Z0, 9, 15);
+    g.font = `500 ${fs}px 'Noto Sans KR', sans-serif`;
+    for (let i = 0; i < PLACES.length; i++) {
+      const [x, y, name] = PLACES[i];
+      const px = sx(x) + Math.sin(T * 2.2 + i) * wob * 9;
+      const py = sy(y) + Math.cos(T * 1.8 + i * 2) * wob * 7;
+      if (px < -80 || px > W + 80 || py < -40 || py > H + 40) continue;
+      g.fillStyle = '#70767e';
+      g.beginPath(); g.arc(px, py - fs * 1.25, 2.6, 0, TAU); g.fill();
+      g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,.85)';
+      g.strokeText(name, px, py);
+      g.fillStyle = '#4b5159';
+      g.fillText(name, px, py);
+    }
+    g.restore();
+  }
+
+  // the arrow. It never stops being sure of itself, which is the joke.
+  function me(g) {
+    const s = clamp(1 - ease(alt) * 0.86, 0.14, 1);
+    g.save();
+    g.translate(sx(wx), sy(wy));
+    const pulse = 1 + Math.sin(T * 2.4) * 0.07;
+    g.fillStyle = `rgba(22,104,227,${0.14 * (1 - night * 0.6)})`;
+    g.beginPath(); g.arc(0, 0, 34 * s * pulse, 0, TAU); g.fill();
+    g.rotate(head + Math.PI / 2);
+    g.scale(s, s);
+    g.fillStyle = '#1668e3';
+    g.beginPath();
+    g.moveTo(0, -17); g.lineTo(12.5, 15); g.lineTo(0, 9); g.lineTo(-12.5, 15);
+    g.closePath(); g.fill();
+    g.strokeStyle = '#fff'; g.lineWidth = 2.4; g.stroke();
+    g.restore();
+  }
+
+  function starfield(g) {
+    if (night < 0.01) return;
+    g.save();
+    const sscale = clamp(W / 1100, 0.45, 1);
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      const a = s.a * night * (0.6 + 0.4 * Math.sin(T * 1.1 + s.tw));
+      g.fillStyle = `rgba(255,255,255,${a})`;
+      g.beginPath(); g.arc(s.x * W, s.y * H, s.r * sscale, 0, TAU); g.fill();
+    }
+    g.restore();
+  }
+
+  // ── the card at the top, which is the only thing still talking ─────────
+  function shaky(g, txt, cx, y, size, wob, col) {
+    g.font = `700 ${size}px 'Noto Sans KR', sans-serif`;
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    let x = cx - g.measureText(txt).width / 2;
+    for (let i = 0; i < txt.length; i++) {
+      const ch = txt[i], w = g.measureText(ch).width;
+      const nx = Math.sin(T * (3.1 + i * 0.73) + i * 2.3) * wob * 6;
+      const ny = Math.cos(T * (2.4 + i * 0.51) + i * 1.1) * wob * 5;
+      if (wob > 0.28) {
+        g.globalAlpha = 0.45 * wob;
+        g.fillStyle = '#ff3b6b'; g.fillText(ch, x + nx * 1.8, y + ny);
+        g.fillStyle = '#2fd2ff'; g.fillText(ch, x - nx * 1.8, y + ny);
+        g.globalAlpha = 1;
+      }
+      g.fillStyle = col; g.fillText(ch, x + nx, y + ny);
+      x += w;
+    }
+  }
+
+  function navCard(g) {
+    const act = actOf(d);
+    const wob = lerp(ACTS[act].wob, ACTS[Math.min(act + 1, 4)].wob,
+                     act < 4 ? clamp((d - ACTS[act].at) / Math.max(0.6, ACTS[act + 1].at - ACTS[act].at), 0, 1) : 0);
+    const w = Math.min(W - 48, 560), h = 84;
+    const x = (W - w) / 2, y = 20;
+    g.save();
+    g.fillStyle = night > 0.4 ? `rgba(8,11,18,${0.62 + night * 0.2})` : 'rgba(255,255,255,.92)';
+    g.strokeStyle = night > 0.4 ? 'rgba(159,180,207,.22)' : 'rgba(20,24,30,.08)';
+    g.lineWidth = 1;
+    g.beginPath(); g.roundRect(x, y, w, h, 12); g.fill(); g.stroke();
+
+    // the turn arrow, which stops meaning anything around act 3
+    const ax = x + 44, ay = y + h / 2;
+    g.save();
+    g.translate(ax, ay);
+    g.rotate(act < 2 ? -0.5 : Math.sin(T * (1.4 + act)) * wob * 2.6);
+    g.strokeStyle = night > 0.4 ? '#8fd0ff' : '#1668e3';
+    g.lineWidth = 4.5; g.lineCap = 'round'; g.lineJoin = 'round';
+    g.beginPath(); g.moveTo(-3, 14); g.lineTo(-3, -4); g.lineTo(11, -4); g.stroke();
+    g.beginPath(); g.moveTo(5, -11); g.lineTo(12, -4); g.lineTo(5, 3); g.stroke();
+    g.restore();
+
+    shaky(g, line, x + 44 + (w - 44) / 2, y + 34, 17, wob,
+          night > 0.4 ? '#dce7f5' : '#1b1f25');
+
+    g.font = `400 11px 'Space Mono', monospace`;
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.fillStyle = night > 0.4 ? 'rgba(159,180,207,.6)' : 'rgba(58,63,70,.55)';
+    g.fillText(readout(), x + 44 + (w - 44) / 2, y + 60);
+    g.restore();
+  }
+
+  function readout() {
+    const km = d * 1.2, act = actOf(d);
+    if (act === 0) return `${km.toFixed(1)} km  ·  ${Math.max(1, Math.round(km * 3.4))}분  ·  경로 정상`;
+    if (act === 1) return `${km.toFixed(1)} km  ·  재계산 중  ·  경로 이탈`;
+    if (act === 2) return `${Math.round(km * 840).toLocaleString('en-US')} km  ·  ―  ·  도로 없음`;
+    if (act === 3) return `고도 ${Math.round(alt * 412).toLocaleString('en-US')} km  ·  ―  ·  신호 없음`;
+    return `4.24 광년  ·  계산할 수 없음  ·  안내 종료`;
+  }
+
+  function hud(g) {
+    if (PREVIEW) return;
+    g.save();
+    g.font = `400 10px 'Space Mono', monospace`;
+    g.textAlign = 'left'; g.textBaseline = 'middle';
+    g.fillStyle = night > 0.4 ? 'rgba(159,180,207,.42)' : 'rgba(58,63,70,.4)';
+    const bars = Math.max(0, 4 - Math.round(clamp(d / 1.4, 0, 4)));
+    g.fillText(`GPS ${'▮'.repeat(bars)}${'▯'.repeat(4 - bars)}   ACT ${actOf(d) + 1}/5`, 24, H - 34);
+    g.restore();
+  }
+
+  // ── the clock ──────────────────────────────────────────────────────────
+  const LINEGAP = 1.9;
+  function say(txt, kind) {
+    line = txt; lineT = 0;
+    sound.ding(kind);
+  }
+
+  function step(dt) {
+    T += dt;
+
+    // keys push, drag pushes, the ride home pushes hardest
+    if (backing > 0) {
+      const dist = Math.hypot(wx, wy);
+      if (dist < 40) { wx = 0; wy = 0; vx = 0; vy = 0; backing = 0; }
+      else {
+        const k = Math.min(1, dt * 0.9);
+        wx -= wx * k; wy -= wy * k;
+        vx = -wx * 0.9; vy = -wy * 0.9;
+      }
+    } else {
+      const acc = 820 * (1 + alt * 2.5);   // there is less to slow you down up there
+      let ax = 0, ay = 0;
+      if (keys.has('ArrowLeft') || keys.has('a')) ax -= 1;
+      if (keys.has('ArrowRight') || keys.has('d')) ax += 1;
+      if (keys.has('ArrowUp') || keys.has('w')) ay -= 1;
+      if (keys.has('ArrowDown') || keys.has('s')) ay += 1;
+      const m = Math.hypot(ax, ay) || 1;
+      vx += ax / m * acc * dt; vy += ay / m * acc * dt;
+      vx *= Math.pow(0.12, dt); vy *= Math.pow(0.12, dt);
+      wx += vx * dt; wy += vy * dt;
+    }
+
+    speed = Math.hypot(vx, vy);
+    if (speed > 30) {
+      const want = Math.atan2(vy, vx);
+      let diff = ((want - head + Math.PI * 3) % TAU) - Math.PI;
+      head += diff * Math.min(1, dt * 6);
+    }
+
+    const prevAct = actOf(d);
+    d = Math.hypot(wx, wy) / 1200;
+    alt = clamp((d - 3.0) / 3.2, 0, 1);
+    night = clamp((d - 3.2) / 2.6, 0, 1);
+    const act = actOf(d);
+
+    // the view pulls back as the ground stops being a map
+    Z0 = Math.max(W, H) / 2000 * 0.9;
+    const far = 1 + Math.max(0, d - 6.2) * 0.35;   // and it keeps getting smaller
+    gs = Z0 * Math.pow(0.0085, Math.pow(alt, 0.72)) / far;
+    const ck = ease(alt) * 0.9;
+    camx = wx * (1 - ck); camy = wy * (1 - ck);
+    gcx = W / 2;
+    gcy = H / 2 + ease(alt) * H * 0.08;
+    ox = sx(0); oy = sy(0);
+    clipR = Math.min(Math.hypot(W, H), PR * gs);
+
+    document.body.classList.toggle('space', night > 0.45);
+    bk.classList.toggle('show', night > 0.5 && backing === 0);
+    if (d > 0.15) hint.classList.add('off');
+
+    if (act !== prevAct) { lineAct = act; lineIdx = 0; forced = 0; say(ACTS[act].lines[0], act >= 4 ? 3 : act >= 1 ? 1 : 0); }
+
+    forced = Math.max(0, forced - dt);
+    lineT += dt;
+    if (forced === 0 && lineT > LINEGAP) {
+      lineIdx = (lineIdx + 1) % ACTS[act].lines.length;
+      say(ACTS[act].lines[lineIdx], act >= 4 ? 3 : act >= 2 ? 2 : act >= 1 ? 1 : 0);
+    }
+
+    sound.set(speed, alt, night);
   }
 
   function draw() {
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-    voidField(ctx);
-    voidGrid(ctx);
-    drawSheet(ctx);
-    drawNames(ctx);
-    drawDrift(ctx);
-    drawPhrase(ctx);
-    // the dark closing in from the corners, stronger the further out you are
-    const vg = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.78);
-    vg.addColorStop(0, 'rgba(6,5,4,0)');
-    vg.addColorStop(1, `rgba(6,5,4,${0.2 + out * 0.12})`);
-    ctx.fillStyle = vg; ctx.fillRect(0, 0, W, H);
+    const t1 = ease(clamp(alt / 0.45, 0, 1));
+    ctx.fillStyle = rgb(mix(mix(C_MAP, C_SKY, t1), C_SPACE, ease(night)));
+    ctx.fillRect(0, 0, W, H);
+
+    starfield(ctx);
+    ground(ctx);
+
+    const detail = 1 - ease(clamp(alt / 0.34, 0, 1));
+    const act = actOf(d);
+    if (detail > 0.01) {
+      ctx.save();
+      ctx.beginPath(); ctx.arc(ox, oy, clipR, 0, TAU); ctx.clip();
+      route(ctx, detail * (act >= 2 ? 0.35 : 1));
+      places(ctx, detail, ACTS[act].wob);
+      ctx.restore();
+    }
+
+    me(ctx);
+    if (!PREVIEW) { navCard(ctx); hud(ctx); }
+    else previewCard(ctx);
   }
 
-  // ── the readout ──
-  const el = id => document.getElementById(id);
-  const coordEl = el('coord'), placeEl = el('place'), hudEl = el('hud'),
-        sheetEl = el('sheet'), hintEl = el('hint');
-  let hudT = 0;
-
-  const dm = v => `${v | 0}°${String(Math.round((v % 1) * 60)).padStart(2, '0')}′`;
-
-  function readout() {
-    const lon = 124 + ox / SW * 8, lat = 43.5 - oy / SH * 10.5;
-    coordEl.textContent = `${dm(lon)}E ${dm(lat)}N`;
-    let best = null, bd = 1e9;
-    for (const n of NAMES) {
-      const d = Math.hypot(n.x - ox, n.y - oy);
-      if (d < bd) { bd = d; best = n; }
-    }
-    const lost = offd > 2;
-    placeEl.textContent = lost ? '—' : bd < 420 ? (best.sub || best.t) : `${best.sub || best.t} 근방`;
-    hudEl.classList.toggle('lost', lost);
-    const ri = Math.round(offd * 0.62);
-    sheetEl.innerHTML = `<b>${ri}</b>리 · ${lost ? '지면 밖' : '지면 안'}`;
-    sheetEl.classList.toggle('lost', lost);
+  // the thumbnail is the last act, held still
+  function previewCard(g) {
+    g.save();
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = `700 ${Math.round(W * 0.085)}px 'Noto Sans KR', sans-serif`;
+    g.fillStyle = '#e7eefa';
+    g.fillText('창밖을 보세요', W / 2, H * 0.30);
+    g.font = `400 ${Math.round(W * 0.034)}px 'Space Mono', monospace`;
+    g.fillStyle = 'rgba(159,180,207,.7)';
+    g.fillText('4.24 LY  ·  ETA UNKNOWN', W / 2, H * 0.43);
+    g.restore();
   }
 
-  // ── the clock ──
-  function step(dt) {
-    if (PREVIEW) return;
-    // the opening: the whole sheet is held up for a moment, then brought close
-    if (bootT > 0) { bootT -= dt; if (bootT <= 0) kTarget = KREAD; }
-    K += (kTarget - K) * (1 - Math.pow(0.58, dt));
-    ox += vx * dt; oy += vy * dt;
-    vx *= Math.pow(0.0016, dt); vy *= Math.pow(0.0016, dt);
-
-    // past LIMIT the paper pulls you back, the way a hand finds the table again
-    const d = offDist();
-    if (d > LIMIT) {
-      const ex = Math.max(-ox, ox - SW, 0), ey = Math.max(-oy, oy - SH, 0);
-      const k = (d - LIMIT) / d * (1 - Math.pow(0.02, dt));
-      ox -= Math.sign(ox < 0 ? -ex : ex) * ex * k;
-      oy -= Math.sign(oy < 0 ? -ey : ey) * ey * k;
-    }
-    offd = offDist();
-    out = clamp(offd / 1250, 0, 1);
-
-    if (out > 0.02) {
-      spawnT -= dt;
-      if (spawnT <= 0) { spawnT = 0.07 / (0.2 + out); spawn(); }
-    }
-    for (let i = drift.length - 1; i >= 0; i--) {
-      const p = drift[i];
-      p.x += p.vx * dt; p.y += p.vy * dt; p.rot += p.vr * dt;
-      p.life += dt;
-      const want = out > 0.02 ? clamp(0.3 + out, 0, 1) : 0;
-      p.a += (want - p.a) * (1 - Math.pow(want ? 0.55 : 0.05, dt));
-      if (p.life > 34 || (p.a < 0.01 && want === 0)) drift.splice(i, 1);
-    }
-
-    if (out < 0.05) said = 0;
-    if (!phr && said < PHRASES.length && out >= PHRASES[said].at) {
-      sayIt(PHRASES[said].t); sound.chime(said); said++;
-    }
-    if (phr) {
-      phr.t += dt;
-      const u = clamp(phr.t / PH_IN, 0, 1), e = 1 - Math.pow(1 - u, 3);
-      const go = clamp((phr.t - PH_IN - PH_HOLD) / PH_OUT, 0, 1);
-      for (const q of phr.g) {
-        q.x = lerp(q.fx, q.tx, e) + (q.fx - q.tx) * go * 0.5;
-        q.y = lerp(q.fy, q.ty, e) + (q.fy - q.ty) * go * 0.5;
-        q.rot = q.fr * (1 - e) + q.fr * go;
-      }
-      if (phr.t > PH_IN + PH_HOLD + PH_OUT) phr = null;
-    }
-
-    sound.set(out, Math.hypot(vx, vy) * K);
-
-    hudT -= dt;
-    if (hudT <= 0) { hudT = 0.16; readout(); }
-  }
-
-  let last = 0;
+  let last = 0, frames = 0;
   function loop(ts) {
-    const dt = Math.min(0.05, (ts - last) / 1000 || 0.016);
-    last = ts;
+    const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0.016;
+    last = ts; frames++;
     step(dt);
     draw();
     requestAnimationFrame(loop);
   }
 
-  // ── the hand ──
-  let down = false, lx = 0, ly = 0, moved = 0;
+  // ── hands ──────────────────────────────────────────────────────────────
+  const keys = new Set();
+  const snd = document.getElementById('snd');
+  const rr = document.getElementById('rr');
+  const bk = document.getElementById('bk');
+  const hint = document.getElementById('hint');
 
-  function pos(e) {
-    const t = e.touches ? e.touches[0] : e;
-    return [t.clientX, t.clientY];
-  }
-  function start(e) {
-    if (e.target.closest('.home-btn,.snd')) return;
-    sound.kick(); syncSnd();
-    down = true; moved = 0;
-    [lx, ly] = pos(e);
-    vx = vy = 0;
+  let dragging = false, px0 = 0, py0 = 0;
+
+  addEventListener('pointerdown', e => {
+    if (e.target.closest('.chip')) return;
+    dragging = true; px0 = e.clientX; py0 = e.clientY;
     document.body.classList.add('drag');
-  }
-  function move(e) {
-    if (!down) return;
-    const [x, y] = pos(e);
-    const dx = (x - lx) / K, dy = (y - ly) / K;
-    ox -= dx; oy -= dy;
-    vx = -dx * 6; vy = -dy * 6;
-    lx = x; ly = y;
-    moved += Math.abs(dx) + Math.abs(dy);
-    if (moved > 60) hintEl.classList.add('off');
-    e.preventDefault();
-  }
-  function end() { down = false; document.body.classList.remove('drag'); }
-
-  addEventListener('pointerdown', start);
-  addEventListener('pointermove', move, { passive: false });
-  addEventListener('pointerup', end);
-  addEventListener('pointercancel', end);
-
-  addEventListener('wheel', e => {
-    kTarget = clamp(kTarget * Math.exp(-e.deltaY * 0.0013), kMin, kMax);
-    bootT = 0;
-    hintEl.classList.add('off');
-    e.preventDefault();
-  }, { passive: false });
+    sound.kick(); syncSnd();
+  });
+  addEventListener('pointermove', e => {
+    if (!dragging) return;
+    const k = Math.max(gs, Z0 * 0.22);
+    const dx = (e.clientX - px0) / k, dy = (e.clientY - py0) / k;
+    px0 = e.clientX; py0 = e.clientY;
+    backing = 0;
+    wx -= dx; wy -= dy;
+    vx = -dx * 14; vy = -dy * 14;
+  });
+  addEventListener('pointerup', () => { dragging = false; document.body.classList.remove('drag'); });
+  addEventListener('pointercancel', () => { dragging = false; document.body.classList.remove('drag'); });
 
   addEventListener('keydown', e => {
-    if (e.key === '=' || e.key === '+' || e.key === '-' || e.key === '_') {
-      kTarget = clamp(kTarget * (e.key === '-' || e.key === '_' ? 0.8 : 1.25), kMin, kMax);
-      bootT = 0; hintEl.classList.add('off'); e.preventDefault(); return;
+    if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(e.key)) e.preventDefault();
+    keys.add(e.key); backing = 0;
+    sound.kick(); syncSnd();
+  });
+  addEventListener('keyup', e => keys.delete(e.key));
+
+  function syncSnd() { snd.textContent = 'SOUND: ' + (sound.live() ? 'ON' : 'OFF'); }
+  snd.addEventListener('click', () => { sound.toggle(); syncSnd(); });
+
+  // Pressing it is the whole interaction. Early on it refuses to help,
+  // later it quietly pushes you further out — which is how you get there.
+  rr.addEventListener('click', () => {
+    sound.kick(); syncSnd();
+    const act = actOf(d);
+    const pool = RR[act];
+    const txt = pool[rrCount[act] % pool.length];
+    rrCount[act]++;
+    line = txt; lineT = 0; forced = 2.8;
+    sound.ding(act >= 3 ? 3 : act >= 2 ? 2 : 1);
+    if (act >= 1) {
+      const a = hsh(rrCount[act], act, 23) * TAU;
+      const push = 220 + act * 260;
+      const cur = Math.hypot(wx, wy) || 1;
+      wx += wx / cur * push + Math.cos(a) * push * 0.5;
+      wy += wy / cur * push + Math.sin(a) * push * 0.5;
+      backing = 0;
     }
-    const s = e.shiftKey ? 900 : 320;
-    if (e.key === 'ArrowLeft') vx = -s; else if (e.key === 'ArrowRight') vx = s;
-    else if (e.key === 'ArrowUp') vy = -s; else if (e.key === 'ArrowDown') vy = s;
-    else return;
-    hintEl.classList.add('off');
-    e.preventDefault();
   });
 
-  const sndBtn = el('snd');
-  const syncSnd = () => {
-    const on = sound.live();
-    sndBtn.classList.toggle('on', on);
-    sndBtn.textContent = on ? 'SOUND: ON' : 'SOUND: OFF';
-  };
-  sndBtn.addEventListener('click', () => {
-    sound.toggle();
-    syncSnd();
+  bk.addEventListener('click', () => {
+    sound.kick(); syncSnd();
+    backing = 1;
+    line = '지구로 돌아갑니다'; lineT = 0; forced = 3.2;
+    sound.ding(0);
   });
 
   function resize() {
+    DPR = Math.min(devicePixelRatio || 1, 2);
     W = innerWidth; H = innerHeight;
-    cv.width = W * DPR; cv.height = H * DPR;
-    cv.style.width = W + 'px'; cv.style.height = H + 'px';
-    // Two scales. KREAD overflows the window, so a name is legible and the
-    // edge is one short drag away rather than already on screen; KFIT puts the
-    // whole sheet on the table with dark around it. A resize keeps whatever
-    // the reader was holding, in proportion.
-    const prev = KREAD;
-    KREAD = Math.max(W / SW, H / SH) * 1.22;
-    KFIT = Math.min(W / (SW + PAD * 2 + 150), H / (SH + PAD * 2 + 150));
-    kMin = KFIT * 0.4; kMax = KREAD * 1.9;
-    const r = KREAD / prev;
-    K = clamp(K * r, kMin, kMax);
-    kTarget = clamp(kTarget * r, kMin, kMax);
-    PS = Math.round(clamp(Math.min(W, H) * 0.062, 15, 54));
-    const q = clamp(Math.min(W, H) / 760, 0.4, 1);
-    DS = [18, 25, 32, 39, 46].map(v => Math.round(v * q));
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   }
   addEventListener('resize', resize);
 
-  // ── boot ──
-  (async () => {
-    resize();
-    K = kTarget = KFIT;
-    bootT = 1.9;
-    try {
-      await Promise.all([
-        document.fonts.load('800 62px "Nanum Myeongjo"', '地圖밖한양백두산여기용있다'),
-        document.fonts.load('400 20px "Nanum Myeongjo"', '지도밖물끝이름없음'),
-        document.fonts.load('700 15px "Space Mono"', 'ONE SHEET 0123'),
-      ]);
-      await document.fonts.ready;
-    } catch (err) { /* fallback faces are acceptable; a blocked font is not */ }
-    await loadTex();
-    bake();
+  resize();
+  world();
+  if (PREVIEW) {
+    wx = 0; wy = -9200; d = 7.66; alt = 1; night = 1;
+    line = ACTS[4].lines[3]; lineAct = 4; lineIdx = 3;
+    document.body.classList.add('space');
+  }
+  sound.kick();
+  syncSnd();
+  requestAnimationFrame(loop);
 
-    if (PREVIEW) {
-      // one frozen moment: the paper's edge at the right, the dark already
-      // talking. Nothing moves, so the thumbnail is the same every time.
-      ox = -300; oy = 1520;
-      K = kTarget = KREAD * 1.45;
-      offd = offDist(); out = clamp(offd / 1250, 0, 1);
-      for (let i = 0; i < 52; i++) {
-        spawn();
-        const p = drift[drift.length - 1];
-        if (p) { p.a = 0.5 + hsh(i, 5, 9) * 0.5; }
-      }
-      sayIt('여기 용이 있다');
-      phr.t = PH_IN + 1;
-      for (const q of phr.g) { q.x = q.tx; q.y = q.ty; q.rot = 0; }
-    } else {
-      readout();
-      sound.kick(); syncSnd();
-      setTimeout(() => { sound.kick(); syncSnd(); }, 400);
-    }
-    requestAnimationFrame(loop);
-  })();
+  window.__st = () => ({
+    d, alt, night, act: actOf(d), speed, line, frames,
+    space: document.body.classList.contains('space'),
+    back: bk.classList.contains('show'),
+    live: sound.live(),
+  });
+})();
 </script>
 </body>
 </html>
