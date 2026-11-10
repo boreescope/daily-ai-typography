@@ -157,7 +157,7 @@ function grain(g, w, h, amt) {
   const d = im.data;
   for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
     const i = (y * gw + x) * 4;
-    d[i] = 150; d[i + 1] = 200; d[i + 2] = 110;
+    d[i] = 120; d[i + 1] = 190; d[i + 2] = 212;
     d[i + 3] = Math.random() * amt;
   }
   gg.putImageData(im, 0, 0);
@@ -390,14 +390,82 @@ function bakeBed() {
   starField(g, hz);
   floorGrid(g);
   wireCity(g);
+  streaks(g);
+  edgeBleed(g);
+  dust(g);
 
-  grain(g, W, H, 13);
+  grain(g, W, H, 16);
 
   const vg = g.createRadialGradient(W / 2, H * 0.5, S * 0.1, W / 2, H * 0.5, S * 1.05);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(1, 'rgba(0,0,0,.6)');
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
+  blotch(g);
+}
+
+// 세로로 흐른 자국 — 오래 켜 둔 화면에 남는 것
+function streaks(g) {
+  const r = seeded(0x51ea9);
+  for (let i = 0; i < 30; i++) {
+    const x = r() * W;
+    const w = S * (0.004 + Math.pow(r(), 2.2) * 0.055);
+    const up = r() > 0.42;
+    const al = 0.025 + Math.pow(r(), 1.9) * 0.1;
+    const col = up ? C2 : '4,10,13';
+    const lg = g.createLinearGradient(x - w, 0, x + w, 0);
+    lg.addColorStop(0, `rgba(${col},0)`);
+    lg.addColorStop(.5, `rgba(${col},${al.toFixed(3)})`);
+    lg.addColorStop(1, `rgba(${col},0)`);
+    g.fillStyle = lg;
+    const y0 = r() * H * 0.3, y1 = H - r() * H * 0.2;
+    g.fillRect(x - w, y0, w * 2, y1 - y0);
+  }
+}
+
+// 가장자리로 새는 색 — 오른쪽은 호박, 위는 청록
+function edgeBleed(g) {
+  const rg = g.createLinearGradient(W, 0, W - S * 0.55, 0);
+  rg.addColorStop(0, `rgba(${AMB},.085)`);
+  rg.addColorStop(1, `rgba(${AMB},0)`);
+  g.fillStyle = rg;
+  g.fillRect(W - S * 0.55, 0, S * 0.55, H);
+  const tg = g.createLinearGradient(0, 0, 0, S * 0.34);
+  tg.addColorStop(0, `rgba(${C1},.075)`);
+  tg.addColorStop(1, `rgba(${C1},0)`);
+  g.fillStyle = tg;
+  g.fillRect(0, 0, W, S * 0.34);
+}
+
+// 먼지와 긴 흠집
+function dust(g) {
+  const r = seeded(0xd0571);
+  for (let i = 0; i < 260; i++) {
+    const x = r() * W, y = r() * H;
+    const d = Math.max(1, S * (0.0005 + Math.pow(r(), 3.4) * 0.0045));
+    g.fillStyle = `rgba(${r() > 0.78 ? AMB : C1},${(0.04 + r() * 0.22).toFixed(3)})`;
+    g.fillRect(x, y, d, d);
+  }
+  g.lineWidth = 1;
+  g.strokeStyle = `rgba(${C1},.1)`;
+  g.beginPath(); g.moveTo(W * 0.16, -H * 0.06); g.lineTo(W * 0.94, H * 0.8); g.stroke();
+  g.strokeStyle = `rgba(${C1},.05)`;
+  g.beginPath(); g.moveTo(W * 0.58, -H * 0.03); g.lineTo(W * 1.04, H * 0.5); g.stroke();
+  g.strokeStyle = `rgba(${AMB},.05)`;
+  g.beginPath(); g.moveTo(-W * 0.02, H * 0.42); g.lineTo(W * 0.46, H * 1.04); g.stroke();
+}
+
+// 고르지 않은 얼룩 — 깨끗한 둥근 그늘만 있으면 새것처럼 보인다
+function blotch(g) {
+  const r = seeded(0xb107c);
+  for (let i = 0; i < 7; i++) {
+    const x = r() * W, y = r() * H, rad = S * (0.18 + r() * 0.42);
+    const bg = g.createRadialGradient(x, y, 0, x, y, rad);
+    bg.addColorStop(0, `rgba(0,0,0,${(0.08 + r() * 0.16).toFixed(3)})`);
+    bg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = bg;
+    g.fillRect(x - rad, y - rad, rad * 2, rad * 2);
+  }
 }
 
 // ── sound ──────────────────────────────────────────────────────────────────
@@ -1157,6 +1225,83 @@ function draw() {
   drawMe(ctx);
   drawCurve(ctx);
   drawRails(ctx);
+  bloom(ctx);
+  screenLines(ctx);
+}
+
+// ── 번짐 ───────────────────────────────────────────────────────────────────
+// 밝은 데서 빛이 새 나오는 건 렌즈가 하는 일이다. 그래서 다 그린 다음에 한다.
+// 작게 줄여서 흐리고, 다시 키워서 더한다. 옆으로 민 복사본 둘이 색을 번지게 한다.
+let fx = null;
+function makeFx() {
+  fx = document.createElement('canvas');
+  fx.width = Math.max(2, Math.round(cv.width * 0.24));
+  fx.height = Math.max(2, Math.round(cv.height * 0.24));
+}
+function bloom(g) {
+  if (!fx || fx.width !== Math.max(2, Math.round(cv.width * 0.24))) makeFx();
+  const a = fx.getContext('2d');
+  a.setTransform(1, 0, 0, 1, 0, 0);
+  a.globalCompositeOperation = 'source-over';
+  a.filter = 'none';
+  a.clearRect(0, 0, fx.width, fx.height);
+  a.filter = 'blur(2.6px)';
+  a.drawImage(cv, 0, 0, fx.width, fx.height);
+  a.filter = 'none';
+
+  const d = Math.max(1, cv.width * 0.0022);
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.globalCompositeOperation = 'lighter';
+  g.imageSmoothingEnabled = true;
+  g.globalAlpha = 0.4;
+  g.drawImage(fx, 0, 0, cv.width, cv.height);
+  g.globalAlpha = 0.14;
+  g.drawImage(fx, d, 0, cv.width, cv.height);
+  g.drawImage(fx, -d, d * 0.6, cv.width, cv.height);
+
+  // 번지면 검정이 들린다. 다시 눌러야 깊이가 남는다.
+  g.globalCompositeOperation = 'source-over';
+  g.globalAlpha = 1;
+  const cx = cv.width / 2, cy = cv.height * 0.5, rr = Math.min(cv.width, cv.height);
+  const vg = g.createRadialGradient(cx, cy, rr * 0.12, cx, cy, rr * 1.0);
+  vg.addColorStop(0, 'rgba(2,6,8,0)');
+  vg.addColorStop(.55, 'rgba(2,6,8,.2)');
+  vg.addColorStop(1, 'rgba(2,6,8,.72)');
+  g.fillStyle = vg;
+  g.fillRect(0, 0, cv.width, cv.height);
+  g.restore();
+}
+
+// 화면 전체에 가로줄 — 폰 안에만 있으면 폰만 화면인 게 된다
+let slPat = null;
+function makeScanPat() {
+  const h = Math.max(2, Math.round(DPR * 3));
+  const c = document.createElement('canvas');
+  c.width = 1; c.height = h;
+  const q = c.getContext('2d');
+  q.fillStyle = 'rgba(0,0,0,.2)';
+  q.fillRect(0, 0, 1, Math.max(1, Math.round(h * 0.42)));
+  slPat = ctx.createPattern(c, 'repeat');
+}
+function screenLines(g) {
+  if (!slPat) makeScanPat();
+  g.save();
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.fillStyle = slPat;
+  g.fillRect(0, 0, cv.width, cv.height);
+
+  // 천천히 내려오는 띠 하나
+  const by = ((t * 0.045) % 1) * (cv.height * 1.3) - cv.height * 0.15;
+  const bh = cv.height * 0.22;
+  const bg = g.createLinearGradient(0, by - bh, 0, by + bh);
+  bg.addColorStop(0, `rgba(${C1},0)`);
+  bg.addColorStop(.5, `rgba(${C1},.028)`);
+  bg.addColorStop(1, `rgba(${C1},0)`);
+  g.globalCompositeOperation = 'lighter';
+  g.fillStyle = bg;
+  g.fillRect(0, by - bh, cv.width, bh * 2);
+  g.restore();
 }
 
 // ── step ───────────────────────────────────────────────────────────────────
@@ -1187,6 +1332,7 @@ function step(dt) {
   }
 
   // 자야 하는 시각이 지나면, 끄는 법을 알려준다
+  if (plug && !hint2) hintEl.classList.add('off');
   if (!hint2 && plug && !slept && chg >= 0.999) {
     hint2 = true;
     hintEl.textContent = '// TAP THE SCREEN TO TURN IT OFF';
@@ -1271,6 +1417,7 @@ sndEl.addEventListener('click', () => {
 function resize() {
   W = window.innerWidth; H = window.innerHeight; S = Math.min(W, H);
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  fx = null; slPat = null;
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
 
   // 아이폰 실측 비율 — 71.6 x 147.6 mm, 모서리 반지름 13.5 mm, 베젤 2.6 mm
