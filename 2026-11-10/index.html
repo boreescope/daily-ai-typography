@@ -3,15 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>충전 중 — STILL CHARGING</title>
+<title>나 — 944,603</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@500;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #06070a; }
-  body { font-family: 'Space Mono', monospace; cursor: default; }
-  body.grab { cursor: grabbing; }
+  body { font-family: 'Space Mono', monospace; cursor: pointer; }
   canvas { display: block; }
 
   .home-btn {
@@ -33,10 +32,10 @@
   .snd:hover { color: #cfe4f7; border-color: rgba(207,228,247,.5); }
 
   .hint {
-    position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20;
+    position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); z-index: 20;
     font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
-    color: rgba(127,154,180,.6); white-space: nowrap; pointer-events: none;
-    transition: opacity 1.4s ease;
+    color: rgba(127,154,180,.55); white-space: nowrap; pointer-events: none;
+    transition: opacity 1.2s ease;
   }
   .hint.off { opacity: 0; }
 
@@ -47,7 +46,7 @@
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
 <div class="snd" id="snd">SOUND: ON</div>
-<div class="hint" id="hint">DRAG THE CABLE INTO THE PORT · 케이블을 꽂아보세요</div>
+<div class="hint" id="hint">WATCH · 지켜보세요</div>
 
 <script>
 const cv = document.getElementById('cv');
@@ -56,532 +55,442 @@ const PREVIEW = new URLSearchParams(location.search).has('preview');
 if (PREVIEW) document.body.classList.add('preview');
 
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
-const TAU = Math.PI * 2;
 const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t * t * (3 - 2 * t);
 
-// integer hash, for the cloth grain and the weave of the sheet
-const hsh = (a, b, k) => {
-  let h = Math.imul(a + 0x9e37, 0x85eb) ^ Math.imul(b + 0x27d4, 0xc2b2) ^ Math.imul(k + 0x165e, 0x27d4);
+const hsh = (a, k) => {
+  let h = Math.imul(a + 0x9e37, 0x85eb) ^ Math.imul(k + 0x165e, 0xc2b2);
   h = Math.imul(h ^ (h >>> 15), 0x2545);
   return ((h ^ (h >>> 13)) >>> 0) / 4294967296;
 };
 
-let W = 0, H = 0, S = 0;        // S = min side, the one unit everything scales by
+// ── 출처 ───────────────────────────────────────────────────────────────────
+// 국민건강보험공단, 2025년 수면장애(주상병) 진료 현황
+//   진료인원 944,603명 · 진료비 1,774억 원 (1인당 약 19만 원)
+//   여성 59% · 남성 41%
+//   연령대 60대 25% · 70대 이상 20% · 50대 18% → 50대 이상이 63%
+// 지역별 수치는 data.go.kr 15124322 CSV로 따로 붙일 수 있다 (아직 없음).
+// 심평원 급여 기준(130만 명대)과는 집계 기준이 달라 섞어 쓰지 않는다.
+const TOTAL = 944603;
 
-// ── the phone ──────────────────────────────────────────────────────────────
-// It lies a little crooked, the way a phone does when it is put down by
-// someone already half asleep.
-const ROT = -0.054;
-const CS = Math.cos(ROT), SN = Math.sin(ROT);
-const PH = { x: 0, y: 0, w: 0, h: 0, r: 0 };
-const SCR = { w: 0, h: 0 };
-const toW = (px, py) => [PH.x + px * CS - py * SN, PH.y + px * SN + py * CS];
-
-// ── state ──────────────────────────────────────────────────────────────────
-let chg = 0.08;          // the phone
-let me = 0.33;           // the other battery, the one with no port
-let bri = 0.42;          // screen brightness
-let plug = false, dragging = false;
-let idle = 0, slept = false;
-let done = 0;          // 0 until the phone has nothing left to fill
-let t = 0;
-
-const tip = { x: 0, y: 0, vx: 0, vy: 0 };
-const rest = { x: 0, y: 0 };
-
-// ── the lines that turn up in the dark while it fills ──────────────────────
-const THOUGHTS = [
-  { at: .14, t: '자야 하는데',     x: -.30, y: -.30, s: .030, a: 0 },
-  { at: .38, t: '5퍼센트만 더',    x:  .29, y: -.13, s: .026, a: 0 },
-  { at: .58, t: '아까 그 말',      x: -.28, y:  .11, s: .029, a: 0 },
-  { at: .79, t: '내일 몇 시였지',  x:  .27, y:  .27, s: .024, a: 0 },
-  { at: .99, t: '다 찼는데',       x: -.26, y:  .33, s: .033, a: 0 },
+// 아래에서부터 쌓인다. 나이가 많은 칸이 바닥이다.
+const BANDS = [
+  { label: '70대 이상', pct: 20, col: [226, 198, 164] },
+  { label: '60대',      pct: 25, col: [212, 194, 180] },
+  { label: '50대',      pct: 18, col: [186, 198, 216] },
+  { label: '40대 이하',  pct: 37, col: [156, 198, 240] },
 ];
+let CUM = [];   // 각 칸이 끝나는 누적 인원
 
-// ── the sheet, baked once ──────────────────────────────────────────────────
-let bed = null;
+const DUR = 38;          // 1명에서 944,603명까지 걸리는 시간(초)
+const GLYPH_MAX = 800;   // 여기까지는 글자로 보인다. 그 다음부터는 점이다.
+const LOGT = Math.log(TOTAL);
 
-function grain(g, w, h, amt) {
-  const q = 3, gw = Math.ceil(w / q), gh = Math.ceil(h / q);
-  const c = document.createElement('canvas');
-  c.width = gw; c.height = gh;
-  const gg = c.getContext('2d');
-  const im = gg.createImageData(gw, gh);
-  const d = im.data;
-  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
-    const i = (y * gw + x) * 4;
-    d[i] = 150; d[i + 1] = 170; d[i + 2] = 200;
-    d[i + 3] = Math.random() * amt;
-  }
-  gg.putImageData(im, 0, 0);
-  g.imageSmoothingEnabled = true;
-  g.drawImage(c, 0, 0, w, h);
+let W = 0, H = 0, S = 0;
+let t = 0, n = 1;        // n — 이 작품을 움직이는 하나의 변수
+let shown = 0;           // 점으로 이미 찍어둔 수
+let mix = 0;             // 0 글자 → 1 점
+let endT = -1;           // 다 찬 뒤로 흐른 시간
+let gcell = 0;           // 글자 칸 크기 (부드럽게 따라간다)
+let last = 0;
+
+// 점이 찍히는 판. 한 번 찍은 점은 지우지 않고 그 위에 더한다.
+const fieldCv = document.createElement('canvas');
+const fctx = fieldCv.getContext('2d');
+const bgCv = document.createElement('canvas');
+const bgx = bgCv.getContext('2d');
+
+let FX = 0, FYB = 0, FW = 0, FH = 0, CW = 1, CH = 1, COLS = 0, ROWS = 0;
+let DRAWN = 0;           // 실제로 화면에 찍을 수 있는 최대 인원
+let MEI = 0;             // 「나」가 들어간 자리
+
+// 글자 영역 (CSS 픽셀)
+let fx = 0, fy = 0, fw = 0, fh = 0;
+
+const countAt = tt => {
+  const p = clamp(tt / DUR, 0, 1);
+  return Math.min(TOTAL, Math.max(1, Math.round(Math.exp(LOGT * p))));
+};
+// i번째 사람이 나타나는 시각 — 글자 하나하나가 따로 떠오르게 하려고 쓴다
+const timeOf = i => DUR * Math.log(Math.max(1, i)) / LOGT;
+
+// 한 사람이 차지하는 네모. 칸이 1픽셀 안팎이라 가장자리를 반올림해서 딱 맞춘다.
+function dotRect(i) {
+  const row = (i / COLS) | 0, col = i - row * COLS;
+  return [FX + Math.round(col * CW), FYB - Math.round((row + 1) * CH), 1, 1];
+}
+const rowY = row => FYB - Math.round(Math.min(row, ROWS) * CH);
+function bandOf(i) {
+  for (let b = 0; b < CUM.length; b++) if (i < CUM[b]) return b;
+  return CUM.length - 1;
 }
 
-function bakeBed() {
-  bed = document.createElement('canvas');
-  bed.width = Math.round(W * DPR);
-  bed.height = Math.round(H * DPR);
-  const g = bed.getContext('2d');
-  g.scale(DPR, DPR);
+// ── 판 짜기 ────────────────────────────────────────────────────────────────
+function resize() {
+  W = window.innerWidth; H = window.innerHeight; S = Math.min(W, H);
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-  g.fillStyle = '#080a0e';
-  g.fillRect(0, 0, W, H);
+  const m = Math.max(14, W * 0.04);
+  const top = PREVIEW ? Math.max(72, H * 0.19) : Math.max(96, H * 0.165);
+  const bot = Math.max(52, H * 0.082);
+  fx = m; fy = top; fw = W - m * 2; fh = H - top - bot;
 
-  // soft folds. Cloth read as cloth only once the light had somewhere to pool,
-  // so these are big and very low contrast rather than many and sharp.
-  for (let i = 0; i < 26; i++) {
-    const r = (0.16 + hsh(i, 1, 3) * 0.5) * S;
-    const x = hsh(i, 2, 5) * W, y = hsh(i, 3, 9) * H;
-    const up = hsh(i, 4, 11) > 0.45;
-    const gd = g.createRadialGradient(x, y, 0, x, y, r);
-    gd.addColorStop(0, up ? 'rgba(42,54,72,.3)' : 'rgba(2,3,5,.42)');
-    gd.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gd;
-    g.fillRect(x - r, y - r, r * 2, r * 2);
-  }
+  FX = Math.round(fx * DPR); FW = Math.round(fw * DPR); FH = Math.round(fh * DPR);
+  FYB = Math.round((fy + fh) * DPR);
+  // 94만 명이 화면에 꼭 맞게 칸을 나눈다. 모자라면 1픽셀에 한 명씩 깔고 거기서 멈춘다.
+  COLS = Math.max(1, Math.min(FW, Math.round(Math.sqrt(TOTAL * FW / FH))));
+  ROWS = Math.ceil(TOTAL / COLS);
+  if (ROWS > FH) { COLS = FW; ROWS = FH; }
+  CW = FW / COLS; CH = FH / ROWS;
+  DRAWN = Math.min(TOTAL, COLS * ROWS);
 
-  // creases, running the long way across the bed
-  g.lineCap = 'round';
-  for (let i = 0; i < 7; i++) {
-    const y0 = (0.08 + i * 0.14 + hsh(i, 5, 13) * 0.05) * H;
-    g.beginPath();
-    g.moveTo(-40, y0);
-    for (let x = -40; x <= W + 40; x += 70) {
-      g.lineTo(x, y0 + Math.sin(x / (160 + i * 40) + i) * S * 0.035 + (hsh(i, x | 0, 17) - 0.5) * 8);
-    }
-    g.strokeStyle = `rgba(56,70,92,${0.07 + hsh(i, 6, 19) * 0.05})`;
-    g.lineWidth = 2 + hsh(i, 7, 23) * 5;
-    g.stroke();
-    g.strokeStyle = 'rgba(0,0,0,.14)';
-    g.lineWidth = 1.2;
-    g.stroke();
-  }
+  CUM = []; let c = 0;
+  for (const b of BANDS) { c += Math.round(TOTAL * b.pct / 100); CUM.push(c); }
+  CUM[CUM.length - 1] = TOTAL;
 
-  grain(g, W, H, 26);
+  // 「나」는 40대 이하 칸 안에 있다. 화면이 모자라면 찍을 수 있는 맨 끝으로.
+  const s3 = CUM[CUM.length - 2];
+  MEI = Math.min(Math.round(s3 + (TOTAL - s3) * 0.42), DRAWN - 1);
+  // 줄(=쌓인 높이)은 그대로 두고 가로 자리만 가운데쯤으로 옮긴다 — 가장자리에 붙지 않게
+  MEI = Math.min(((MEI / COLS) | 0) * COLS + Math.round(COLS * 0.44), DRAWN - 1);
+  if (MEI < 0) MEI = 0;
 
-  // the room is darker at the corners than it is by the pillow
-  const vg = g.createRadialGradient(W / 2, H * 0.52, S * 0.1, W / 2, H * 0.52, S * 0.95);
-  vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,.72)');
-  g.fillStyle = vg;
-  g.fillRect(0, 0, W, H);
+  fieldCv.width = cv.width; fieldCv.height = cv.height;
+  bakeBg();
+  shown = 0; stampTo(Math.min(n, DRAWN));
 }
 
-// ── sound ──────────────────────────────────────────────────────────────────
-// A room at three in the morning: mains hum, and the thin coil whine a cheap
-// charger makes, which gets quieter the fuller the battery gets.
-const sound = (() => {
-  let ac = null, on = true, master, humg, coilg, coilo, coilo2, noiseg;
+function bakeBg() {
+  bgCv.width = cv.width; bgCv.height = cv.height;
+  bgx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  const g = bgx.createRadialGradient(W * 0.5, H * 0.42, 0, W * 0.5, H * 0.42, S * 1.15);
+  g.addColorStop(0, '#0b0e14'); g.addColorStop(1, '#05060a');
+  bgx.fillStyle = g; bgx.fillRect(0, 0, W, H);
 
-  function build() {
-    ac = new (window.AudioContext || window.webkitAudioContext)();
-    master = ac.createGain();
-    master.gain.value = 0.9;
-    const comp = ac.createDynamicsCompressor();
-    master.connect(comp).connect(ac.destination);
-
-    humg = ac.createGain(); humg.gain.value = 0.045;
-    const hlp = ac.createBiquadFilter();
-    hlp.type = 'lowpass'; hlp.frequency.value = 210;
-    humg.connect(hlp).connect(master);
-    for (const f of [52, 78.4, 104]) {
-      const o = ac.createOscillator();
-      o.type = 'triangle'; o.frequency.value = f;
-      const g = ac.createGain(); g.gain.value = f === 52 ? 1 : 0.4;
-      o.connect(g).connect(humg); o.start();
-    }
-
-    // brown noise, the air in a closed room
-    const len = ac.sampleRate * 2;
-    const buf = ac.createBuffer(1, len, ac.sampleRate);
-    const d = buf.getChannelData(0);
-    let last = 0;
-    for (let i = 0; i < len; i++) {
-      last = (last + (Math.random() * 2 - 1) * 0.02) / 1.02;
-      d[i] = last * 3.2;
-    }
-    const src = ac.createBufferSource();
-    src.buffer = buf; src.loop = true;
-    const nlp = ac.createBiquadFilter();
-    nlp.type = 'lowpass'; nlp.frequency.value = 340;
-    noiseg = ac.createGain(); noiseg.gain.value = 0.05;
-    src.connect(nlp).connect(noiseg).connect(master);
-    src.start();
-
-    coilg = ac.createGain(); coilg.gain.value = 0;
-    const cf = ac.createBiquadFilter();
-    cf.type = 'bandpass'; cf.frequency.value = 2400; cf.Q.value = 6;
-    coilg.connect(cf).connect(master);
-    coilo = ac.createOscillator(); coilo.type = 'sine'; coilo.frequency.value = 2380;
-    coilo2 = ac.createOscillator(); coilo2.type = 'sine'; coilo2.frequency.value = 2397;
-    const cg2 = ac.createGain(); cg2.gain.value = 0.5;
-    coilo.connect(coilg); coilo2.connect(cg2).connect(coilg);
-    coilo.start(); coilo2.start();
-  }
-
-  function ping(up) {
-    if (!ac || !on) return;
-    const n = ac.currentTime;
-    const parts = up ? [[784, .16], [1176, .09]] : [[196, .2], [128, .12]];
-    for (const [f, v] of parts) {
-      const o = ac.createOscillator();
-      o.type = up ? 'sine' : 'triangle';
-      o.frequency.setValueAtTime(f, n);
-      if (!up) o.frequency.exponentialRampToValueAtTime(f * 0.6, n + 0.18);
-      const g = ac.createGain();
-      g.gain.setValueAtTime(0, n);
-      g.gain.linearRampToValueAtTime(v, n + 0.008);
-      g.gain.exponentialRampToValueAtTime(0.0001, n + (up ? 0.5 : 0.24));
-      o.connect(g).connect(master);
-      o.start(n); o.stop(n + 0.6);
+  // 어두운 방의 입자. 아주 옅게만.
+  const step = 3;
+  for (let y = 0; y < H; y += step) {
+    for (let x = 0; x < W; x += step) {
+      const v = hsh(x * 7919 + y, 11);
+      if (v > 0.986) {
+        bgx.fillStyle = 'rgba(150,176,206,' + ((v - 0.986) * 7).toFixed(3) + ')';
+        bgx.fillRect(x, y, 1, 1);
+      }
     }
   }
-
-  return {
-    live: () => !!ac && on && ac.state === 'running',
-    toggle() {
-      if (!ac) { build(); on = true; return true; }
-      on = !on;
-      master.gain.setTargetAtTime(on ? 0.9 : 0, ac.currentTime, 0.1);
-      if (on) ac.resume();
-      return on;
-    },
-    kick() { if (!ac) build(); else if (ac.state === 'suspended') ac.resume(); },
-    ping,
-    set(charging, level, bright) {
-      if (!ac || !on) return;
-      const n = ac.currentTime;
-      // the whine thins out as the cell fills — that is how you hear it finish
-      coilg.gain.setTargetAtTime(charging ? 0.014 * (0.25 + 0.75 * (1 - level)) : 0, n, 0.25);
-      coilo.frequency.setTargetAtTime(2290 + level * 260 + Math.sin(t * 2.3) * 14, n, 0.3);
-      humg.gain.setTargetAtTime(0.04 + bright * 0.016, n, 0.4);
-    },
-  };
-})();
-// ── drawing ────────────────────────────────────────────────────────────────
-function rrect(g, x, y, w, h, r) {
-  g.beginPath();
-  g.moveTo(x + r, y);
-  g.arcTo(x + w, y, x + w, y + h, r);
-  g.arcTo(x + w, y + h, x, y + h, r);
-  g.arcTo(x, y + h, x, y, r);
-  g.arcTo(x, y, x + w, y, r);
-  g.closePath();
 }
 
-function drawGlow(g) {
-  const r = S * (0.40 + bri * 0.32);
-  const gd = g.createRadialGradient(PH.x, PH.y, 0, PH.x, PH.y, r);
-  gd.addColorStop(0, `rgba(86,142,200,${bri * 0.26})`);
-  gd.addColorStop(.42, `rgba(62,104,154,${bri * 0.1})`);
-  gd.addColorStop(1, 'rgba(0,0,0,0)');
-  g.globalCompositeOperation = 'lighter';
-  g.fillStyle = gd;
-  g.fillRect(PH.x - r, PH.y - r, r * 2, r * 2);
-  g.globalCompositeOperation = 'source-over';
-}
-
-function portPos() { return toW(0, PH.h / 2 + S * 0.006); }
-
-function drawCable(g) {
-  const ax = W + S * 0.08, ay = H + S * 0.1;
-  const d = Math.hypot(tip.x - ax, tip.y - ay);
-  // the shorter the run, the more cable there is to pool on the sheet
-  const sag = clamp((S * 1.3 - d) * 0.42, 0, S * 0.3);
-  const mx = (ax + tip.x) / 2, my = (ay + tip.y) / 2 + sag;
-
-  g.lineCap = 'round'; g.lineJoin = 'round';
-  g.beginPath();
-  g.moveTo(ax, ay);
-  g.quadraticCurveTo(mx, my, tip.x, tip.y);
-  g.strokeStyle = '#040508'; g.lineWidth = S * 0.0205; g.stroke();
-  g.strokeStyle = '#191e27'; g.lineWidth = S * 0.0145; g.stroke();
-  g.strokeStyle = `rgba(146,178,210,${0.08 + bri * 0.07})`;
-  g.lineWidth = S * 0.0035; g.stroke();
-
-  const ang = Math.atan2(tip.y - my, tip.x - mx);
-  g.save();
-  g.translate(tip.x, tip.y);
-  g.rotate(ang);
-  const L = S * 0.062, D = S * 0.031;
-  rrect(g, -L, -D / 2, L, D, D * 0.28);
-  g.fillStyle = '#20252e'; g.fill();
-  g.strokeStyle = 'rgba(150,180,212,.16)'; g.lineWidth = 1; g.stroke();
-  rrect(g, -D * 0.1, -D * 0.25, L * 0.52, D * 0.5, D * 0.14);
-  const mg = g.createLinearGradient(0, -D * 0.25, 0, D * 0.25);
-  mg.addColorStop(0, '#b6c4d2'); mg.addColorStop(.5, '#7a8795'); mg.addColorStop(1, '#49535e');
-  g.fillStyle = mg; g.fill();
-  if (!plug) {
-    g.fillStyle = `rgba(150,180,212,${0.1 + 0.1 * Math.sin(t * 2.4)})`;
-    g.fillRect(-L * 0.78, -D * 0.1, L * 0.22, D * 0.2);
+// ── 점 찍기 ────────────────────────────────────────────────────────────────
+// 새로 생긴 사람만 더 찍는다. 이미 찍힌 점은 건드리지 않는다.
+function stampTo(target) {
+  target = Math.min(target, DRAWN);
+  if (target <= shown) return;
+  const bk = [0.70, 0.92, 1.0];
+  let i = shown;
+  while (i < target) {
+    const b = bandOf(i);
+    const end = Math.min(target, CUM[b]);
+    const [r, gg, bb] = BANDS[b].col;
+    for (let k = 0; k < 3; k++) {
+      fctx.fillStyle = 'rgba(' + r + ',' + gg + ',' + bb + ',' + bk[k] + ')';
+      for (let j = i; j < end; j++) {
+        if ((Math.imul(j + 0x9e37, 0x85eb) >>> 13) % 3 !== k) continue;
+        const row = (j / COLS) | 0;
+        fctx.fillRect(FX + Math.round((j - row * COLS) * CW),
+          FYB - Math.round((row + 1) * CH), 1, 1);
+      }
+    }
+    i = end;
   }
-  g.restore();
+  shown = target;
 }
 
-const two = n => String(n | 0).padStart(2, '0');
-
-// drawn rather than typed: the emoji bolt comes back in colour on most systems
-function bolt(g, x, y, h, a) {
-  g.save();
-  g.translate(x, y);
-  g.beginPath();
-  g.moveTo(h * 0.14, -h * 0.5);
-  g.lineTo(-h * 0.22, h * 0.06);
-  g.lineTo(-h * 0.02, h * 0.06);
-  g.lineTo(-h * 0.14, h * 0.5);
-  g.lineTo(h * 0.24, -h * 0.08);
-  g.lineTo(h * 0.03, -h * 0.08);
-  g.closePath();
-  g.fillStyle = `rgba(190,224,255,${a})`;
-  g.fill();
-  g.restore();
-}
-
-function drawScreen(g) {
-  const sw = SCR.w, sh = SCR.h;
-  g.save();
-  rrect(g, -sw / 2, -sh / 2, sw, sh, PH.r * 0.74);
-  g.clip();
-
-  g.fillStyle = '#05080d';
-  g.fillRect(-sw / 2, -sh / 2, sw, sh);
-  const bg = g.createLinearGradient(0, -sh / 2, 0, sh / 2);
-  bg.addColorStop(0, `rgba(20,42,68,${bri * 0.85})`);
-  bg.addColorStop(.55, `rgba(11,24,40,${bri * 0.8})`);
-  bg.addColorStop(1, `rgba(16,32,52,${bri * 0.9})`);
-  g.fillStyle = bg;
-  g.fillRect(-sw / 2, -sh / 2, sw, sh);
+// ── 글자로 보이는 동안 ──────────────────────────────────────────────────────
+// 아직 셀 수 있을 만큼일 때는 사람이 글자다. 가운데에서 바깥으로 늘어난다.
+function drawGlyphs(g, a) {
+  if (a < 0.004) return;
+  const want = clamp(Math.sqrt(fw * fh / n) * 0.88, 2, S * 0.3);
+  gcell = gcell ? lerp(gcell, want, 0.12) : want;
+  const cell = gcell;
+  const cols = Math.max(1, Math.floor(fw / cell));
+  const rows = Math.ceil(n / cols);
+  const cx = fx + fw / 2, cy = fy + fh / 2;
+  const topY = cy - rows * cell / 2;
 
   g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = '400 ' + Math.max(2, cell * 0.74) + 'px "Nanum Myeongjo", serif';
 
-  if (slept) {
-    // it finished, and then it turned itself off, and the room went back to dark
-    g.fillStyle = 'rgba(170,205,240,.3)';
-    g.font = `400 ${(sw * 0.1) | 0}px 'Space Mono', monospace`;
-    g.fillText('100%', 0, sh * 0.02);
-    bolt(g, 0, -sh * 0.08, sw * 0.14, 0.2);
-    g.restore();
-    return;
+  for (let i = 0; i < n; i++) {
+    const row = (i / cols) | 0, col = i - row * cols;
+    const inRow = Math.min(n - row * cols, cols);
+    const age = t - timeOf(i + 1);
+    const f = clamp(age / 0.42, 0, 1);
+    if (f <= 0) continue;
+    const x = cx - inRow * cell / 2 + (col + 0.5) * cell + (hsh(i, 3) - 0.5) * cell * 0.1;
+    const y = topY + (rows - 1 - row) * cell + cell * 0.5 + (hsh(i, 5) - 0.5) * cell * 0.1;
+    const al = a * f * (0.42 + hsh(i, 7) * 0.4);
+    if (i === 0) {
+      g.shadowColor = 'rgba(120,176,236,' + (a * 0.6) + ')';
+      g.shadowBlur = cell * 0.5;
+      g.fillStyle = 'rgba(214,232,250,' + (a * f) + ')';
+    } else {
+      g.shadowBlur = 0;
+      g.fillStyle = 'rgba(158,190,224,' + al + ')';
+    }
+    const s = lerp(0.6, 1, ease(f));
+    if (s < 0.995) {
+      g.save(); g.translate(x, y); g.scale(s, s); g.fillText('나', 0, 0); g.restore();
+    } else g.fillText('나', x, y);
   }
-
-  // status row — the night moves while it fills
-  const mins = 7 + chg * 48;
-  g.font = `400 ${(sw * 0.052) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(186,214,240,${bri * 0.55})`;
-  g.textAlign = 'left';
-  g.fillText(`03:${two(mins)}`, -sw * 0.38, -sh * 0.42);
-  g.textAlign = 'center';
-  if (plug) bolt(g, sw * 0.36, -sh * 0.42, sw * 0.07, bri * 0.6);
-
-  // the word is the battery. It fills from the bottom up.
-  const word = !plug && chg < 0.99 ? (chg < 0.05 ? '방전' : '충전 안 됨')
-    : chg >= 0.999 ? '충전 완료' : '충전 중';
-  let fs = sw * 0.88 / word.length * 1.08;
-  fs = Math.min(fs, sh * 0.2);
-  const cy = -sh * 0.05;
-  const top = cy - fs * 0.6, bot = cy + fs * 0.6;
-  const fy = bot - (bot - top) * chg;
-
-  g.font = `900 ${fs | 0}px "Noto Sans KR", sans-serif`;
-  g.fillStyle = `rgba(152,190,224,${bri * 0.16})`;
-  g.fillText(word, 0, cy);
-
-  g.save();
-  g.beginPath();
-  g.rect(-sw / 2, fy, sw, bot - fy + 2);
-  g.clip();
-  g.shadowColor = `rgba(120,190,255,${bri * 0.55})`;
-  g.shadowBlur = fs * 0.4;
-  g.fillStyle = `rgba(222,240,255,${bri * 0.96})`;
-  g.fillText(word, 0, cy);
-  g.restore();
-
-  if (plug && chg < 0.999) {
-    // the waterline, not a strike-through: it has to die out before the bezel
-    const lg = g.createLinearGradient(-sw * 0.44, 0, sw * 0.44, 0);
-    lg.addColorStop(0, 'rgba(160,214,255,0)');
-    lg.addColorStop(.5, `rgba(170,220,255,${bri * 0.3})`);
-    lg.addColorStop(1, 'rgba(160,214,255,0)');
-    g.fillStyle = lg;
-    g.fillRect(-sw * 0.44, fy - 0.5, sw * 0.88, 1);
-  }
-
-  g.font = `700 ${(sw * 0.25) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(206,232,255,${bri * 0.9})`;
-  g.fillText(Math.round(chg * 100) + '%', 0, sh * 0.18);
-
-  const rem = Math.max(1, Math.round((1 - chg) * 48));
-  const cap = chg >= 0.999 ? '더 채울 것이 없음'
-    : plug ? `완충까지 ${rem}분`
-    : '전원 연결 안 됨';
-  g.font = `400 ${(sw * 0.058) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(166,198,226,${bri * 0.5})`;
-  g.fillText(cap, 0, sh * 0.31);
-
-  g.restore();
+  g.shadowBlur = 0;
 }
 
-function drawPhone(g) {
-  g.save();
-  g.translate(PH.x, PH.y);
-  g.rotate(ROT);
+// ── 칸 이름 ────────────────────────────────────────────────────────────────
+// 점이 되고 나서야 나이가 보인다. 바닥이 가장 두껍다.
+function drawBands(g, a) {
+  if (a < 0.004) return;
+  const fs = Math.max(10, S * 0.018);
+  g.font = '500 ' + (fs | 0) + 'px "Noto Sans KR", sans-serif';
+  g.textAlign = 'left'; g.textBaseline = 'alphabetic';
 
-  g.shadowColor = 'rgba(0,0,0,.8)';
-  g.shadowBlur = S * 0.055;
-  g.shadowOffsetY = S * 0.014;
-  rrect(g, -PH.w / 2, -PH.h / 2, PH.w, PH.h, PH.r);
-  g.fillStyle = '#0d1016';
-  g.fill();
-  g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0;
+  for (let b = 0; b < BANDS.length; b++) {
+    const st = b ? CUM[b - 1] : 0;
+    if (n <= st) continue;
+    const bd = BANDS[b];
+    const al = a * clamp((n - st) / Math.max(1, (CUM[b] - st) * 0.07), 0, 1);
+    const y = rowY((st / COLS) | 0) / DPR;
+    const [r, gg, bb] = bd.col;
 
-  rrect(g, -PH.w / 2, -PH.h / 2, PH.w, PH.h, PH.r);
-  g.strokeStyle = `rgba(158,190,222,${0.1 + bri * 0.17})`;
-  g.lineWidth = Math.max(1, S * 0.0022);
-  g.stroke();
-
-  drawScreen(g);
-
-  // the port, a dark slot in the bottom edge
-  const pw = PH.w * 0.17, ph = Math.max(2, PH.w * 0.025);
-  rrect(g, -pw / 2, PH.h / 2 - ph * 0.5, pw, ph, ph * 0.5);
-  g.fillStyle = '#04060a';
-  g.fill();
-
-  g.restore();
+    if (b > 0) {
+      g.fillStyle = 'rgba(' + r + ',' + gg + ',' + bb + ',' + (al * 0.3).toFixed(3) + ')';
+      g.fillRect(fx, y - 0.5, fw, 1);
+    }
+    const label = bd.label + '  ' + bd.pct + '%';
+    const wd = g.measureText(label).width;
+    g.fillStyle = 'rgba(6,7,10,' + (al * 0.62).toFixed(3) + ')';
+    g.fillRect(fx + 4, y - fs * 1.9, wd + fs * 0.9, fs * 1.6);
+    g.fillStyle = 'rgba(' + r + ',' + gg + ',' + bb + ',' + (al * 0.9).toFixed(3) + ')';
+    g.fillText(label, fx + fs * 0.45 + 4, y - fs * 0.66);
+  }
 }
 
-function drawThoughts(g) {
+// ── 숫자 ───────────────────────────────────────────────────────────────────
+const comma = v => String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
+function drawHud(g) {
+  const top = fy;
+  const fs = Math.min(W * 0.1, 64, top * 0.46);
+  const cy = top * 0.56;
+
+  const sec = Math.floor(t), mm = Math.floor(sec / 60) % 60, ss = sec % 60;
+  const hh = 3 + Math.floor(sec / 3600);
+  const pad = v => (v < 10 ? '0' : '') + v;
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  for (const th of THOUGHTS) {
-    // they belong to the filling. Once it is full they have nothing left to want.
-    const al = th.a * (1 - done);
-    if (al < 0.004) continue;
-    const px = (th.s * S) | 0;
-    g.font = `400 ${px}px "Nanum Myeongjo", serif`;
-    const x = W / 2 + th.x * W, y = H / 2 + th.y * H;
-    g.shadowColor = `rgba(76,124,176,${al * 0.5})`;
-    g.shadowBlur = px * 0.7;
-    g.fillStyle = `rgba(158,186,212,${al * 0.52})`;
-    g.fillText(th.t, x, y);
-    g.shadowBlur = 0; g.shadowColor = 'transparent';
-  }
+
+  g.font = '400 ' + Math.max(9, S * 0.016).toFixed(0) + 'px "Space Mono", monospace';
+  g.fillStyle = 'rgba(127,154,180,.52)';
+  g.fillText(pad(hh) + ':' + pad(mm) + ':' + pad(ss), W / 2, cy - fs * 0.62);
+
+  const lock = endT >= 0 ? clamp(endT / 0.6, 0, 1) : 0;
+  g.font = '700 ' + (fs | 0) + 'px "Space Mono", monospace';
+  g.shadowColor = 'rgba(96,150,210,' + (0.3 + lock * 0.35) + ')';
+  g.shadowBlur = fs * (0.3 + lock * 0.35);
+  g.fillStyle = 'rgba(' + (196 + lock * 24) + ',' + (222 + lock * 20) + ',246,' + (0.82 + lock * 0.18) + ')';
+  g.fillText(comma(n), W / 2, cy);
+  g.shadowBlur = 0;
+
+  g.font = '400 ' + Math.max(10, S * 0.018).toFixed(0) + 'px "Noto Sans KR", sans-serif';
+  g.fillStyle = 'rgba(127,154,180,.58)';
+  g.fillText('2025년 · 수면장애로 병원에 간 사람', W / 2, cy + fs * 0.66);
 }
 
-// ── the room's own word ────────────────────────────────────────────────────
-// Once the phone is full it has nothing left to say, so the sentence moves off
-// the screen and onto the sheet. It empties from the bottom, the way the screen
-// filled from the bottom. Vertical, because a battery is a column.
-const DRAIN = ['방', '전', '중'];
+// ── 다 차고 난 뒤 ──────────────────────────────────────────────────────────
+function drawEnd(g) {
+  if (endT < 0) return;
+  const e = endT;
 
-function drawDrain(g) {
-  if (done < 0.004) return;
-  const margin = W / 2 - PH.w / 2;
-  const fs = Math.max(14, Math.min(S * 0.2, margin * 0.62));
-  const lh = fs * 1.12;
-  const cx = margin * 0.5, cy = PH.y;
-  const top = cy - lh * DRAIN.length / 2, bot = top + lh * DRAIN.length;
-  const fy = bot - (bot - top) * me;
-
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = `400 ${fs | 0}px "Nanum Myeongjo", serif`;
-
-  g.fillStyle = `rgba(120,152,186,${done * 0.07})`;
-  for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
-
-  g.save();
-  g.beginPath();
-  g.rect(cx - fs, fy, fs * 2, bot - fy + 2);
-  g.clip();
-  g.shadowColor = `rgba(84,134,190,${done * 0.45})`;
-  g.shadowBlur = fs * 0.34;
-  g.fillStyle = `rgba(176,206,236,${done * 0.34})`;
-  for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
-  g.restore();
-
-  if (me > 0.001) {
-    const lg = g.createLinearGradient(cx - fs * 0.9, 0, cx + fs * 0.9, 0);
-    lg.addColorStop(0, 'rgba(150,196,240,0)');
-    lg.addColorStop(.5, `rgba(160,204,245,${done * 0.26})`);
-    lg.addColorStop(1, 'rgba(150,196,240,0)');
-    g.fillStyle = lg;
-    g.fillRect(cx - fs * 0.9, fy - 0.5, fs * 1.8, 1);
+  // 셋 중 둘은 나보다 나이가 많았다
+  const aA = clamp((e - 1.8) / 1.1, 0, 1) * (1 - clamp((e - 4.4) / 1.0, 0, 1));
+  if (aA > 0.004) {
+    const fs = Math.max(15, S * 0.036);
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '400 ' + (fs | 0) + 'px "Nanum Myeongjo", serif';
+    g.shadowColor = 'rgba(70,118,172,' + (aA * 0.55) + ')'; g.shadowBlur = fs * 0.5;
+    g.fillStyle = 'rgba(214,232,250,' + (aA * 0.92) + ')';
+    g.fillText('셋 중 둘은 나보다 나이가 많았다', W / 2, fy + fh * 0.5);
+    g.shadowBlur = 0;
   }
-}
 
-// the other battery. No port, no cable, and the number only goes one way.
-function drawMe(g) {
-  const x = W * 0.08, y = H * 0.88, bw = S * 0.16, bh = Math.max(2, S * 0.011);
-  const lit = 0.34 + (1 - me) * 0.38;   // it gets harder to ignore as it empties
-  g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.font = `400 ${(S * 0.027) | 0}px "Nanum Myeongjo", serif`;
-  g.fillStyle = `rgba(158,186,212,${lit})`;
-  g.fillText('나', x, y);
-  const bx = x + S * 0.048;
-  g.fillStyle = 'rgba(158,186,212,.12)';
-  g.fillRect(bx, y - bh / 2, bw, bh);
-  g.fillStyle = me < 0.12 ? `rgba(206,110,86,${0.5 + lit * 0.4})` : `rgba(158,186,212,${lit})`;
-  g.fillRect(bx, y - bh / 2, bw * me, bh);
-  g.font = `400 ${(S * 0.021) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(158,186,212,${lit})`;
-  g.fillText(Math.round(me * 100) + '%', bx + bw + S * 0.016, y);
+  // 점 하나가 다시 「나」가 된다
+  const gr = clamp((e - 4.0) / 1.7, 0, 1);
+  if (gr > 0.004) {
+    const [dx, dy, dw, dh] = dotRect(MEI);
+    const x = (dx + dw / 2) / DPR, y = (dy + dh / 2) / DPR;
+    const k = ease(gr);
+    const fs = lerp(Math.max(2, CH / DPR * 1.4), Math.max(22, S * 0.082), k);
+
+    const rg = g.createRadialGradient(x, y, 0, x, y, fs * 2.2);
+    rg.addColorStop(0, 'rgba(120,180,240,' + (k * 0.3) + ')');
+    rg.addColorStop(1, 'rgba(120,180,240,0)');
+    g.fillStyle = rg;
+    g.fillRect(x - fs * 2.2, y - fs * 2.2, fs * 4.4, fs * 4.4);
+
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '400 ' + (fs | 0) + 'px "Nanum Myeongjo", serif';
+    g.shadowColor = 'rgba(130,186,244,' + (k * 0.8) + ')'; g.shadowBlur = fs * 0.55;
+    g.fillStyle = 'rgba(226,240,255,' + (0.35 + k * 0.65) + ')';
+    g.fillText('나', x, y);
+    g.shadowBlur = 0;
+
+    const aC = clamp((e - 6.0) / 1.2, 0, 1);
+    if (aC > 0.004) {
+      const f2 = Math.max(13, S * 0.028);
+      g.font = '400 ' + (f2 | 0) + 'px "Nanum Myeongjo", serif';
+      g.fillStyle = 'rgba(190,214,240,' + (aC * 0.82) + ')';
+      g.fillText('혼자 깨어 있던 건 아니었다', clamp(x, W * 0.3, W * 0.7), y + fs * 0.95);
+    }
+  }
+
+  const aS = clamp((e - 7.4) / 1.4, 0, 1);
+  if (aS > 0.004) {
+    g.textAlign = 'center'; g.textBaseline = 'middle';
+    g.font = '400 ' + Math.max(9, S * 0.0145).toFixed(0) + 'px "Noto Sans KR", sans-serif';
+    g.fillStyle = 'rgba(127,154,180,' + (aS * 0.5) + ')';
+    g.fillText('국민건강보험공단 · 2025년 수면장애 주상병 진료 현황 (944,603명 · 진료비 1,774억 원)',
+      W / 2, H - Math.max(52, H * 0.082) * 0.60);
+  }
 }
 
 function draw() {
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, cv.width, cv.height);
-  if (bed) ctx.drawImage(bed, 0, 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  drawGlow(ctx);
-  drawDrain(ctx);
-  drawThoughts(ctx);
-  drawMe(ctx);
-  drawCable(ctx);
-  drawPhone(ctx);
+  ctx.clearRect(0, 0, W, H);
+  ctx.drawImage(bgCv, 0, 0, W, H);
+
+  const dim = endT >= 0 ? clamp((endT - 0.9) / 1.3, 0, 1) * 0.52 : 0;
+  if (mix > 0.004) {
+    const fa = mix * (1 - dim);
+    ctx.globalAlpha = fa;
+    ctx.drawImage(fieldCv, 0, 0, W, H);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = fa * 0.5;
+    ctx.drawImage(fieldCv, 0, 0, W, H);
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.globalAlpha = 1;
+  }
+  drawGlyphs(ctx, 1 - mix);
+  drawBands(ctx, mix * (0.7 + dim * 0.6));
+  drawHud(ctx);
+  drawEnd(ctx);
 }
 
-// ── step ───────────────────────────────────────────────────────────────────
+// ── 소리 ───────────────────────────────────────────────────────────────────
+// 처음에는 한 사람씩 똑, 똑. 셀 수 없이 많아지면 그냥 쏴— 하는 소리가 된다.
+const sound = (() => {
+  let ac = null, mg = null, bed = null, bedG = null, bedF = null, on = true;
+
+  function kick() {
+    if (ac || !on) return;
+    try { ac = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return; }
+    mg = ac.createGain(); mg.gain.value = 0.9; mg.connect(ac.destination);
+
+    for (const f of [48, 72]) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = 'sine'; o.frequency.value = f;
+      g.gain.value = f === 48 ? 0.030 : 0.016;
+      o.connect(g); g.connect(mg); o.start();
+    }
+    const len = ac.sampleRate * 3;
+    const buf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = buf.getChannelData(0);
+    let v = 0;
+    for (let i = 0; i < len; i++) { v = (v + (Math.random() * 2 - 1) * 0.02) * 0.995; d[i] = v * 6; }
+    bed = ac.createBufferSource(); bed.buffer = buf; bed.loop = true;
+    bedF = ac.createBiquadFilter(); bedF.type = 'lowpass'; bedF.frequency.value = 300;
+    bedG = ac.createGain(); bedG.gain.value = 0;
+    bed.connect(bedF); bedF.connect(bedG); bedG.connect(mg); bed.start();
+  }
+
+  function tick(i) {
+    if (!ac || !on) return;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'triangle';
+    o.frequency.value = 880 + hsh(i, 2) * 520;
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(0.055, ac.currentTime + 0.004);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.16);
+    o.connect(g); g.connect(mg); o.start(); o.stop(ac.currentTime + 0.18);
+  }
+
+  function ping(f, len, vol) {
+    if (!ac || !on) return;
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(0, ac.currentTime);
+    g.gain.linearRampToValueAtTime(vol, ac.currentTime + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + len);
+    o.connect(g); g.connect(mg); o.start(); o.stop(ac.currentTime + len + 0.05);
+  }
+
+  function flow(rate) {
+    if (!ac || !bedG) return;
+    const k = clamp(Math.log(rate + 1) / Math.log(400), 0, 1);
+    bedG.gain.setTargetAtTime(k * 0.13, ac.currentTime, 0.25);
+    bedF.frequency.setTargetAtTime(300 + k * k * 3400, ac.currentTime, 0.3);
+  }
+
+  function toggle() {
+    on = !on;
+    if (mg) mg.gain.setTargetAtTime(on ? 0.9 : 0, ac.currentTime, 0.08);
+    if (on && !ac) kick();
+    return on;
+  }
+  return { kick, tick, ping, flow, toggle, ready: () => !!ac };
+})();
+
+// ── 흐름 ───────────────────────────────────────────────────────────────────
+const TSW = timeOf(GLYPH_MAX);
+const hintEl = document.getElementById('hint');
+let hintState = 0;
+
 function step(dt) {
-  if (PREVIEW) return;
   t += dt;
+  const prev = n;
+  n = countAt(t);
+  mix = clamp((t - TSW) / 0.75, 0, 1);
+  stampTo(n);
 
-  if (plug) chg = clamp(chg + dt * 0.052 * (1 - chg * 0.5), 0, 1);
-  else chg = clamp(chg - dt * 0.005, 0.02, 1);   // never a flat 0. 방전 has to stay readable
+  const rate = n * LOGT / DUR;
+  sound.flow(n >= TOTAL ? 0 : rate);
+  if (rate < 14) for (let i = prev + 1, k = 0; i <= n && k < 4; i++, k++) sound.tick(i);
 
-  // this one runs down either way. Being awake with the phone just costs more.
-  const prev = me;
-  me = clamp(me - dt * (plug ? 0.0075 : 0.003), 0, 1);
-  if (prev > 0 && me <= 0) sound.ping(false);
-
-  done += ((chg >= 0.999 ? 1 : 0) - done) * (1 - Math.pow(0.78, dt));
-
-  const want = slept ? 0.03 : plug ? 1 : 0.46;
-  bri += (want - bri) * (1 - Math.pow(0.004, dt));
-
-  for (const th of THOUGHTS) {
-    const w = chg >= th.at ? 1 : 0;
-    th.a += (w - th.a) * (1 - Math.pow(w ? 0.3 : 0.5, dt));
+  if (n >= TOTAL) {
+    if (endT < 0) { endT = 0; sound.ping(174, 2.4, 0.09); }
+    else {
+      const was = endT; endT += dt;
+      if (was < 4.0 && endT >= 4.0) sound.ping(1046, 1.8, 0.055);
+    }
   }
 
-  if (plug && chg >= 0.999) { idle += dt; if (idle > 3.4) slept = true; }
-  else { idle = 0; slept = false; }
-
-  if (plug) {
-    const [px, py] = portPos();
-    tip.x = px; tip.y = py; tip.vx = tip.vy = 0;
-  } else if (!dragging) {
-    tip.vx += (rest.x - tip.x) * dt * 24;
-    tip.vy += (rest.y - tip.y) * dt * 24;
-    const k = Math.pow(0.0025, dt);
-    tip.vx *= k; tip.vy *= k;
-    tip.x += tip.vx * dt; tip.y += tip.vy * dt;
+  if (hintState === 0 && t > 6.5) { hintEl.classList.add('off'); hintState = 1; }
+  if (hintState === 1 && endT > 8.4) {
+    hintEl.textContent = 'CLICK TO REPLAY · 클릭하면 다시';
+    hintEl.classList.remove('off');
+    hintState = 2;
   }
-
-  sound.set(plug, chg, bri);
 }
 
-let last = performance.now();
+function restart() {
+  t = 0; n = 1; mix = 0; endT = -1; gcell = 0;
+  fctx.clearRect(0, 0, fieldCv.width, fieldCv.height);
+  shown = 0;
+  hintEl.textContent = 'WATCH · 지켜보세요';
+  hintEl.classList.remove('off');
+  hintState = 0;
+}
+
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
@@ -590,100 +499,34 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-// ── input ──────────────────────────────────────────────────────────────────
-const hintEl = document.getElementById('hint');
-function inPhone(x, y) {
-  const dx = x - PH.x, dy = y - PH.y;
-  const lx = dx * CS + dy * SN, ly = -dx * SN + dy * CS;
-  return Math.abs(lx) < PH.w / 2 && Math.abs(ly) < PH.h / 2;
-}
-
-cv.addEventListener('pointerdown', e => {
-  sound.kick();
-  if (Math.hypot(e.clientX - tip.x, e.clientY - tip.y) < S * 0.08) {
-    dragging = true;
-    document.body.classList.add('grab');
-    cv.setPointerCapture(e.pointerId);
-  } else if (inPhone(e.clientX, e.clientY)) {
-    slept = false; idle = 0;
-  }
-});
-
-cv.addEventListener('pointermove', e => {
-  if (!dragging) return;
-  tip.x = e.clientX; tip.y = e.clientY;
-  const [px, py] = portPos();
-  const d = Math.hypot(tip.x - px, tip.y - py);
-  if (!plug && d < S * 0.055) {
-    plug = true; idle = 0;
-    sound.ping(true);
-    hintEl.classList.add('off');
-  } else if (plug && d > S * 0.095) {
-    plug = false;
-    sound.ping(false);
-  }
-});
-
-const release = e => {
-  if (!dragging) return;
-  dragging = false;
-  document.body.classList.remove('grab');
-  tip.vx = tip.vy = 0;
-};
-cv.addEventListener('pointerup', release);
-cv.addEventListener('pointercancel', release);
-
-const sndEl = document.getElementById('snd');
-sndEl.addEventListener('click', () => {
-  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
-});
-
-// ── layout ─────────────────────────────────────────────────────────────────
-function resize() {
-  W = window.innerWidth; H = window.innerHeight; S = Math.min(W, H);
-  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
-  cv.style.width = W + 'px'; cv.style.height = H + 'px';
-
-  PH.h = Math.min(H * (PREVIEW ? 0.94 : 0.72), S * 0.98);
-  PH.w = PH.h * 0.472;
-  PH.r = PH.w * 0.1;
-  PH.x = W * 0.5;
-  PH.y = H * (PREVIEW ? 0.5 : 0.455);
-  const pad = PH.w * 0.042;
-  SCR.w = PH.w - pad * 2;
-  SCR.h = PH.h - pad * 2;
-
-  rest.x = W - S * 0.11; rest.y = H - S * 0.09;
-  if (!plug && !dragging) { tip.x = rest.x; tip.y = rest.y; }
-
-  bakeBed();
-}
 window.addEventListener('resize', resize);
+document.getElementById('snd').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('snd').textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+window.addEventListener('pointerdown', () => { sound.kick(); if (endT > 1) restart(); });
 
-// ── boot ───────────────────────────────────────────────────────────────────
+// ── 시작 ───────────────────────────────────────────────────────────────────
 (async () => {
   try {
     await Promise.all([
-      document.fonts.load('900 60px "Noto Sans KR"'),
-      document.fonts.load('400 30px "Nanum Myeongjo"'),
-      document.fonts.load('700 30px "Space Mono"'),
+      document.fonts.load('400 60px "Nanum Myeongjo"', '나셋중둘은보다나이가많았다혼자깨어있던건아니었다'),
+      document.fonts.load('500 20px "Noto Sans KR"', '년수면장애로병원에간사람대이하국민건강보험공단주상병진료현황명비억원'),
+      document.fonts.load('700 40px "Space Mono"', '0123456789:,'),
     ]);
     await document.fonts.ready;
-  } catch (e) { /* fall back to whatever is there */ }
+  } catch (e) { /* 없으면 없는 대로 */ }
 
   resize();
 
   if (PREVIEW) {
-    plug = true; chg = 0.68; me = 0.19; bri = 1;
-    for (const th of THOUGHTS) th.a = chg >= th.at ? 1 : 0;
-    const [px, py] = portPos();
-    tip.x = px; tip.y = py;
+    t = DUR; n = TOTAL; mix = 1; endT = 5.2;
+    stampTo(TOTAL);
     draw();
     return;
   }
 
   sound.kick();
-  setTimeout(() => hintEl.classList.add('off'), 14000);
   last = performance.now();
   requestAnimationFrame(loop);
 })();
