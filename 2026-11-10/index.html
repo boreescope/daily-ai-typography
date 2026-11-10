@@ -81,7 +81,7 @@ const toW = (px, py) => [PH.x + px * CS - py * SN, PH.y + px * SN + py * CS];
 // ── state ──────────────────────────────────────────────────────────────────
 let chg = 0.08;          // the phone
 const ME0 = 0.33;        // 처음 남아 있던 만큼. 여기서부터 줄기만 한다.
-let me = ME0;            // BODY — the other battery, the one with no port
+let me = ME0;            // MY ENERGY — the other battery, the one with no port
 let bri = 0.42;          // screen brightness
 let plug = false, dragging = false;
 let idle = 0, slept = false;
@@ -1036,7 +1036,7 @@ function drawMe(g) {
   g.textAlign = 'left'; g.textBaseline = 'middle';
   // 위의 NATIONAL GRID LOAD 와 같은 짝 — 이름은 Orbitron, 숫자는 VT323
   const lf = (S * 0.024) | 0;
-  const LBL = 'BODY';
+  const LBL = 'MY ENERGY';
   track(g, lf * 0.2);
   g.font = `500 ${(lf * 0.62) | 0}px Orbitron, sans-serif`;
   g.fillStyle = `rgba(${C2},${(lit * 0.78).toFixed(3)})`;
