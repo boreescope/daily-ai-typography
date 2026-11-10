@@ -427,16 +427,15 @@ function bakeWindows() {
       g.moveTo(q[0][0], q[0][1]);
       for (let i = 1; i < 4; i++) g.lineTo(q[i][0], q[i][1]);
       g.closePath();
-      WINS.push(q);
     }
     g.fill();
+    WINS.push(c);
   }
   g.globalCompositeOperation = 'source-over';
 
-  // 꺼지는 시각을 흩는다. 앞쪽에 몰아서 초저녁부터 하나씩 빠지게.
+  // 한 채가 통째로 꺼진다. 창 하나씩 빠지면 흩어지는 걸로 보이지, 누가 불을 끈 걸로 안 보인다.
   const r = seeded(0x77314d);
-  const off = WINS.map(() => 212 + Math.pow(r(), 1.9) * 290);
-  WINS.forEach((q, i) => { q.off = off[i]; });
+  for (const c of WINS) c.off = 212 + Math.pow(r(), 1.9) * 290;
   WINS.sort((a, b) => a.off - b.off);
   winIdx = 0;
   catchUpWindows();
@@ -454,11 +453,13 @@ function catchUpWindows() {
   g.lineWidth = 1.2;
   let n = 0;
   while (winIdx < WINS.length && clk >= WINS[winIdx].off) {
-    const q = WINS[winIdx++];
+    const c = WINS[winIdx++];
     g.beginPath();
-    g.moveTo(q[0][0], q[0][1]);
-    for (let i = 1; i < 4; i++) g.lineTo(q[i][0], q[i][1]);
-    g.closePath();
+    for (const q of c.wins) {
+      g.moveTo(q[0][0], q[0][1]);
+      for (let i = 1; i < 4; i++) g.lineTo(q[i][0], q[i][1]);
+      g.closePath();
+    }
     g.fill(); g.stroke();
     n++;
   }
