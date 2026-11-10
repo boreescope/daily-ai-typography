@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>나 — 944,603</title>
+<title>나 — 1,312,977</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -66,30 +66,43 @@ const hsh = (a, k) => {
 };
 
 // ── 출처 ───────────────────────────────────────────────────────────────────
-// 국민건강보험공단, 2025년 수면장애(주상병) 진료 현황
-//   진료인원 944,603명 · 진료비 1,774억 원 (1인당 약 19만 원)
-//   여성 59% · 남성 41%
-//   연령대 60대 25% · 70대 이상 20% · 50대 18% → 50대 이상이 63%
-// 지역별 수치는 data.go.kr 15124322 CSV로 따로 붙일 수 있다 (아직 없음).
-// 심평원 급여 기준(130만 명대)과는 집계 기준이 달라 섞어 쓰지 않는다.
-const TOTAL = 944603;
+// 국민건강보험공단_수면장애 관련 주상병별 진료정보
+//   data.go.kr 파일데이터 15124322 (2026-11-09 수정) → data/sleep-region.csv
+//   주상병 G47(수면장애) · F51(비기질성 수면장애) · G47.3(수면무호흡)
+//   수진시점 주소지 기준 · 진료인원 중복제외 · 건강보험 급여실적
+//   아래 숫자는 그 CSV의 2025년 행을 시도별로 더한 값이다.
+//   2025년 1,312,977명 · 진료비 3,832억 원
+//   (2023년 1,204,348명 → 2년 사이 108,629명 늘었다)
+const TOTAL = 1312977;
 
-// 아래에서부터 쌓인다. 나이가 많은 칸이 바닥이다.
-const BANDS = [
-  { label: '70대 이상', pct: 20, col: [226, 198, 164] },
-  { label: '60대',      pct: 25, col: [212, 194, 180] },
-  { label: '50대',      pct: 18, col: [186, 198, 216] },
-  { label: '40대 이하',  pct: 37, col: [156, 198, 240] },
+// 아래에서부터 쌓인다. 사람이 많은 칸이 바닥이다.
+// 색은 따로 고르지 않고 아래(따뜻한 모래색)에서 위(찬 푸른색)로 이어서 깐다.
+const SIDO = [
+  ['경기도', 355254], ['서울특별시', 270344], ['부산광역시', 96050],
+  ['경상남도', 78692], ['인천광역시', 74891], ['대구광역시', 61842],
+  ['경상북도', 59463], ['충청남도', 51634], ['전북특별자치도', 39476],
+  ['충청북도', 39135], ['전라남도', 38385], ['강원특별자치도', 36547],
+  ['대전광역시', 36433], ['광주광역시', 27332], ['울산광역시', 23228],
+  ['제주특별자치도', 15426], ['세종특별자치시', 8845],
 ];
+const BANDS = SIDO.map(([label, cnt], i) => {
+  const u = i / (SIDO.length - 1);
+  return {
+    label, cnt,
+    pct: Math.round(cnt / TOTAL * 1000) / 10,
+    col: [Math.round(lerp(228, 150, u)), Math.round(lerp(198, 196, u)), Math.round(lerp(158, 242, u))],
+  };
+});
 let CUM = [];   // 각 칸이 끝나는 누적 인원
 
-const DUR = 38;          // 1명에서 944,603명까지 걸리는 시간(초)
+const DUR = 38;          // 1명에서 1,312,977명까지 걸리는 시간(초)
 const GLYPH_MAX = 800;   // 여기까지는 글자로 보인다. 그 다음부터는 점이다.
 const LOGT = Math.log(TOTAL);
 
 let W = 0, H = 0, S = 0;
 let t = 0, n = 1;        // n — 이 작품을 움직이는 하나의 변수
-let shown = 0;           // 점으로 이미 찍어둔 수
+let shown = 0;           // 점으로 이미 찍어둔 인원
+let shownCell = 0;       // 그중 실제로 찍은 점 개수
 let mix = 0;             // 0 글자 → 1 점
 let endT = -1;           // 다 찬 뒤로 흐른 시간
 let gcell = 0;           // 글자 칸 크기 (부드럽게 따라간다)
@@ -103,6 +116,8 @@ const bgx = bgCv.getContext('2d');
 
 let FX = 0, FYB = 0, FW = 0, FH = 0, CW = 1, CH = 1, COLS = 0, ROWS = 0;
 let DRAWN = 0;           // 실제로 화면에 찍을 수 있는 최대 인원
+let PER = 1;             // 점 하나가 맡는 인원 (화면이 좁으면 2명 이상)
+let CELLS = 0;
 let MEI = 0;             // 「나」가 들어간 자리
 
 // 글자 영역 (CSS 픽셀)
@@ -115,11 +130,13 @@ const countAt = tt => {
 // i번째 사람이 나타나는 시각 — 글자 하나하나가 따로 떠오르게 하려고 쓴다
 const timeOf = i => DUR * Math.log(Math.max(1, i)) / LOGT;
 
-// 한 사람이 차지하는 네모. 칸이 1픽셀 안팎이라 가장자리를 반올림해서 딱 맞춘다.
+// 점 하나가 차지하는 네모. 칸이 1픽셀 안팎이라 가장자리를 반올림해서 딱 맞춘다.
 function dotRect(i) {
-  const row = (i / COLS) | 0, col = i - row * COLS;
+  const c = (i / PER) | 0;
+  const row = (c / COLS) | 0, col = c - row * COLS;
   return [FX + Math.round(col * CW), FYB - Math.round((row + 1) * CH), 1, 1];
 }
+const rowOf = people => ((people / PER) | 0) / COLS | 0;
 const rowY = row => FYB - Math.round(Math.min(row, ROWS) * CH);
 function bandOf(i) {
   for (let b = 0; b < CUM.length; b++) if (i < CUM[b]) return b;
@@ -140,27 +157,29 @@ function resize() {
 
   FX = Math.round(fx * DPR); FW = Math.round(fw * DPR); FH = Math.round(fh * DPR);
   FYB = Math.round((fy + fh) * DPR);
-  // 94만 명이 화면에 꼭 맞게 칸을 나눈다. 모자라면 1픽셀에 한 명씩 깔고 거기서 멈춘다.
-  COLS = Math.max(1, Math.min(FW, Math.round(Math.sqrt(TOTAL * FW / FH))));
-  ROWS = Math.ceil(TOTAL / COLS);
+  // 131만 명이 화면에 꼭 맞게 칸을 나눈다. 한 사람에 한 점이 원칙이고,
+  // 화면 픽셀이 모자라는 작은 화면에서만 점 하나가 두 명 이상을 맡는다.
+  PER = Math.max(1, Math.ceil(TOTAL / Math.max(1, FW * FH)));
+  CELLS = Math.ceil(TOTAL / PER);
+  COLS = Math.max(1, Math.min(FW, Math.round(Math.sqrt(CELLS * FW / FH))));
+  ROWS = Math.ceil(CELLS / COLS);
   if (ROWS > FH) { COLS = FW; ROWS = FH; }
   CW = FW / COLS; CH = FH / ROWS;
-  DRAWN = Math.min(TOTAL, COLS * ROWS);
+  DRAWN = Math.min(TOTAL, COLS * ROWS * PER);
 
   CUM = []; let c = 0;
-  for (const b of BANDS) { c += Math.round(TOTAL * b.pct / 100); CUM.push(c); }
+  for (const b of BANDS) { c += b.cnt; CUM.push(c); }
   CUM[CUM.length - 1] = TOTAL;
 
-  // 「나」는 40대 이하 칸 안에 있다. 화면이 모자라면 찍을 수 있는 맨 끝으로.
-  const s3 = CUM[CUM.length - 2];
-  MEI = Math.min(Math.round(s3 + (TOTAL - s3) * 0.42), DRAWN - 1);
+  // 「나」는 어느 칸의 누구도 아니다. 그냥 쌓인 것의 38%쯤 되는 자리.
+  MEI = Math.min(Math.round(TOTAL * 0.38), DRAWN - 1);
   // 줄(=쌓인 높이)은 그대로 두고 가로 자리만 가운데쯤으로 옮긴다 — 가장자리에 붙지 않게
-  MEI = Math.min(((MEI / COLS) | 0) * COLS + Math.round(COLS * 0.44), DRAWN - 1);
+  MEI = Math.min(((MEI / (PER * COLS)) | 0) * PER * COLS + Math.round(COLS * 0.44) * PER, DRAWN - 1);
   if (MEI < 0) MEI = 0;
 
   fieldCv.width = cv.width; fieldCv.height = cv.height;
   bakeBg();
-  shown = 0; stampTo(Math.min(n, DRAWN));
+  shown = 0; shownCell = 0; stampTo(Math.min(n, DRAWN));
 }
 
 function bakeBg() {
@@ -188,11 +207,12 @@ function bakeBg() {
 function stampTo(target) {
   target = Math.min(target, DRAWN);
   if (target <= shown) return;
+  const ct = Math.min(CELLS, (target / PER) | 0);
   const bk = [0.70, 0.92, 1.0];
-  let i = shown;
-  while (i < target) {
-    const b = bandOf(i);
-    const end = Math.min(target, CUM[b]);
+  let i = shownCell;
+  while (i < ct) {
+    const b = bandOf(i * PER);
+    const end = Math.min(ct, Math.ceil(CUM[b] / PER));
     const [r, gg, bb] = BANDS[b].col;
     for (let k = 0; k < 3; k++) {
       fctx.fillStyle = 'rgba(' + r + ',' + gg + ',' + bb + ',' + bk[k] + ')';
@@ -205,6 +225,7 @@ function stampTo(target) {
     }
     i = end;
   }
+  shownCell = Math.max(shownCell, ct);
   shown = target;
 }
 
@@ -249,25 +270,32 @@ function drawGlyphs(g, a) {
 }
 
 // ── 칸 이름 ────────────────────────────────────────────────────────────────
-// 점이 되고 나서야 나이가 보인다. 바닥이 가장 두껍다.
+// 점이 되고 나서야 어디 사람인지 보인다. 바닥이 가장 두껍다.
 function drawBands(g, a) {
   if (a < 0.004) return;
   const fs = Math.max(10, S * 0.018);
   g.font = '500 ' + (fs | 0) + 'px "Noto Sans KR", sans-serif';
   g.textAlign = 'left'; g.textBaseline = 'alphabetic';
 
+  let lastY = Infinity;
   for (let b = 0; b < BANDS.length; b++) {
     const st = b ? CUM[b - 1] : 0;
     if (n <= st) continue;
     const bd = BANDS[b];
+    const ly = rowY(rowOf(st)) / DPR;
+    // 칸이 얇아 라벨이 붙거나 필드 위로 넘치면 그 칸은 이름을 달지 않는다
+    const room = lastY - ly >= fs * 3.2 && ly >= fy + fs * 2.2;
+    if (room) lastY = ly;
     const al = a * clamp((n - st) / Math.max(1, (CUM[b] - st) * 0.07), 0, 1);
-    const y = rowY((st / COLS) | 0) / DPR;
+    const y = rowY(rowOf(st)) / DPR;
     const [r, gg, bb] = bd.col;
 
     if (b > 0) {
-      g.fillStyle = 'rgba(' + r + ',' + gg + ',' + bb + ',' + (al * 0.3).toFixed(3) + ')';
-      g.fillRect(fx, y - 0.5, fw, 1);
+      // 이름이 붙는 칸의 경계선만 또렷하게 — 나머지는 색만 바뀐다
+      g.fillStyle = 'rgba(' + r + ',' + gg + ',' + bb + ',' + (al * (room ? 0.6 : 0.22)).toFixed(3) + ')';
+      g.fillRect(fx, y - 0.5, fw, room ? 1.2 : 1);
     }
+    if (!room) continue;
     const label = bd.label + '  ' + bd.pct + '%';
     const wd = g.measureText(label).width;
     g.fillStyle = 'rgba(6,7,10,' + (al * 0.62).toFixed(3) + ')';
@@ -312,7 +340,7 @@ function drawEnd(g) {
   if (endT < 0) return;
   const e = endT;
 
-  // 셋 중 둘은 나보다 나이가 많았다
+  // 아래 두 칸, 경기도와 서울이 절반 가까이였다
   const aA = clamp((e - 1.8) / 1.1, 0, 1) * (1 - clamp((e - 4.4) / 1.0, 0, 1));
   if (aA > 0.004) {
     const fs = Math.max(15, S * 0.036);
@@ -320,7 +348,7 @@ function drawEnd(g) {
     g.font = '400 ' + (fs | 0) + 'px "Nanum Myeongjo", serif';
     g.shadowColor = 'rgba(70,118,172,' + (aA * 0.55) + ')'; g.shadowBlur = fs * 0.5;
     g.fillStyle = 'rgba(214,232,250,' + (aA * 0.92) + ')';
-    g.fillText('셋 중 둘은 나보다 나이가 많았다', W / 2, fy + fh * 0.5);
+    g.fillText('아래 두 칸, 경기도와 서울이 절반 가까이였다', W / 2, fy + fh * 0.5);
     g.shadowBlur = 0;
   }
 
@@ -331,6 +359,14 @@ function drawEnd(g) {
     const x = (dx + dw / 2) / DPR, y = (dy + dh / 2) / DPR;
     const k = ease(gr);
     const fs = lerp(Math.max(2, CH / DPR * 1.4), Math.max(22, S * 0.082), k);
+
+    // 점이 빽빽한 자리라 글자가 묻힌다. 먼저 어둡게 가라앉히고 그 위에 빛을 올린다
+    const dg = g.createRadialGradient(x, y, 0, x, y, fs * 3.0);
+    dg.addColorStop(0, 'rgba(6,9,14,' + (k * 0.88) + ')');
+    dg.addColorStop(0.55, 'rgba(6,9,14,' + (k * 0.6) + ')');
+    dg.addColorStop(1, 'rgba(6,9,14,0)');
+    g.fillStyle = dg;
+    g.fillRect(x - fs * 3.0, y - fs * 3.0, fs * 6.0, fs * 6.0);
 
     const rg = g.createRadialGradient(x, y, 0, x, y, fs * 2.2);
     rg.addColorStop(0, 'rgba(120,180,240,' + (k * 0.3) + ')');
@@ -349,8 +385,12 @@ function drawEnd(g) {
     if (aC > 0.004) {
       const f2 = Math.max(13, S * 0.028);
       g.font = '400 ' + (f2 | 0) + 'px "Nanum Myeongjo", serif';
-      g.fillStyle = 'rgba(190,214,240,' + (aC * 0.82) + ')';
-      g.fillText('혼자 깨어 있던 건 아니었다', clamp(x, W * 0.3, W * 0.7), y + fs * 0.95);
+      const tx = clamp(x, W * 0.3, W * 0.7), ty = y + fs * 1.35;
+      const tw = g.measureText('혼자 깨어 있던 건 아니었다').width;
+      g.fillStyle = 'rgba(6,9,14,' + (aC * 0.72) + ')';
+      g.fillRect(tx - tw / 2 - f2 * 0.8, ty - f2 * 1.0, tw + f2 * 1.6, f2 * 2.0);
+      g.fillStyle = 'rgba(206,226,248,' + (aC * 0.92) + ')';
+      g.fillText('혼자 깨어 있던 건 아니었다', tx, ty);
     }
   }
 
@@ -359,8 +399,14 @@ function drawEnd(g) {
     g.textAlign = 'center'; g.textBaseline = 'middle';
     g.font = '400 ' + Math.max(9, S * 0.0145).toFixed(0) + 'px "Noto Sans KR", sans-serif';
     g.fillStyle = 'rgba(127,154,180,' + (aS * 0.5) + ')';
-    g.fillText('국민건강보험공단 · 2025년 수면장애 주상병 진료 현황 (944,603명 · 진료비 1,774억 원)',
-      W / 2, H - Math.max(52, H * 0.082) * 0.60);
+    // 좁은 화면에서는 한 줄에 다 안 들어가서 두 줄로 나눈다
+    const sf = Math.max(9, S * 0.0145);
+    const src = ['국민건강보험공단 · 수면장애 관련 주상병별 진료정보',
+      '2025년 1,312,977명 · data.go.kr' + (PER > 1 ? ' · 점 하나에 ' + PER + '명' : '')];
+    const one = src[0] + ' (' + src[1] + ')';
+    const by = H - Math.max(52, H * 0.082) * 0.60;
+    if (g.measureText(one).width < W * 0.92) g.fillText(one, W / 2, by);
+    else { g.fillText(src[0], W / 2, by - sf * 0.72); g.fillText(src[1], W / 2, by + sf * 0.72); }
   }
 }
 
@@ -375,7 +421,7 @@ function draw() {
     ctx.globalAlpha = fa;
     ctx.drawImage(fieldCv, 0, 0, W, H);
     ctx.globalCompositeOperation = 'lighter';
-    ctx.globalAlpha = fa * 0.5;
+    ctx.globalAlpha = fa * 0.7;
     ctx.drawImage(fieldCv, 0, 0, W, H);
     ctx.globalCompositeOperation = 'source-over';
     ctx.globalAlpha = 1;
@@ -485,7 +531,7 @@ function step(dt) {
 function restart() {
   t = 0; n = 1; mix = 0; endT = -1; gcell = 0;
   fctx.clearRect(0, 0, fieldCv.width, fieldCv.height);
-  shown = 0;
+  shown = 0; shownCell = 0;
   hintEl.textContent = 'WATCH · 지켜보세요';
   hintEl.classList.remove('off');
   hintState = 0;
@@ -510,8 +556,8 @@ window.addEventListener('pointerdown', () => { sound.kick(); if (endT > 1) resta
 (async () => {
   try {
     await Promise.all([
-      document.fonts.load('400 60px "Nanum Myeongjo"', '나셋중둘은보다나이가많았다혼자깨어있던건아니었다'),
-      document.fonts.load('500 20px "Noto Sans KR"', '년수면장애로병원에간사람대이하국민건강보험공단주상병진료현황명비억원'),
+      document.fonts.load('400 60px "Nanum Myeongjo"', '나아래두칸경기도와서울이절반가까이였다혼자깨어있던건아니었다'),
+      document.fonts.load('500 20px "Noto Sans KR"', '년수면장애로병원에간사람국민건강보험공단관련주상병별진료정보명경기서울부산상남인천대구북충청전특자치강원제주세종광역시'),
       document.fonts.load('700 40px "Space Mono"', '0123456789:,'),
     ]);
     await document.fonts.ready;
