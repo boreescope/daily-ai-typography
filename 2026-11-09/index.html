@@ -124,6 +124,36 @@
     return RLEN[RLEN.length - 1] - (RLEN[i] + (RLEN[i + 1] - RLEN[i]) * f);
   };
 
+  // the middle of the drive, so the frame can sit on it instead of on the car
+  const RMID = [(Math.min(...ROUTE.map(p => p[0])) + Math.max(...ROUTE.map(p => p[0]))) / 2,
+                (Math.min(...ROUTE.map(p => p[1])) + Math.max(...ROUTE.map(p => p[1]))) / 2];
+
+  // what the next turn actually is, read off the road ahead of you
+  const rhead = i => Math.atan2(ROUTE[i + 1][1] - ROUTE[i][1], ROUTE[i + 1][0] - ROUTE[i][0]);
+  function turnAhead(t) {
+    const i0 = Math.min(ROUTE.length - 2, Math.floor(t));
+    let acc = 0;
+    for (let i = i0 + 1; i < ROUTE.length - 1; i++) {
+      const dh = ((rhead(i) - rhead(i - 1) + Math.PI * 3) % TAU) - Math.PI;
+      acc = Math.abs(dh) < 0.1 ? acc * 0.45 : acc + dh;   // a straight stretch forgets the last bend
+      if (Math.abs(acc) > 0.62)
+        return { dist: RLEN[i] - (RLEN[i0] + (RLEN[i0 + 1] - RLEN[i0]) * (t - i0)), right: acc > 0 };
+    }
+    return null;
+  }
+  // act 1 speaks on a clock. act 0 only speaks when the road gives it something to say
+  function navLine(t) {
+    if (t >= ROUTE.length - 1) return '목적지에 도착했습니다';
+    const left = routeLeft(t);
+    if (left < 110) return '잠시 후 목적지입니다';
+    const tn = turnAhead(t);
+    if (!tn) return Math.floor(t / 7) % 2 ? '전방에 과속 단속 구간입니다' : '계속 직진하세요';
+    const way = tn.right ? '우회전' : '좌회전';
+    if (tn.dist < 35) return `${way}입니다`;
+    if (tn.dist < 80) return `잠시 후 ${way}입니다`;
+    return `${Math.round(tn.dist / 50) * 50}m 앞에서 ${way}입니다`;
+  }
+
   const PARKS = [[-620, -240, 380, 260], [520, 180, 300, 340], [-340, 700, 460, 220],
                  [880, -620, 250, 250], [-1100, -860, 320, 300]];
   // the piece sits on 삼선동, 성북구. One world unit is one metre from there.
@@ -163,6 +193,7 @@
   let T = 0;
   let line = ACTS[0].lines[0], lineT = 0, lineAct = 0, lineIdx = 0;
   let forced = 0;                  // a line from the button outranks the clock
+  let prevProg = 0;                // did the car actually get anywhere this frame
   let rrCount = [0, 0, 0, 0, 0];
   let backing = 0;                 // the ride home
   let stars = [], clouds = [];
@@ -680,7 +711,7 @@
   }
 
   // ── the clock ──────────────────────────────────────────────────────────
-  const LINEGAP = 1.9;
+  const LINEGAP = 2.8;
   function say(txt, kind) {
     line = txt; lineT = 0;
     sound.ding(kind);
@@ -703,7 +734,7 @@
       const rp = routePt(prog);
       if (!dragging && keys.size === 0 && prog < ROUTE.length - 1 &&
           Math.hypot(wx - rp[0], wy - rp[1]) < 90) {
-        prog = Math.min(ROUTE.length - 1, prog + dt * 14 / RSTEP);   // 14 m/s, city pace
+        prog = Math.min(ROUTE.length - 1, prog + dt * 20 / RSTEP);   // 20 m/s, so the arrow reads as moving
         const np = routePt(prog), k = Math.min(1, dt * 4);
         const want = Math.atan2(np[1] - wy, np[0] - wx);
         wx += (np[0] - wx) * k; wy += (np[1] - wy) * k;
@@ -749,11 +780,15 @@
     const act = actOf(d);
 
     // the view pulls back as the ground stops being a map
-    Z0 = Math.max(W, H) / 2000 * 0.9;
+    const near = 1 - ease(clamp((d - 0.35) / 0.55, 0, 1));   // the street stays close until you leave it
+    Z0 = Math.max(W, H) / 2000 * 0.9 * (1 + near * 0.8);
     const far = 1 + Math.max(0, d - 6.2) * 0.35;   // and it keeps getting smaller
     gs = Z0 * Math.pow(0.0085, Math.pow(alt, 0.72)) / far;
     const ck = ease(alt) * 0.9;
-    camx = wx * (1 - ck); camy = wy * (1 - ck);
+    // on the road the frame holds still and the arrow drives across it, the way you
+    // watch yourself move on a map. Only once you leave does the view start following
+    camx = lerp(lerp(wx, RMID[0], near), 0, ck);
+    camy = lerp(lerp(wy, RMID[1], near), 0, ck);
     gcx = W / 2;
     gcy = H / 2 + ease(alt) * H * 0.08;
     ox = sx(0); oy = sy(0);
@@ -762,18 +797,23 @@
     document.body.classList.toggle('space', night > 0.45);
     if (d > 0.15) hint.classList.add('off');
 
-    if (act !== prevAct) { lineAct = act; lineIdx = 0; forced = 0; say(ACTS[act].lines[0], act >= 4 ? 3 : act >= 1 ? 1 : 0); }
-
-    // it finishes the job it was given, and then has nothing left to say
-    const arrived = act === 0 && prog >= ROUTE.length - 1;
-    if (arrived && line !== '목적지에 도착했습니다') say('목적지에 도착했습니다', 0);
+    if (act !== prevAct && act > 0) { lineAct = act; lineIdx = 0; forced = 0; say(ACTS[act].lines[0], act >= 4 ? 3 : 1); }
 
     forced = Math.max(0, forced - dt);
-    lineT += dt;
-    if (!arrived && forced === 0 && lineT > LINEGAP) {
-      lineIdx = (lineIdx + 1) % ACTS[act].lines.length;
-      say(ACTS[act].lines[lineIdx], act >= 4 ? 3 : act >= 2 ? 2 : act >= 1 ? 1 : 0);
+    // standing still, it has nothing to report. A nav that keeps talking to a parked
+    // car is the one thing this one never does
+    const moving = prog !== prevProg || speed > 16;
+    if (act === 0) {
+      const nl = navLine(prog);
+      if (forced === 0 && nl !== line) say(nl, 0);
+    } else {
+      lineT += moving ? dt : 0;
+      if (forced === 0 && lineT > LINEGAP) {
+        lineIdx = (lineIdx + 1) % ACTS[act].lines.length;
+        say(ACTS[act].lines[lineIdx], act >= 4 ? 3 : act >= 2 ? 2 : 1);
+      }
     }
+    prevProg = prog;
 
     sound.set(speed, alt, night);
   }
