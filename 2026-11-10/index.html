@@ -258,6 +258,14 @@ function box(g, b) {
   const t = [P(x0, h, z0), P(x1, h, z0), P(x1, h, z1), P(x0, h, z1)];
   if (t.some(v => !v)) return;
 
+  // 카메라에 너무 가까우면 투영이 터진다. 화면 몇 배짜리 면이 나오고,
+  // 그걸 한 건물로 묶으면 창을 끌 때 화면을 가로질러 띠가 지워진다.
+  const LIM = Math.max(W, H) * 2;
+  const sane = f => f.every(v => v) &&
+    Math.max(...f.map(v => v[0])) - Math.min(...f.map(v => v[0])) < LIM &&
+    Math.max(...f.map(v => v[1])) - Math.min(...f.map(v => v[1])) < LIM;
+  if (!sane(t)) return;
+
   const wins = [];
   const faces = [];
   faces.push([P(x0, 0, z0), P(x1, 0, z0), t[1], t[0]]);          // 앞
@@ -274,7 +282,7 @@ function box(g, b) {
   const cols = 4;
 
   for (const f of faces) {
-    if (f.some(v => !v)) continue;
+    if (!sane(f)) continue;
     poly(g, f);
     g.fillStyle = 'rgba(5,9,12,.9)'; g.fill();
     g.strokeStyle = `rgba(${rgb},${(a * 0.7).toFixed(3)})`;
@@ -318,7 +326,7 @@ function box(g, b) {
   }
 
   // 창은 따로 간다. 실루엣도 같이 — 앞 건물이 뒤 건물 창을 가려야 한다.
-  CITY.push({ sil: faces.filter(f => !f.some(v => !v)).concat([t]), wins, rgb, wa: Math.min(0.9, a * 1.6) });
+  CITY.push({ sil: faces.filter(sane).concat([t]), wins, rgb, wa: Math.min(0.9, a * 1.6) });
 }
 
 // 도시 — 블록마다 한 채씩. 가운데 길은 비워 둔다. 폰이 거기 선다.
@@ -340,7 +348,8 @@ function wireCity(g) {
         bw, bd, h,
         c: NEON[(rnd() * NEON.length) | 0],
         a: 0.26 + rnd() * 0.4,
-        lit: 0.1 + rnd() * 0.3,
+        // 한 채는 거의 다 켜져 있거나, 거의 다 비어 있다. 그 중간이 제일 안 읽힌다.
+        lit: rnd() < 0.5 ? 0.62 + rnd() * 0.3 : 0.06 + rnd() * 0.1,
         rnd: seeded(0x9e37 + ((x * 131 + z * 17) | 0)),
       });
     }
