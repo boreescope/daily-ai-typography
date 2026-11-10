@@ -149,6 +149,9 @@ function spawnMur(i) {
 // ── the sheet, baked once ──────────────────────────────────────────────────
 let bed = null;
 
+// 도시의 불 켜진 창. 밤이 가는 동안 하나씩 꺼진다.
+let CITY = [], WINS = [], winCv = null, winIdx = 0;
+
 function grain(g, w, h, amt) {
   const q = 3, gw = Math.ceil(w / q), gh = Math.ceil(h / q);
   const c = document.createElement('canvas');
@@ -255,6 +258,7 @@ function box(g, b) {
   const t = [P(x0, h, z0), P(x1, h, z0), P(x1, h, z1), P(x0, h, z1)];
   if (t.some(v => !v)) return;
 
+  const wins = [];
   const faces = [];
   faces.push([P(x0, 0, z0), P(x1, 0, z0), t[1], t[0]]);          // 앞
   if (x1 < 0) faces.push([P(x1, 0, z0), P(x1, 0, z1), t[2], t[1]]);
@@ -283,24 +287,14 @@ function box(g, b) {
       g.beginPath(); g.moveTo(l[0], l[1]); g.lineTo(r[0], r[1]); g.stroke();
     }
 
-    // 불 켜진 창 — 한 면치 한 번에 그려야 shadowBlur 가 안 비싸다
-    g.beginPath();
-    let any = false;
+    // 불 켜진 창은 여기서 안 칠한다. 하나씩 꺼야 해서 따로 모아 둔다.
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
         if (b.rnd() > b.lit) continue;
         const u0 = (c + 0.22) / cols, u1 = (c + 0.78) / cols;
         const v0 = (r + 0.26) / rows, v1 = (r + 0.74) / rows;
-        const q = [at(f, u0, v0), at(f, u1, v0), at(f, u1, v1), at(f, u0, v1)];
-        g.moveTo(q[0][0], q[0][1]);
-        for (let i = 1; i < 4; i++) g.lineTo(q[i][0], q[i][1]);
-        g.closePath();
-        any = true;
+        wins.push([at(f, u0, v0), at(f, u1, v0), at(f, u1, v1), at(f, u0, v1)]);
       }
-    }
-    if (any) {
-      g.fillStyle = `rgba(${rgb},${Math.min(0.9, a * 1.6).toFixed(3)})`;
-      g.fill();
     }
   }
 
@@ -322,10 +316,14 @@ function box(g, b) {
     g.lineTo(lerp(t[3][0], t[2][0], u), lerp(t[3][1], t[2][1], u));
     g.stroke();
   }
+
+  // 창은 따로 간다. 실루엣도 같이 — 앞 건물이 뒤 건물 창을 가려야 한다.
+  CITY.push({ sil: faces.filter(f => !f.some(v => !v)).concat([t]), wins, rgb, wa: Math.min(0.9, a * 1.6) });
 }
 
 // 도시 — 블록마다 한 채씩. 가운데 길은 비워 둔다. 폰이 거기 선다.
 function wireCity(g) {
+  CITY = [];
   const rnd = seeded(0x43484735);
   const bs = [];
   const G = 6, FAR = 170;
@@ -403,6 +401,69 @@ function bakeBed() {
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
   blotch(g);
+
+  bakeWindows();
+}
+
+// 창만 따로 한 장에 굽는다. 끄는 건 그 자리를 지우는 것이다.
+// 먼 건물부터 그리되, 건물 실루엣으로 뒤쪽을 먼저 지워 가림을 만든다.
+function bakeWindows() {
+  winCv = document.createElement('canvas');
+  winCv.width = bed.width;
+  winCv.height = bed.height;
+  const g = winCv.getContext('2d');
+  g.scale(DPR, DPR);
+
+  WINS = [];
+  for (const c of CITY) {
+    g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = '#000';
+    for (const f of c.sil) { poly(g, f); g.fill(); }
+    if (!c.wins.length) continue;
+    g.globalCompositeOperation = 'source-over';
+    g.fillStyle = `rgba(${c.rgb},${c.wa.toFixed(3)})`;
+    g.beginPath();
+    for (const q of c.wins) {
+      g.moveTo(q[0][0], q[0][1]);
+      for (let i = 1; i < 4; i++) g.lineTo(q[i][0], q[i][1]);
+      g.closePath();
+      WINS.push(q);
+    }
+    g.fill();
+  }
+  g.globalCompositeOperation = 'source-over';
+
+  // 꺼지는 시각을 흩는다. 앞쪽에 몰아서 초저녁부터 하나씩 빠지게.
+  const r = seeded(0x77314d);
+  const off = WINS.map(() => 212 + Math.pow(r(), 1.9) * 290);
+  WINS.forEach((q, i) => { q.off = off[i]; });
+  WINS.sort((a, b) => a.off - b.off);
+  winIdx = 0;
+  catchUpWindows();
+}
+
+// 이미 지난 시각 몫은 한 번에 꺼 둔다 (창 크기가 바뀌어 다시 구웠을 때)
+function catchUpWindows() {
+  if (!winCv) return;
+  const g = winCv.getContext('2d');
+  g.save();
+  g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.globalCompositeOperation = 'destination-out';
+  g.fillStyle = '#000';
+  g.strokeStyle = '#000';
+  g.lineWidth = 1.2;
+  let n = 0;
+  while (winIdx < WINS.length && clk >= WINS[winIdx].off) {
+    const q = WINS[winIdx++];
+    g.beginPath();
+    g.moveTo(q[0][0], q[0][1]);
+    for (let i = 1; i < 4; i++) g.lineTo(q[i][0], q[i][1]);
+    g.closePath();
+    g.fill(); g.stroke();
+    n++;
+  }
+  g.restore();
+  return n;
 }
 
 // 세로로 흐른 자국 — 오래 켜 둔 화면에 남는 것
@@ -1226,6 +1287,7 @@ function draw() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, cv.width, cv.height);
   if (bed) ctx.drawImage(bed, 0, 0);
+  if (winCv) ctx.drawImage(winCv, 0, 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   drawRays(ctx);
   drawGlow(ctx);
@@ -1320,7 +1382,10 @@ function step(dt) {
   t += dt;
 
   // 꽂으면 밤이 간다. 안 꽂으면 시계도 안 간다.
-  if (plug && !slept) clk = Math.min(clk + dt * RATE, 9 * 60);
+  if (plug && !slept) {
+    clk = Math.min(clk + dt * RATE, 9 * 60);
+    catchUpWindows();
+  }
 
   if (plug) chg = clamp(0.08 + (clk - plugAt) / 15 * 0.92, 0, 1);
   else chg = clamp(chg - dt * 0.005, 0.02, 1);   // never a flat 0. 방전 has to stay readable
