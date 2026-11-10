@@ -6,36 +6,36 @@
 <title>CHARGING — 03:57</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=VT323&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #05030c; }
-  body { font-family: 'Share Tech Mono', monospace; cursor: default; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #16101c; }
+  body { font-family: 'VT323', monospace; cursor: default; }
   body.grab { cursor: grabbing; }
   canvas { display: block; }
 
   .home-btn {
     position: fixed; left: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Share Tech Mono', monospace; letter-spacing: .22em;
-    color: #3ddcf5; text-decoration: none; padding: 9px 13px;
-    border: 1px solid rgba(61,220,245,.3); background: rgba(5,3,12,.6);
+    font: 700 11px/1 Orbitron, sans-serif; letter-spacing: .22em;
+    color: #a8ff3e; text-decoration: none; padding: 8px 13px;
+    border: 1px solid rgba(168,255,62,.32); background: rgba(14,9,18,.62);
     transition: color .3s, border-color .3s;
   }
-  .home-btn:hover { color: #ff2d9b; border-color: rgba(255,45,155,.55); }
+  .home-btn:hover { color: #2bff9e; border-color: rgba(43,255,158,.6); }
 
   .snd {
     position: fixed; right: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Share Tech Mono', monospace; letter-spacing: .18em;
-    color: #3ddcf5; padding: 9px 13px; cursor: pointer;
-    border: 1px solid rgba(61,220,245,.3); background: rgba(5,3,12,.6);
+    font: 700 11px/1 Orbitron, sans-serif; letter-spacing: .18em;
+    color: #a8ff3e; padding: 8px 13px; cursor: pointer;
+    border: 1px solid rgba(168,255,62,.32); background: rgba(14,9,18,.62);
     transition: color .3s, border-color .3s;
   }
-  .snd:hover { color: #ff2d9b; border-color: rgba(255,45,155,.55); }
+  .snd:hover { color: #2bff9e; border-color: rgba(43,255,158,.6); }
 
   .hint {
     position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20;
-    font: 400 10px/1 'Share Tech Mono', monospace; letter-spacing: .2em;
-    color: rgba(61,220,245,.58); white-space: nowrap; pointer-events: none;
+    font: 400 15px/1 VT323, monospace; letter-spacing: .24em;
+    color: rgba(168,255,62,.62); white-space: nowrap; pointer-events: none;
     transition: opacity 1.4s ease;
   }
   .hint.off { opacity: 0; }
@@ -156,7 +156,7 @@ function grain(g, w, h, amt) {
   const d = im.data;
   for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
     const i = (y * gw + x) * 4;
-    d[i] = 110; d[i + 1] = 180; d[i + 2] = 215;
+    d[i] = 150; d[i + 1] = 200; d[i + 2] = 110;
     d[i + 3] = Math.random() * amt;
   }
   gg.putImageData(im, 0, 0);
@@ -164,10 +164,12 @@ function grain(g, w, h, amt) {
   g.drawImage(c, 0, 0, w, h);
 }
 
-// ── 창밖 ───────────────────────────────────────────────────────────────────
-// 방은 꺼져 있고 바깥은 안 꺼진다. 간판이 빼곡한 밤이 창을 통해 들어온다.
-// 흐린 빛 덩이를 깔고, 그 위에 작고 선명한 불빛을 찍어 밀도를 만든다.
-const NEON = ['0,226,255', '255,40,150', '168,70,255', '120,255,230'];
+// ── 바깥 ───────────────────────────────────────────────────────────────────
+// 방이 아니라 격자다. 선으로만 선 도시가 지평선 위에 있고, 바닥은 소실점으로
+// 모이는 그리드다. 전부 한 번 구워서 쓴다.
+const LIME = '168,255,62';
+const GRN = '43,255,158';
+const MINT = '120,255,214';
 
 // hsh 는 고르게 안 퍼져서 점이 대각선으로 줄을 선다. 여긴 따로 쓴다.
 function seeded(seed) {
@@ -180,81 +182,135 @@ function seeded(seed) {
   };
 }
 
-function neonCast(g) {
-  const rnd = seeded(0x43484731);
-  // 곡선·숫자가 앉는 왼쪽 아래와 맨 아래 줄에서는 간판을 죽인다
-  const clear = (x, y) =>
-    (x < W * 0.44 && y > H * 0.66) || y > H * 0.93 ? 0.22 : 1;
+const hzY = () => H * 0.545;
 
-  // 1. 흐린 쪽 — 간판에서 번진 빛
-  const c = document.createElement('canvas');
-  c.width = Math.max(1, Math.round(W / 2));
-  c.height = Math.max(1, Math.round(H / 2));
-  const n = c.getContext('2d');
-  n.scale(0.5, 0.5);
+// 바닥 — 소실점 하나로 모이고, 멀수록 가로선이 촘촘하다
+function floorGrid(g, hz) {
+  const vx = W / 2, n = 30, far = H - hz;
+  g.lineCap = 'butt';
 
-  for (let i = 0; i < 18; i++) {
-    const col = NEON[(rnd() * NEON.length) | 0];
-    const rr = (0.1 + rnd() * 0.22) * S;
-    const x = rnd() * W;
-    const y = rnd() * H * 0.95;
-    const dim = 1 - Math.abs(x / W - 0.5) * 0.8;   // 가운데는 폰이 선다
-    const gd = n.createRadialGradient(x, y, 0, x, y, rr);
-    gd.addColorStop(0, `rgba(${col},${(0.45 * dim + rnd() * 0.3).toFixed(3)})`);
-    gd.addColorStop(.4, `rgba(${col},${(0.12 * dim).toFixed(3)})`);
-    gd.addColorStop(1, `rgba(${col},0)`);
-    n.fillStyle = gd;
-    n.fillRect(x - rr, y - rr, rr * 2, rr * 2);
+  for (let i = -n; i <= n; i++) {
+    const u = i / n;
+    g.beginPath();
+    g.moveTo(vx + u * W * 0.045, hz);
+    g.lineTo(vx + u * W * 2.6, H + far * 0.4);
+    g.strokeStyle = `rgba(${i % 4 === 0 ? GRN : LIME},${(0.07 + 0.2 * (1 - Math.abs(u))).toFixed(3)})`;
+    g.lineWidth = Math.abs(i) < 2 ? 1.4 : 1;
+    g.stroke();
   }
 
-  const blur = Math.max(6, S * 0.02);
-  if ('filter' in g) g.filter = `blur(${blur.toFixed(1)}px)`;
-  g.globalCompositeOperation = 'lighter';
-  g.globalAlpha = 'filter' in g ? 0.76 : 0.38;
-  g.drawImage(c, 0, 0, W, H);
-  g.globalAlpha = 1;
-  if ('filter' in g) g.filter = 'none';
+  for (let i = 1; i <= 26; i++) {
+    const u = i / 26;
+    const y = hz + far * Math.pow(u, 2.1) * 1.3;
+    if (y > H + 4) break;
+    g.beginPath();
+    g.moveTo(0, y); g.lineTo(W, y);
+    g.strokeStyle = `rgba(${i % 4 === 0 ? GRN : LIME},${(0.06 + u * 0.22).toFixed(3)})`;
+    g.lineWidth = 1 + u * 0.8;
+    g.stroke();
+  }
 
-  // 2. 선명한 쪽 — 간판. 세로로 길게 선 것이 양옆에 빼곡하다.
-  for (let i = 0; i < 34; i++) {
-    const side = i % 2;                      // 좌우로 번갈아 세운다
-    const off = 0.02 + rnd() * 0.3;
-    const x = (side ? 1 - off : off) * W;
-    const edge = Math.abs(x / W - 0.5) * 2;  // 가운데로 올수록 어둡다
-    const lit = 0.25 + edge * 0.75;
-    const cw = S * (0.0035 + rnd() * 0.009);
-    const col = NEON[(rnd() * NEON.length) | 0];
-    const alt = NEON[(rnd() * NEON.length) | 0];
-    let y = rnd() * H * 0.9 - H * 0.08;
-    const seg = 3 + ((rnd() * 9) | 0);
-    for (let j = 0; j < seg; j++) {
-      const sh = cw * (0.6 + rnd() * 3.4);
-      const c2 = rnd() > 0.72 ? alt : col;
-      const a = (0.34 + rnd() * 0.66) * lit * clear(x, y + sh * 0.5);
-      g.shadowColor = `rgba(${c2},${(a * 0.9).toFixed(3)})`;
-      g.shadowBlur = cw * 3.4;
-      g.fillStyle = `rgba(${c2},${a.toFixed(3)})`;
-      g.fillRect(x - cw / 2, y, cw, sh);
-      y += sh + cw * (0.5 + rnd() * 1.1);
+  // 지평선 자체는 한 줄 더 밝다
+  g.beginPath();
+  g.moveTo(0, hz); g.lineTo(W, hz);
+  g.strokeStyle = `rgba(${MINT},.22)`;
+  g.lineWidth = 1;
+  g.stroke();
+}
+
+// 돔 — 도시를 감싸는 점선 반구
+function wireDome(g, hz) {
+  const cx = W / 2, R = Math.min(W * 0.43, hz * 0.96);
+  g.strokeStyle = `rgba(${LIME},.13)`;
+  g.lineWidth = 1;
+  for (let k = 0; k < 4; k++) {
+    const r = R * (1 - k * 0.19);
+    g.beginPath();
+    g.ellipse(cx, hz, r, r * (0.92 - k * 0.14), 0, Math.PI, TAU);
+    g.stroke();
+  }
+  for (let i = 0; i <= 14; i++) {
+    const th = Math.PI + (i / 14) * Math.PI;
+    g.beginPath();
+    g.moveTo(cx, hz);
+    g.lineTo(cx + Math.cos(th) * R, hz + Math.sin(th) * R * 0.92);
+    g.strokeStyle = `rgba(${LIME},.07)`;
+    g.stroke();
+  }
+  // 교차점마다 점을 찍는다
+  for (let k = 0; k < 4; k++) {
+    const r = R * (1 - k * 0.19), ry = r * (0.92 - k * 0.14);
+    for (let i = 0; i <= 28; i++) {
+      const th = Math.PI + (i / 28) * Math.PI;
+      const x = cx + Math.cos(th) * r, y = hz + Math.sin(th) * ry;
+      g.beginPath();
+      g.arc(x, y, S * (0.0012 + k * 0.0004), 0, TAU);
+      g.fillStyle = `rgba(${k % 2 ? GRN : LIME},${(0.3 - k * 0.05).toFixed(3)})`;
+      g.fill();
     }
   }
+}
 
-  // 사이사이 먼 불빛
-  for (let i = 0; i < 260; i++) {
-    const x = rnd() * W, y = rnd() * H;
-    const edge = Math.abs(x / W - 0.5) * 2;
-    if (edge < 0.45 && rnd() > 0.2) continue;
-    const col = NEON[(rnd() * NEON.length) | 0];
-    const r = S * (0.0008 + rnd() * 0.0016);
-    const a = (0.25 + rnd() * 0.6) * (0.3 + edge * 0.7) * clear(x, y);
-    g.shadowColor = `rgba(${col},${(a * 0.8).toFixed(3)})`;
-    g.shadowBlur = r * 7;
-    g.fillStyle = `rgba(${col},${a.toFixed(3)})`;
-    g.fillRect(x - r, y - r, r * 2, r * 2);
+// 도시 — 선으로만 선 건물. 가운데는 폰이 서니 한 단 죽인다.
+function wireCity(g, hz) {
+  const rnd = seeded(0x43484732);
+  const towers = [];
+  for (let i = 0; i < 26; i++) {
+    const x = (0.02 + rnd() * 0.96) * W;
+    const w = S * (0.028 + rnd() * 0.075);
+    const h = S * (0.06 + Math.pow(rnd(), 1.7) * 0.42);
+    towers.push({ x: x - w / 2, w, h, c: rnd() > 0.45 ? LIME : GRN, k: rnd() });
   }
+  towers.sort((p, q) => p.h - q.h);   // 낮은 것부터, 높은 게 앞에 겹치게
 
-  g.shadowBlur = 0;
-  g.globalCompositeOperation = 'source-over';
+  for (const b of towers) {
+    const mid = Math.abs((b.x + b.w / 2) / W - 0.5) * 2;
+    const a = (0.2 + mid * 0.5) * (0.55 + b.k * 0.45);
+    const top = hz - b.h;
+
+    g.fillStyle = 'rgba(10,7,14,.8)';
+    g.fillRect(b.x, top, b.w, b.h);
+
+    g.strokeStyle = `rgba(${b.c},${a.toFixed(3)})`;
+    g.lineWidth = 1;
+    g.strokeRect(b.x + 0.5, top + 0.5, b.w - 1, b.h - 1);
+
+    const cols = Math.max(2, Math.round(b.w / (S * 0.009)));
+    for (let i = 1; i < cols; i++) {
+      const x = b.x + (b.w * i) / cols;
+      g.beginPath(); g.moveTo(x, top); g.lineTo(x, hz);
+      g.strokeStyle = `rgba(${b.c},${(a * 0.42).toFixed(3)})`;
+      g.stroke();
+    }
+    const rows = Math.max(3, Math.round(b.h / (S * 0.013)));
+    for (let i = 1; i < rows; i++) {
+      const y = top + (b.h * i) / rows;
+      g.beginPath(); g.moveTo(b.x, y); g.lineTo(b.x + b.w, y);
+      g.strokeStyle = `rgba(${b.c},${(a * 0.3).toFixed(3)})`;
+      g.stroke();
+    }
+    // 창 몇 개만 켜져 있다
+    for (let i = 0; i < 5; i++) {
+      if (rnd() > 0.5) continue;
+      const wx = b.x + rnd() * b.w, wy = top + rnd() * b.h;
+      const r = S * 0.003;
+      g.fillStyle = `rgba(${MINT},${(a * 0.9).toFixed(3)})`;
+      g.fillRect(wx, wy, r * 2.2, r);
+    }
+  }
+}
+
+// 지평선 위에 흩어진 점들
+function starField(g, hz) {
+  const rnd = seeded(0x43484733);
+  for (let i = 0; i < 160; i++) {
+    const x = rnd() * W, y = rnd() * hz * 0.95;
+    const r = S * (0.0006 + rnd() * 0.0016);
+    g.beginPath();
+    g.arc(x, y, r, 0, TAU);
+    g.fillStyle = `rgba(${rnd() > 0.6 ? GRN : LIME},${(0.1 + rnd() * 0.45).toFixed(3)})`;
+    g.fill();
+  }
 }
 
 function bakeBed() {
@@ -264,54 +320,24 @@ function bakeBed() {
   const g = bed.getContext('2d');
   g.scale(DPR, DPR);
 
-  g.fillStyle = '#03040e';
+  const hz = hzY();
+  const sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, '#241a2b');
+  sky.addColorStop(.52, '#180f1e');
+  sky.addColorStop(1, '#0b0810');
+  g.fillStyle = sky;
   g.fillRect(0, 0, W, H);
 
-  neonCast(g);
+  starField(g, hz);
+  wireDome(g, hz);
+  wireCity(g, hz);
+  floorGrid(g, hz);
 
-  // 숫자와 곡선이 앉는 아래쪽은 눌러 둔다. 빛은 위에서 들어온다.
-  const dk = g.createLinearGradient(0, H * 0.5, 0, H);
-  dk.addColorStop(0, 'rgba(3,4,14,0)');
-  dk.addColorStop(1, 'rgba(3,4,14,.8)');
-  g.fillStyle = dk;
-  g.fillRect(0, H * 0.5, W, H * 0.5);
+  grain(g, W, H, 13);
 
-  // soft folds. Cloth read as cloth only once the light had somewhere to pool,
-  // so these are big and very low contrast rather than many and sharp.
-  for (let i = 0; i < 26; i++) {
-    const r = (0.16 + hsh(i, 1, 3) * 0.5) * S;
-    const x = hsh(i, 2, 5) * W, y = hsh(i, 3, 9) * H;
-    const up = hsh(i, 4, 11) > 0.45;
-    const gd = g.createRadialGradient(x, y, 0, x, y, r);
-    gd.addColorStop(0, up ? 'rgba(34,58,96,.3)' : 'rgba(3,1,8,.46)');
-    gd.addColorStop(1, 'rgba(0,0,0,0)');
-    g.fillStyle = gd;
-    g.fillRect(x - r, y - r, r * 2, r * 2);
-  }
-
-  // creases, running the long way across the bed
-  g.lineCap = 'round';
-  for (let i = 0; i < 7; i++) {
-    const y0 = (0.08 + i * 0.14 + hsh(i, 5, 13) * 0.05) * H;
-    g.beginPath();
-    g.moveTo(-40, y0);
-    for (let x = -40; x <= W + 40; x += 70) {
-      g.lineTo(x, y0 + Math.sin(x / (160 + i * 40) + i) * S * 0.035 + (hsh(i, x | 0, 17) - 0.5) * 8);
-    }
-    g.strokeStyle = `rgba(46,74,112,${0.08 + hsh(i, 6, 19) * 0.05})`;
-    g.lineWidth = 2 + hsh(i, 7, 23) * 5;
-    g.stroke();
-    g.strokeStyle = 'rgba(0,0,0,.14)';
-    g.lineWidth = 1.2;
-    g.stroke();
-  }
-
-  grain(g, W, H, 17);
-
-  // the room is darker at the corners than it is by the pillow
-  const vg = g.createRadialGradient(W / 2, H * 0.52, S * 0.1, W / 2, H * 0.52, S * 0.95);
+  const vg = g.createRadialGradient(W / 2, hz, S * 0.1, W / 2, hz, S * 1.05);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,.62)');
+  vg.addColorStop(1, 'rgba(0,0,0,.6)');
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
 }
@@ -437,20 +463,14 @@ function squircle(g, x, y, w, h, r) {
 }
 
 function drawGlow(g) {
-  const r = S * (0.40 + bri * 0.32);
+  const r = S * (0.40 + bri * 0.34);
   const gd = g.createRadialGradient(PH.x, PH.y, 0, PH.x, PH.y, r);
-  gd.addColorStop(0, `rgba(0,190,235,${bri * 0.26})`);
-  gd.addColorStop(.42, `rgba(34,88,168,${bri * 0.1})`);
+  gd.addColorStop(0, `rgba(${LIME},${bri * 0.17})`);
+  gd.addColorStop(.4, `rgba(${GRN},${bri * 0.07})`);
   gd.addColorStop(1, 'rgba(0,0,0,0)');
   g.globalCompositeOperation = 'lighter';
   g.fillStyle = gd;
   g.fillRect(PH.x - r, PH.y - r, r * 2, r * 2);
-  const mr = r * 0.78;
-  const md = g.createRadialGradient(PH.x, PH.y + r * 0.3, 0, PH.x, PH.y + r * 0.3, mr);
-  md.addColorStop(0, `rgba(255,45,155,${bri * 0.09})`);
-  md.addColorStop(1, 'rgba(0,0,0,0)');
-  g.fillStyle = md;
-  g.fillRect(PH.x - mr, PH.y + r * 0.3 - mr, mr * 2, mr * 2);
   g.globalCompositeOperation = 'source-over';
 }
 
@@ -484,77 +504,73 @@ function drawCable(g) {
   const G = plugGeo();
   const ax = W + S * 0.08, ay = H + S * 0.1;
   const d = Math.hypot(tip.x - ax, tip.y - ay);
-  // the shorter the run, the more cable there is to pool on the sheet
   const sag = clamp((S * 1.3 - d) * 0.42, 0, S * 0.3);
   const mx = (ax + tip.x) / 2, my = (ay + tip.y) / 2 + sag;
   const ang = plugAngle(mx, my);
   const ca = Math.cos(ang), sa = Math.sin(ang);
 
-  // 꽂으면 금속은 폰 안으로 들어간다. 폰을 뒤에 그리니 저절로 가려진다.
   const ins = plug ? G.mL * 0.8 : 0;
   const tx = tip.x + ca * ins, ty = tip.y + sa * ins;
-
-  // 선은 플러그 끝이 아니라 하우징 뒤에서 끝난다
   const tot = G.mL + G.hL + G.sL;
   const bx = tx - ca * tot, by = ty - sa * tot;
   const c2x = bx - ca * S * 0.07, c2y = by - sa * S * 0.07;
 
+  // 선 하나. 굵은 어두운 심 위에 라임 한 줄.
   g.lineCap = 'round'; g.lineJoin = 'round';
   g.beginPath();
   g.moveTo(ax, ay);
   g.bezierCurveTo(mx, my, c2x, c2y, bx, by);
-  g.strokeStyle = '#040508'; g.lineWidth = S * 0.0205; g.stroke();
-  g.strokeStyle = '#191e27'; g.lineWidth = S * 0.0145; g.stroke();
-  g.strokeStyle = `rgba(146,178,210,${0.08 + bri * 0.07})`;
-  g.lineWidth = S * 0.0035; g.stroke();
+  g.strokeStyle = 'rgba(8,6,12,.9)';
+  g.lineWidth = S * 0.011;
+  g.stroke();
+  g.shadowColor = `rgba(${LIME},.4)`;
+  g.shadowBlur = S * 0.01;
+  g.strokeStyle = `rgba(${LIME},${(0.45 + bri * 0.35).toFixed(3)})`;
+  g.lineWidth = Math.max(1, S * 0.002);
+  g.stroke();
+  g.shadowBlur = 0;
 
   g.save();
   g.translate(tx, ty);
   g.rotate(ang);
 
-  // 목 — 뒤로 갈수록 가늘어진다
-  const n0 = -(G.mL + G.hL), n1 = n0 - G.sL, nr = S * 0.0082;
+  const n0 = -(G.mL + G.hL), n1 = n0 - G.sL;
+  const lit = plug ? 0.9 : 0.6 + 0.25 * (0.5 + 0.5 * Math.sin(t * 2.4));
+
+  // 목
   g.beginPath();
-  g.moveTo(n0, -G.hW * 0.4); g.lineTo(n1, -nr);
-  g.lineTo(n1, nr);          g.lineTo(n0, G.hW * 0.4);
+  g.moveTo(n0, -G.hW * 0.4); g.lineTo(n1, -S * 0.004);
+  g.lineTo(n1, S * 0.004);   g.lineTo(n0, G.hW * 0.4);
   g.closePath();
-  g.fillStyle = '#13171f'; g.fill();
+  g.fillStyle = 'rgba(8,6,12,.9)'; g.fill();
+  g.strokeStyle = `rgba(${LIME},${(lit * 0.4).toFixed(3)})`;
+  g.lineWidth = 1; g.stroke();
 
-  // 하우징
+  // 하우징 — 테두리와 가로획 두 줄
   rrect(g, n0, -G.hW / 2, G.hL, G.hW, G.hW * 0.2);
-  const hg = g.createLinearGradient(0, -G.hW / 2, 0, G.hW / 2);
-  hg.addColorStop(0, '#242b34'); hg.addColorStop(.42, '#161b22'); hg.addColorStop(1, '#0a0d13');
-  g.fillStyle = hg; g.fill();
-  g.strokeStyle = 'rgba(160,192,224,.13)'; g.lineWidth = 1; g.stroke();
+  g.fillStyle = 'rgba(8,6,12,.9)'; g.fill();
+  g.strokeStyle = `rgba(${LIME},${(lit * 0.6).toFixed(3)})`;
+  g.lineWidth = Math.max(1, S * 0.0014); g.stroke();
+  for (let i = 1; i <= 2; i++) {
+    const x = n0 + (G.hL * i) / 3;
+    g.beginPath(); g.moveTo(x, -G.hW / 2); g.lineTo(x, G.hW / 2);
+    g.strokeStyle = `rgba(${LIME},${(lit * 0.25).toFixed(3)})`;
+    g.lineWidth = 1; g.stroke();
+  }
 
-  // 금속 쉘 — 위에서 보면 모서리만 살짝 둥근 네모다
+  // 금속 쉘 — 가운데 이음선 하나
   rrect(g, -G.mL, -G.mW / 2, G.mL, G.mW, G.mW * 0.1);
-  // 둥글게 말린 쉘이라 가운데가 밝고 양 가장자리가 어둡다
-  const mg = g.createLinearGradient(0, -G.mW / 2, 0, G.mW / 2);
-  mg.addColorStop(0, '#2b333d'); mg.addColorStop(.18, '#6d7a89');
-  mg.addColorStop(.42, '#9aa8b7'); mg.addColorStop(.72, '#5e6a78');
-  mg.addColorStop(1, '#262d36');
-  g.fillStyle = mg; g.fill();
-
-  // 쉘 이음선 — 가운데를 길게 지나간다
+  g.fillStyle = 'rgba(8,6,12,.9)'; g.fill();
+  g.shadowColor = `rgba(${GRN},${(lit * 0.6).toFixed(3)})`;
+  g.shadowBlur = S * 0.008;
+  g.strokeStyle = `rgba(${GRN},${lit.toFixed(3)})`;
+  g.lineWidth = Math.max(1, S * 0.0016); g.stroke();
+  g.shadowBlur = 0;
   g.beginPath();
   g.moveTo(-G.mL * 0.88, 0); g.lineTo(-G.mL * 0.08, 0);
-  g.strokeStyle = 'rgba(16,21,28,.3)';
-  g.lineWidth = Math.max(1, S * 0.0009); g.stroke();
+  g.strokeStyle = `rgba(${GRN},${(lit * 0.45).toFixed(3)})`;
+  g.lineWidth = 1; g.stroke();
 
-  // 끝 입술
-  g.beginPath();
-  g.moveTo(-G.mL * 0.04, -G.mW * 0.4); g.lineTo(-G.mL * 0.04, G.mW * 0.4);
-  g.strokeStyle = 'rgba(206,224,244,.22)';
-  g.lineWidth = Math.max(1, S * 0.0012); g.stroke();
-
-  if (!plug) {
-    // 아직 안 꽂힌 동안만 — 집어 들라고 금속에 빛이 한 번씩 돈다
-    const a = 0.1 + 0.13 * (0.5 + 0.5 * Math.sin(t * 2.4));
-    rrect(g, -G.mL, -G.mW / 2, G.mL, G.mW, G.mW * 0.1);
-    g.strokeStyle = `rgba(190,224,255,${a.toFixed(3)})`;
-    g.lineWidth = Math.max(1, S * 0.0022); g.stroke();
-  }
   g.restore();
 }
 
@@ -572,7 +588,7 @@ function bolt(g, x, y, h, a, rgb) {
   g.lineTo(h * 0.24, -h * 0.08);
   g.lineTo(h * 0.03, -h * 0.08);
   g.closePath();
-  g.fillStyle = `rgba(${rgb || '0,226,255'},${a})`;
+  g.fillStyle = `rgba(${rgb || LIME},${a})`;
   g.fill();
   g.restore();
 }
@@ -585,20 +601,19 @@ function track(g, px) {
 // 화면에 가로줄이 깔리고, 밝은 띠 하나가 천천히 내려간다
 function scanlines(g, sw, sh) {
   const step = Math.max(2, sh * 0.0075);
-  g.fillStyle = `rgba(0,0,0,${0.1 + bri * 0.12})`;
+  g.fillStyle = `rgba(0,0,0,${0.12 + bri * 0.14})`;
   for (let y = -sh / 2; y < sh / 2; y += step) g.fillRect(-sw / 2, y, sw, step * 0.42);
   const by = -sh / 2 + ((t * 0.09) % 1) * sh;
   const bg = g.createLinearGradient(0, by - sh * 0.1, 0, by + sh * 0.1);
-  bg.addColorStop(0, 'rgba(0,226,255,0)');
-  bg.addColorStop(.5, `rgba(0,226,255,${bri * 0.045})`);
-  bg.addColorStop(1, 'rgba(0,226,255,0)');
+  bg.addColorStop(0, `rgba(${LIME},0)`);
+  bg.addColorStop(.5, `rgba(${LIME},${bri * 0.05})`);
+  bg.addColorStop(1, `rgba(${LIME},0)`);
   g.fillStyle = bg;
   g.fillRect(-sw / 2, by - sh * 0.1, sw, sh * 0.2);
 }
 
-// ── iOS 화면 ───────────────────────────────────────────────────────────────
-// 다이내믹 아일랜드 125 x 37 pt, 상태바 글자 왼쪽, 아이콘 오른쪽,
-// 맨 아래 홈 인디케이터. 아이폰에서 재 본 비율 그대로 옮겼다.
+// ── 화면 ───────────────────────────────────────────────────────────────────
+// 폰도 선으로만 서 있다. 화면 안도 격자 위에 글자가 얹힌 꼴이다.
 function islandBox(sw, sh) {
   const w = sw * 0.318, h = sw * 0.094;
   return { x: -w / 2, y: -sh / 2 + sh * 0.0138, w, h };
@@ -607,47 +622,46 @@ function islandBox(sw, sh) {
 function drawIsland(g, sw, sh) {
   const b = islandBox(sw, sh);
   rrect(g, b.x, b.y, b.w, b.h, b.h / 2);
-  g.fillStyle = '#000'; g.fill();
-  const r = b.h * 0.2, cx = b.x + b.w - b.h * 0.5, cy = b.y + b.h / 2;
+  g.fillStyle = 'rgba(6,5,10,.92)'; g.fill();
+  g.strokeStyle = `rgba(${LIME},${(0.2 + bri * 0.3).toFixed(3)})`;
+  g.lineWidth = 1; g.stroke();
+  const r = b.h * 0.22, cx = b.x + b.w - b.h * 0.5, cy = b.y + b.h / 2;
   g.beginPath(); g.arc(cx, cy, r, 0, TAU);
-  g.fillStyle = '#0a1018'; g.fill();
-  g.beginPath(); g.arc(cx - r * 0.26, cy - r * 0.26, r * 0.42, 0, TAU);
-  g.fillStyle = `rgba(58,96,142,${0.22 + bri * 0.2})`; g.fill();
+  g.strokeStyle = `rgba(${GRN},${(0.3 + bri * 0.4).toFixed(3)})`; g.stroke();
 }
 
 function drawStatusBar(g, sw, sh) {
   const b = islandBox(sw, sh);
-  const cy = b.y + b.h / 2, a = bri * 0.92;
-  const fg = `rgba(240,247,255,${a})`;
+  const cy = b.y + b.h / 2, a = 0.35 + bri * 0.55;
+  const fg = `rgba(${LIME},${a.toFixed(3)})`;
 
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = `600 ${(sw * 0.053) | 0}px Inter, system-ui, sans-serif`;
+  g.font = `400 ${(sw * 0.082) | 0}px VT323, monospace`;
   g.fillStyle = fg;
-  g.fillText(`${two(clk / 60)}:${two(clk % 60)}`, (b.x - sw * 0.5) / 2, cy + sw * 0.002);
+  g.fillText(`${two(clk / 60)}:${two(clk % 60)}`, (b.x - sw * 0.5) / 2, cy + sw * 0.004);
 
-  let x = sw * 0.5 - sw * 0.062;        // 오른쪽 끝에서부터 왼쪽으로
+  let x = sw * 0.5 - sw * 0.062;
 
-  // 배터리 — 충전 중이면 초록으로 바뀌고 안에 번개가 뜬다
-  const bw = sw * 0.083, bh = sw * 0.04, lw = Math.max(1, sw * 0.0042);
-  rrect(g, x - bw, cy - bh / 2, bw, bh, bh * 0.36);
-  g.strokeStyle = `rgba(236,245,255,${a * 0.4})`; g.lineWidth = lw; g.stroke();
+  // 배터리 — 테두리와 채움
+  const bw = sw * 0.083, bh = sw * 0.04, lw = Math.max(1, sw * 0.0038);
+  rrect(g, x - bw, cy - bh / 2, bw, bh, bh * 0.3);
+  g.strokeStyle = fg; g.lineWidth = lw; g.stroke();
   g.beginPath();
   g.moveTo(x + lw, cy - bh * 0.13);
-  g.arcTo(x + bh * 0.16, cy - bh * 0.13, x + bh * 0.16, cy + bh * 0.13, bh * 0.1);
-  g.arcTo(x + bh * 0.16, cy + bh * 0.13, x + lw, cy + bh * 0.13, bh * 0.1);
+  g.lineTo(x + bh * 0.16, cy - bh * 0.13);
+  g.lineTo(x + bh * 0.16, cy + bh * 0.13);
   g.lineTo(x + lw, cy + bh * 0.13);
-  g.strokeStyle = `rgba(236,245,255,${a * 0.3})`; g.stroke();
+  g.strokeStyle = `rgba(${LIME},${(a * 0.7).toFixed(3)})`; g.stroke();
 
   const ip = lw * 1.6, iw = (bw - ip * 2) * clamp(chg, 0.03, 1);
-  rrect(g, x - bw + ip, cy - bh / 2 + ip, iw, bh - ip * 2, (bh - ip * 2) * 0.3);
-  g.fillStyle = plug && !slept ? `rgba(48,209,88,${a})` : `rgba(240,247,255,${a})`;
-  g.fill();
-  if (plug && !slept) bolt(g, x - bw / 2, cy, bh * 0.92, a, '6,22,10');
+  g.fillStyle = plug && !slept ? `rgba(${GRN},${a})` : `rgba(${LIME},${a * 0.7})`;
+  g.fillRect(x - bw + ip, cy - bh / 2 + ip, iw, bh - ip * 2);
+  if (plug && !slept) bolt(g, x - bw / 2, cy, bh * 0.92, a, '10,20,8');
 
   // 와이파이
   x -= bw + sw * 0.028;
   const wr = sw * 0.027;
-  g.strokeStyle = fg; g.lineWidth = Math.max(1, sw * 0.0062);
+  g.strokeStyle = fg; g.lineWidth = Math.max(1, sw * 0.005);
   g.lineCap = 'round';
   for (let i = 2; i >= 1; i--) {
     g.beginPath();
@@ -655,25 +669,30 @@ function drawStatusBar(g, sw, sh) {
     g.stroke();
   }
   g.beginPath();
-  g.arc(x - wr, cy + wr * 0.46, wr * 0.09, 0, TAU);
+  g.arc(x - wr, cy + wr * 0.46, wr * 0.1, 0, TAU);
   g.fillStyle = fg; g.fill();
 
-  // 신호 막대 네 개
+  // 신호 막대 — 테두리만
   x -= wr * 2 + sw * 0.026;
   const sg = sw * 0.0105, sbw = sw * 0.0124, sh4 = sw * 0.038;
   for (let i = 0; i < 4; i++) {
     const hgt = sh4 * (0.34 + i * 0.22);
-    rrect(g, x - (4 - i) * (sbw + sg) + sg, cy + sh4 / 2 - hgt, sbw, hgt, sbw * 0.34);
-    g.fillStyle = `rgba(240,247,255,${a * (i < 3 ? 1 : 0.32)})`;
-    g.fill();
+    const bx = x - (4 - i) * (sbw + sg) + sg;
+    if (i < 3) {
+      g.fillStyle = fg;
+      g.fillRect(bx, cy + sh4 / 2 - hgt, sbw, hgt);
+    } else {
+      g.strokeStyle = `rgba(${LIME},${(a * 0.4).toFixed(3)})`;
+      g.lineWidth = 1;
+      g.strokeRect(bx + 0.5, cy + sh4 / 2 - hgt + 0.5, sbw - 1, hgt - 1);
+    }
   }
 }
 
 function drawHomeBar(g, sw, sh) {
-  const w = sw * 0.355, h = Math.max(2, sw * 0.0118);
-  rrect(g, -w / 2, sh / 2 - h * 2.6, w, h, h / 2);
-  g.fillStyle = `rgba(232,243,255,${0.18 + bri * 0.38})`;
-  g.fill();
+  const w = sw * 0.355, h = Math.max(2, sw * 0.0105);
+  g.fillStyle = `rgba(${LIME},${0.2 + bri * 0.4})`;
+  g.fillRect(-w / 2, sh / 2 - h * 2.6, w, h);
 }
 
 function drawScreen(g) {
@@ -682,23 +701,32 @@ function drawScreen(g) {
   squircle(g, -sw / 2, -sh / 2, sw, sh, SCR.r);
   g.clip();
 
-  g.fillStyle = '#05080d';
+  g.fillStyle = 'rgba(8,6,13,.9)';
   g.fillRect(-sw / 2, -sh / 2, sw, sh);
   const bg = g.createLinearGradient(0, -sh / 2, 0, sh / 2);
-  bg.addColorStop(0, `rgba(10,46,66,${bri * 0.9})`);
-  bg.addColorStop(.5, `rgba(10,14,34,${bri * 0.85})`);
-  bg.addColorStop(1, `rgba(36,12,46,${bri * 0.9})`);
+  bg.addColorStop(0, `rgba(26,48,22,${bri * 0.6})`);
+  bg.addColorStop(1, `rgba(10,30,26,${bri * 0.5})`);
   g.fillStyle = bg;
   g.fillRect(-sw / 2, -sh / 2, sw, sh);
+
+  // 화면 안에도 격자가 깔린다
+  const gs = sw * 0.082;
+  g.strokeStyle = `rgba(${LIME},${(0.04 + bri * 0.05).toFixed(3)})`;
+  g.lineWidth = 1;
+  for (let x = -sw / 2; x <= sw / 2; x += gs) {
+    g.beginPath(); g.moveTo(x, -sh / 2); g.lineTo(x, sh / 2); g.stroke();
+  }
+  for (let y = -sh / 2; y <= sh / 2; y += gs) {
+    g.beginPath(); g.moveTo(-sw / 2, y); g.lineTo(sw / 2, y); g.stroke();
+  }
 
   g.textAlign = 'center'; g.textBaseline = 'middle';
 
   if (slept) {
-    // it finished, and then it turned itself off, and the room went back to dark
-    g.fillStyle = 'rgba(80,220,245,.3)';
-    g.font = `400 ${(sw * 0.1) | 0}px 'Share Tech Mono', monospace`;
+    g.fillStyle = `rgba(${LIME},.26)`;
+    g.font = `400 ${(sw * 0.15) | 0}px VT323, monospace`;
     g.fillText('100%', 0, sh * 0.02);
-    bolt(g, 0, -sh * 0.08, sw * 0.14, 0.2);
+    bolt(g, 0, -sh * 0.08, sw * 0.14, 0.2, LIME);
     g.restore();
     return;
   }
@@ -713,56 +741,51 @@ function drawScreen(g) {
     : chg >= 0.999 ? 'CHARGED' : 'CHARGING';
 
   // 글자 수로 크기를 잡으면 영문은 안 맞는다. 재서 맞춘다.
-  const trk = 0.055;
+  const trk = 0.04;
   track(g, 100 * trk);
-  g.font = `700 100px "Chakra Petch", sans-serif`;
-  const fs = Math.min(sh * 0.19, 100 * (sw * 0.8) / g.measureText(word).width) | 0;
+  g.font = `900 100px Orbitron, sans-serif`;
+  const fs = Math.min(sh * 0.165, 100 * (sw * 0.82) / g.measureText(word).width) | 0;
   track(g, fs * trk);
-  g.font = `700 ${fs}px "Chakra Petch", sans-serif`;
+  g.font = `900 ${fs}px Orbitron, sans-serif`;
 
   const cy = -sh * 0.05;
   const top = cy - fs * 0.52, bot = cy + fs * 0.48;
   const fy = bot - (bot - top) * chg;
   const ox = fs * trk * 0.5;   // letterSpacing 은 뒤쪽에만 붙어서 가운데가 밀린다
 
-  // 꺼진 쪽 — 청록과 자홍이 어긋나 있다
-  g.fillStyle = `rgba(0,214,255,${0.05 + bri * 0.13})`;
-  g.fillText(word, -ox - fs * 0.021, cy);
-  g.fillStyle = `rgba(255,45,155,${0.04 + bri * 0.1})`;
-  g.fillText(word, -ox + fs * 0.021, cy);
+  // 아직 안 찬 쪽은 윤곽선만
+  g.lineWidth = Math.max(1, fs * 0.022);
+  g.strokeStyle = `rgba(${LIME},${0.14 + bri * 0.24})`;
+  g.strokeText(word, -ox, cy);
 
+  // 찬 쪽만 채운다
   g.save();
   g.beginPath();
   g.rect(-sw / 2, fy, sw, bot - fy + 2);
   g.clip();
-  g.shadowColor = `rgba(255,45,155,${bri * 0.5})`;
-  g.shadowBlur = fs * 0.18;
-  g.fillStyle = `rgba(255,45,155,${bri * 0.55})`;
-  g.fillText(word, -ox + fs * 0.018, cy);
-  g.shadowColor = `rgba(0,226,255,${bri * 0.7})`;
+  g.shadowColor = `rgba(${GRN},${bri * 0.7})`;
   g.shadowBlur = fs * 0.22;
-  g.fillStyle = `rgba(226,252,255,${bri * 0.97})`;
+  g.fillStyle = `rgba(${LIME},${bri * 0.95})`;
   g.fillText(word, -ox, cy);
+  g.shadowBlur = 0;
   g.restore();
   track(g, 0);
 
   if (plug && chg < 0.999) {
-    // the waterline, not a strike-through: it has to die out before the bezel
+    // 수면 — 베젤 앞에서 죽어야 글자에 그은 줄로 안 보인다
     const lg = g.createLinearGradient(-sw * 0.44, 0, sw * 0.44, 0);
-    lg.addColorStop(0, 'rgba(0,226,255,0)');
-    lg.addColorStop(.5, `rgba(120,244,255,${bri * 0.26})`);
-    lg.addColorStop(1, 'rgba(255,45,155,0)');
+    lg.addColorStop(0, `rgba(${GRN},0)`);
+    lg.addColorStop(.5, `rgba(${MINT},${bri * 0.4})`);
+    lg.addColorStop(1, `rgba(${GRN},0)`);
     g.fillStyle = lg;
     g.fillRect(-sw * 0.44, fy - 0.5, sw * 0.88, 1);
   }
 
-  const pf = (sw * 0.25) | 0;
-  g.font = `400 ${pf}px 'Share Tech Mono', monospace`;
-  g.fillStyle = `rgba(255,45,155,${bri * 0.34})`;
-  g.fillText(Math.round(chg * 100) + '%', pf * 0.022, sh * 0.18);
-  g.shadowColor = `rgba(0,226,255,${bri * 0.5})`;
-  g.shadowBlur = pf * 0.3;
-  g.fillStyle = `rgba(216,250,255,${bri * 0.92})`;
+  const pf = (sw * 0.36) | 0;
+  g.font = `400 ${pf}px VT323, monospace`;
+  g.shadowColor = `rgba(${GRN},${bri * 0.5})`;
+  g.shadowBlur = pf * 0.16;
+  g.fillStyle = `rgba(${LIME},${bri * 0.92})`;
   g.fillText(Math.round(chg * 100) + '%', 0, sh * 0.18);
   g.shadowBlur = 0;
 
@@ -770,9 +793,9 @@ function drawScreen(g) {
   const cap = chg >= 0.999 ? 'NOTHING LEFT TO FILL'
     : plug ? `FULL IN ${rem} MIN`
     : 'NO SOURCE CONNECTED';
-  track(g, sw * 0.012);
-  g.font = `400 ${(sw * 0.055) | 0}px 'Share Tech Mono', monospace`;
-  g.fillStyle = `rgba(104,214,238,${bri * 0.6})`;
+  track(g, sw * 0.014);
+  g.font = `400 ${(sw * 0.075) | 0}px VT323, monospace`;
+  g.fillStyle = `rgba(${MINT},${bri * 0.62})`;
   g.fillText(cap, 0, sh * 0.31);
   track(g, 0);
 
@@ -786,66 +809,60 @@ function drawPhone(g) {
   g.rotate(ROT);
 
   const hw = PH.w / 2, hh = PH.h / 2;
+  const lw = Math.max(1, S * 0.0022);
 
-  // 옆 버튼 — 위에서 내려다보면 테두리 밖으로 조금 나온 턱이다
-  const bd = Math.max(1.5, PH.w * 0.012);
+  // 옆 버튼 — 선으로만 그은 턱
+  const bd = Math.max(1.5, PH.w * 0.014);
   const side = (y0, len, left) => {
-    const x = left ? -hw - bd * 0.68 : hw - bd * 0.32;
-    rrect(g, x, y0, bd, len, bd * 0.4);
-    const bg = g.createLinearGradient(x, 0, x + bd, 0);
-    bg.addColorStop(0, left ? '#3a434e' : '#272e37');
-    bg.addColorStop(1, left ? '#181d24' : '#454f5b');
-    g.fillStyle = bg; g.fill();
+    const x = left ? -hw - bd * 0.7 : hw - bd * 0.3;
+    rrect(g, x, y0, bd, len, bd * 0.35);
+    g.fillStyle = 'rgba(8,6,13,.9)'; g.fill();
+    g.strokeStyle = `rgba(${LIME},${0.24 + bri * 0.26})`;
+    g.lineWidth = 1; g.stroke();
   };
-  side(-hh + PH.h * 0.152, PH.h * 0.040, true);    // 액션 버튼
-  side(-hh + PH.h * 0.222, PH.h * 0.060, true);    // 볼륨 업
-  side(-hh + PH.h * 0.298, PH.h * 0.060, true);    // 볼륨 다운
-  side(-hh + PH.h * 0.226, PH.h * 0.104, false);   // 측면 버튼
+  side(-hh + PH.h * 0.152, PH.h * 0.040, true);
+  side(-hh + PH.h * 0.222, PH.h * 0.060, true);
+  side(-hh + PH.h * 0.298, PH.h * 0.060, true);
+  side(-hh + PH.h * 0.226, PH.h * 0.104, false);
 
-  g.shadowColor = 'rgba(0,0,0,.8)';
-  g.shadowBlur = S * 0.055;
-  g.shadowOffsetY = S * 0.014;
+  // 몸체 — 채우지 않는다. 뒤의 격자가 비칠 만큼만 어둡게 깐다.
   squircle(g, -hw, -hh, PH.w, PH.h, PH.r);
-  g.fillStyle = '#0d1016';
+  g.fillStyle = 'rgba(9,7,14,.74)';
   g.fill();
-  g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0;
 
-  // 티타늄 테두리 — 한쪽이 밝고 반대쪽은 어둡다
   squircle(g, -hw, -hh, PH.w, PH.h, PH.r);
-  const fg = g.createLinearGradient(-hw, -hh, hw, hh);
-  fg.addColorStop(0, `rgba(198,218,240,${0.3 + bri * 0.24})`);
-  fg.addColorStop(.34, `rgba(118,144,174,${0.14 + bri * 0.12})`);
-  fg.addColorStop(.72, `rgba(82,102,126,${0.1 + bri * 0.1})`);
-  fg.addColorStop(1, `rgba(172,198,224,${0.2 + bri * 0.2})`);
-  g.strokeStyle = fg;
-  g.lineWidth = Math.max(1.2, PH.w * 0.0095);
+  g.shadowColor = `rgba(${LIME},${0.08 + bri * 0.5})`;
+  g.shadowBlur = S * 0.016;
+  g.strokeStyle = `rgba(${LIME},${0.24 + bri * 0.62})`;
+  g.lineWidth = Math.max(1.2, S * 0.0028);
   g.stroke();
+  g.shadowBlur = 0;
 
-  // 테두리와 화면 사이 검은 띠
+  // 테두리 안쪽으로 한 줄 더 — 베젤이 선 두 개로 보이게
   const pad = (PH.w - SCR.w) / 2;
   squircle(g, -SCR.w / 2 - pad * 0.34, -SCR.h / 2 - pad * 0.34,
            SCR.w + pad * 0.68, SCR.h + pad * 0.68, SCR.r + pad * 0.34);
-  g.fillStyle = '#04060a';
-  g.fill();
+  g.strokeStyle = `rgba(${GRN},${0.22 + bri * 0.3})`;
+  g.lineWidth = lw;
+  g.stroke();
+
+  // 모서리마다 꼭짓점을 찍는다
+  g.fillStyle = `rgba(${MINT},${0.4 + bri * 0.4})`;
+  for (const sx of [-1, 1]) for (const sy of [-1, 1]) {
+    g.beginPath();
+    g.arc(sx * (hw - PH.r * 0.3), sy * (hh - PH.r * 0.3), Math.max(1.2, S * 0.0022), 0, TAU);
+    g.fill();
+  }
 
   drawScreen(g);
 
-  // 아래 모서리 — 단자 구멍과 양옆 스피커
-  const pw = PH.w * 0.12, ph = Math.max(2, PH.w * 0.024);
+  // 아래 단자 구멍 — 윤곽선만
   if (!plug) {
-    rrect(g, -pw / 2, hh - ph * 1.05, pw, ph, ph * 0.5);
-    g.fillStyle = '#04060a';
-    g.fill();
-  }
-  const sr = Math.max(0.8, PH.w * 0.0075);
-  g.fillStyle = 'rgba(4,6,10,.85)';
-  for (let i = 0; i < 3; i++) {
-    const ox = pw * 0.82 + i * sr * 3.1;
-    for (const sx of [-ox, ox]) {
-      g.beginPath();
-      g.arc(sx, hh - sr * 0.9, sr, 0, TAU);
-      g.fill();
-    }
+    const pw = PH.w * 0.12, ph = Math.max(2, PH.w * 0.026);
+    rrect(g, -pw / 2, hh - ph * 1.1, pw, ph, ph * 0.4);
+    g.fillStyle = 'rgba(6,5,10,.9)'; g.fill();
+    g.strokeStyle = `rgba(${LIME},${0.3 + bri * 0.3})`;
+    g.lineWidth = 1; g.stroke();
   }
 
   g.restore();
@@ -854,14 +871,14 @@ function drawPhone(g) {
 function drawMurmurs(g) {
   if (!murs.length) return;
   g.textAlign = 'left'; g.textBaseline = 'middle';
-  const fs = Math.max(10, S * 0.0205);
-  track(g, fs * 0.1);
-  g.font = `400 ${fs | 0}px 'Share Tech Mono', monospace`;
+  const fs = Math.max(11, S * 0.023);
+  track(g, fs * 0.12);
+  g.font = `400 ${fs | 0}px VT323, monospace`;
   const dim = slept ? 0.18 : 1;
   for (const m of murs) {
     const a = Math.sin(clamp(m.p, 0, 1) * Math.PI) * dim;
     if (a < 0.012) continue;
-    g.fillStyle = `rgba(84,206,232,${(a * 0.44).toFixed(3)})`;
+    g.fillStyle = `rgba(${LIME},${(a * 0.4).toFixed(3)})`;
     g.fillText(m.t, lerp(m.x0, m.x1, m.p), m.y);
   }
   track(g, 0);
@@ -876,33 +893,34 @@ const DRAIN = [...'DRAINING'];
 function drawDrain(g) {
   if (done < 0.004) return;
   const margin = W / 2 - PH.w / 2;
-  const fs = Math.max(11, Math.min(S * 0.075, margin * 0.5));
-  const lh = fs * 1.02;
+  const fs = Math.max(11, Math.min(S * 0.072, margin * 0.5));
+  const lh = fs * 1.06;
   const cx = W - margin * 0.5, cy = PH.y;   // 곡선이 왼쪽에 있으니 이쪽은 오른쪽
   const top = cy - lh * DRAIN.length / 2, bot = top + lh * DRAIN.length;
   const fy = bot - (bot - top) * me;
 
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = `700 ${fs | 0}px "Chakra Petch", sans-serif`;
+  g.font = `700 ${fs | 0}px Orbitron, sans-serif`;
 
-  g.fillStyle = `rgba(0,214,255,${done * 0.09})`;
-  for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
+  g.lineWidth = Math.max(1, fs * 0.03);
+  g.strokeStyle = `rgba(${LIME},${done * 0.16})`;
+  for (let i = 0; i < DRAIN.length; i++) g.strokeText(DRAIN[i], cx, top + lh * (i + 0.5));
 
   g.save();
   g.beginPath();
   g.rect(cx - fs, fy, fs * 2, bot - fy + 2);
   g.clip();
-  g.shadowColor = `rgba(255,45,155,${done * 0.5})`;
-  g.shadowBlur = fs * 0.4;
-  g.fillStyle = `rgba(255,150,205,${done * 0.42})`;
+  g.shadowColor = `rgba(${GRN},${done * 0.5})`;
+  g.shadowBlur = fs * 0.35;
+  g.fillStyle = `rgba(${LIME},${done * 0.5})`;
   for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
   g.restore();
 
   if (me > 0.001) {
     const lg = g.createLinearGradient(cx - fs * 0.9, 0, cx + fs * 0.9, 0);
-    lg.addColorStop(0, 'rgba(255,45,155,0)');
-    lg.addColorStop(.5, `rgba(255,120,190,${done * 0.3})`);
-    lg.addColorStop(1, 'rgba(255,45,155,0)');
+    lg.addColorStop(0, `rgba(${GRN},0)`);
+    lg.addColorStop(.5, `rgba(${MINT},${done * 0.36})`);
+    lg.addColorStop(1, `rgba(${GRN},0)`);
     g.fillStyle = lg;
     g.fillRect(cx - fs * 0.9, fy - 0.5, fs * 1.8, 1);
   }
@@ -910,21 +928,22 @@ function drawDrain(g) {
 
 // the other battery. No port, no cable, and the number only goes one way.
 function drawMe(g) {
-  const x = W * 0.07, y = H * 0.925, bw = S * 0.16, bh = Math.max(2, S * 0.011);
-  const lit = 0.34 + (1 - me) * 0.38;   // it gets harder to ignore as it empties
+  const x = W * 0.07, y = H * 0.925, bw = S * 0.16, bh = Math.max(2, S * 0.012);
+  const lit = 0.38 + (1 - me) * 0.4;   // it gets harder to ignore as it empties
   g.textAlign = 'left'; g.textBaseline = 'middle';
-  const lf = (S * 0.022) | 0;
-  track(g, lf * 0.2);
-  g.font = `400 ${lf}px 'Share Tech Mono', monospace`;
-  g.fillStyle = `rgba(84,214,240,${lit})`;
+  const lf = (S * 0.024) | 0;
+  track(g, lf * 0.22);
+  g.font = `400 ${lf}px VT323, monospace`;
+  g.fillStyle = `rgba(${LIME},${lit})`;
   g.fillText('ME', x, y);
   const bx = x + S * 0.048;
-  g.fillStyle = 'rgba(84,214,240,.12)';
-  g.fillRect(bx, y - bh / 2, bw, bh);
-  g.fillStyle = me < 0.12 ? `rgba(255,45,155,${0.55 + lit * 0.4})` : `rgba(84,214,240,${lit})`;
+  g.strokeStyle = `rgba(${LIME},.2)`;
+  g.lineWidth = 1;
+  g.strokeRect(bx + 0.5, y - bh / 2 + 0.5, bw - 1, bh - 1);
+  g.fillStyle = me < 0.12 ? `rgba(${MINT},${0.55 + lit * 0.4})` : `rgba(${LIME},${lit})`;
   g.fillRect(bx, y - bh / 2, bw * me, bh);
-  g.font = `400 ${(S * 0.021) | 0}px 'Share Tech Mono', monospace`;
-  g.fillStyle = `rgba(84,214,240,${lit})`;
+  g.font = `400 ${(S * 0.023) | 0}px VT323, monospace`;
+  g.fillStyle = `rgba(${LIME},${lit})`;
   g.fillText(Math.round(me * 100) + '%', bx + bw + S * 0.016, y);
   track(g, 0);
 }
@@ -960,25 +979,25 @@ function drawCurve(g) {
       if (m === sa) g.moveTo(x, y); else g.lineTo(x, y);
     }
     if (!pass) {
-      g.shadowColor = `rgba(0,226,255,${(a * 0.5).toFixed(3)})`;
+      g.shadowColor = `rgba(${GRN},${(a * 0.5).toFixed(3)})`;
       g.shadowBlur = S * 0.012;
     }
     g.strokeStyle = pass
-      ? `rgba(84,206,232,${(a * 0.12).toFixed(3)})`
-      : `rgba(120,240,255,${(a * 0.68).toFixed(3)})`;
+      ? `rgba(${LIME},${(a * 0.14).toFixed(3)})`
+      : `rgba(${LIME},${(a * 0.72).toFixed(3)})`;
     g.lineWidth = Math.max(1, S * 0.0018);
     g.stroke();
     g.shadowBlur = 0;
   }
 
   // 밑줄과 눈금
-  g.fillStyle = `rgba(84,206,232,${(a * 0.12).toFixed(3)})`;
+  g.fillStyle = `rgba(${LIME},${(a * 0.14).toFixed(3)})`;
   g.fillRect(b.x, b.y, b.w, Math.max(1, S * 0.0012));
-  const tf = Math.max(8, S * 0.0155);
-  track(g, tf * 0.14);
-  g.font = `400 ${tf | 0}px 'Share Tech Mono', monospace`;
+  const tf = Math.max(9, S * 0.017);
+  track(g, tf * 0.16);
+  g.font = `400 ${tf | 0}px VT323, monospace`;
   g.textAlign = 'center'; g.textBaseline = 'top';
-  g.fillStyle = `rgba(84,206,232,${(a * 0.34).toFixed(3)})`;
+  g.fillStyle = `rgba(${LIME},${(a * 0.36).toFixed(3)})`;
   for (const h of TICKS) {
     const u = ((h - WIN_A + 24) % 24) / WIN_H;
     g.fillText(two(h), b.x + b.w * u, b.y + tf * 0.6);
@@ -988,26 +1007,26 @@ function drawCurve(g) {
   const [dx, dy] = curveXY(b, clk);
   const r = Math.max(2, S * 0.0042);
   g.beginPath(); g.arc(dx, dy, r * 3.4, 0, TAU);
-  g.fillStyle = `rgba(0,226,255,${(a * 0.14).toFixed(3)})`; g.fill();
+  g.fillStyle = `rgba(${GRN},${(a * 0.14).toFixed(3)})`; g.fill();
   g.beginPath(); g.arc(dx, dy, r, 0, TAU);
-  g.shadowColor = `rgba(0,226,255,${a.toFixed(3)})`;
+  g.shadowColor = `rgba(${GRN},${a.toFixed(3)})`;
   g.shadowBlur = r * 4;
-  g.fillStyle = `rgba(226,252,255,${(a * 0.92).toFixed(3)})`; g.fill();
+  g.fillStyle = `rgba(${MINT},${(a * 0.95).toFixed(3)})`; g.fill();
   g.shadowBlur = 0;
 
   // 숫자
-  const nf = Math.max(10, S * 0.021);
+  const nf = Math.max(11, S * 0.023);
   const y = b.y - b.h - nf * 1.4;
   g.textAlign = 'left'; g.textBaseline = 'middle';
   const LBL = 'NATIONAL GRID LOAD';
-  track(g, nf * 0.18);
-  g.font = `500 ${(nf * 0.9) | 0}px "Chakra Petch", sans-serif`;
-  g.fillStyle = `rgba(84,206,232,${(a * 0.5).toFixed(3)})`;
+  track(g, nf * 0.2);
+  g.font = `500 ${(nf * 0.62) | 0}px Orbitron, sans-serif`;
+  g.fillStyle = `rgba(${LIME},${(a * 0.52).toFixed(3)})`;
   g.fillText(LBL, b.x, y);
   const lw = g.measureText(LBL).width;
   track(g, nf * 0.08);
-  g.font = `400 ${nf | 0}px 'Share Tech Mono', monospace`;
-  g.fillStyle = `rgba(226,252,255,${(a * 0.72).toFixed(3)})`;
+  g.font = `400 ${nf | 0}px VT323, monospace`;
+  g.fillStyle = `rgba(${MINT},${(a * 0.78).toFixed(3)})`;
   g.fillText(Math.round(demandAt(clk)).toLocaleString() + ' MWh', b.x + lw + nf * 0.7, y);
   track(g, 0);
 }
@@ -1163,9 +1182,9 @@ window.addEventListener('resize', resize);
   try {
     await Promise.all([
       // 한글 서브셋은 실제 글자를 넘겨야 받아온다
-      document.fonts.load('700 60px "Chakra Petch"'),
-      document.fonts.load('400 30px "Share Tech Mono"'),
-      document.fonts.load('600 30px Inter', '0123456789:'),
+      document.fonts.load('900 60px Orbitron'),
+      document.fonts.load('700 30px Orbitron'),
+      document.fonts.load('400 30px VT323', '0123456789:%'),
     ]);
     await document.fonts.ready;
   } catch (e) { /* fall back to whatever is there */ }
