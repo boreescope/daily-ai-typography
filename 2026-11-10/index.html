@@ -84,6 +84,7 @@ let me = 0.33;           // the other battery, the one with no port
 let bri = 0.42;          // screen brightness
 let plug = false, dragging = false;
 let idle = 0, slept = false;
+let done = 0;          // 0 until the phone has nothing left to fill
 let t = 0;
 
 const tip = { x: 0, y: 0, vx: 0, vy: 0 };
@@ -454,32 +455,76 @@ function drawPhone(g) {
 function drawThoughts(g) {
   g.textAlign = 'center'; g.textBaseline = 'middle';
   for (const th of THOUGHTS) {
-    if (th.a < 0.004) continue;
+    // they belong to the filling. Once it is full they have nothing left to want.
+    const al = th.a * (1 - done);
+    if (al < 0.004) continue;
     const px = (th.s * S) | 0;
     g.font = `400 ${px}px "Nanum Myeongjo", serif`;
     const x = W / 2 + th.x * W, y = H / 2 + th.y * H;
-    g.shadowColor = `rgba(76,124,176,${th.a * 0.5})`;
+    g.shadowColor = `rgba(76,124,176,${al * 0.5})`;
     g.shadowBlur = px * 0.7;
-    g.fillStyle = `rgba(158,186,212,${th.a * 0.52})`;
+    g.fillStyle = `rgba(158,186,212,${al * 0.52})`;
     g.fillText(th.t, x, y);
     g.shadowBlur = 0; g.shadowColor = 'transparent';
+  }
+}
+
+// ── the room's own word ────────────────────────────────────────────────────
+// Once the phone is full it has nothing left to say, so the sentence moves off
+// the screen and onto the sheet. It empties from the bottom, the way the screen
+// filled from the bottom. Vertical, because a battery is a column.
+const DRAIN = ['방', '전', '중'];
+
+function drawDrain(g) {
+  if (done < 0.004) return;
+  const margin = W / 2 - PH.w / 2;
+  const fs = Math.max(14, Math.min(S * 0.2, margin * 0.62));
+  const lh = fs * 1.12;
+  const cx = margin * 0.5, cy = PH.y;
+  const top = cy - lh * DRAIN.length / 2, bot = top + lh * DRAIN.length;
+  const fy = bot - (bot - top) * me;
+
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `400 ${fs | 0}px "Nanum Myeongjo", serif`;
+
+  g.fillStyle = `rgba(120,152,186,${done * 0.07})`;
+  for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
+
+  g.save();
+  g.beginPath();
+  g.rect(cx - fs, fy, fs * 2, bot - fy + 2);
+  g.clip();
+  g.shadowColor = `rgba(84,134,190,${done * 0.45})`;
+  g.shadowBlur = fs * 0.34;
+  g.fillStyle = `rgba(176,206,236,${done * 0.34})`;
+  for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
+  g.restore();
+
+  if (me > 0.001) {
+    const lg = g.createLinearGradient(cx - fs * 0.9, 0, cx + fs * 0.9, 0);
+    lg.addColorStop(0, 'rgba(150,196,240,0)');
+    lg.addColorStop(.5, `rgba(160,204,245,${done * 0.26})`);
+    lg.addColorStop(1, 'rgba(150,196,240,0)');
+    g.fillStyle = lg;
+    g.fillRect(cx - fs * 0.9, fy - 0.5, fs * 1.8, 1);
   }
 }
 
 // the other battery. No port, no cable, and the number only goes one way.
 function drawMe(g) {
   const x = W * 0.08, y = H * 0.88, bw = S * 0.16, bh = Math.max(2, S * 0.011);
+  const lit = 0.34 + (1 - me) * 0.38;   // it gets harder to ignore as it empties
   g.textAlign = 'left'; g.textBaseline = 'middle';
   g.font = `400 ${(S * 0.027) | 0}px "Nanum Myeongjo", serif`;
-  g.fillStyle = 'rgba(158,186,212,.42)';
+  g.fillStyle = `rgba(158,186,212,${lit})`;
   g.fillText('나', x, y);
   const bx = x + S * 0.048;
   g.fillStyle = 'rgba(158,186,212,.12)';
   g.fillRect(bx, y - bh / 2, bw, bh);
-  g.fillStyle = me < 0.12 ? 'rgba(206,110,86,.72)' : 'rgba(158,186,212,.42)';
+  g.fillStyle = me < 0.12 ? `rgba(206,110,86,${0.5 + lit * 0.4})` : `rgba(158,186,212,${lit})`;
   g.fillRect(bx, y - bh / 2, bw * me, bh);
   g.font = `400 ${(S * 0.021) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = 'rgba(158,186,212,.42)';
+  g.fillStyle = `rgba(158,186,212,${lit})`;
   g.fillText(Math.round(me * 100) + '%', bx + bw + S * 0.016, y);
 }
 
@@ -489,6 +534,7 @@ function draw() {
   if (bed) ctx.drawImage(bed, 0, 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   drawGlow(ctx);
+  drawDrain(ctx);
   drawThoughts(ctx);
   drawMe(ctx);
   drawCable(ctx);
@@ -500,12 +546,15 @@ function step(dt) {
   if (PREVIEW) return;
   t += dt;
 
-  if (plug) {
-    chg = clamp(chg + dt * 0.052 * (1 - chg * 0.5), 0, 1);
-    me = clamp(me - dt * 0.0075, 0.02, 1);
-  } else {
-    chg = clamp(chg - dt * 0.005, 0, 1);
-  }
+  if (plug) chg = clamp(chg + dt * 0.052 * (1 - chg * 0.5), 0, 1);
+  else chg = clamp(chg - dt * 0.005, 0.02, 1);   // never a flat 0. 방전 has to stay readable
+
+  // this one runs down either way. Being awake with the phone just costs more.
+  const prev = me;
+  me = clamp(me - dt * (plug ? 0.0075 : 0.003), 0, 1);
+  if (prev > 0 && me <= 0) sound.ping(false);
+
+  done += ((chg >= 0.999 ? 1 : 0) - done) * (1 - Math.pow(0.78, dt));
 
   const want = slept ? 0.03 : plug ? 1 : 0.46;
   bri += (want - bri) * (1 - Math.pow(0.004, dt));
