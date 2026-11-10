@@ -80,7 +80,8 @@ const toW = (px, py) => [PH.x + px * CS - py * SN, PH.y + px * SN + py * CS];
 
 // ── state ──────────────────────────────────────────────────────────────────
 let chg = 0.08;          // the phone
-let me = 0.33;           // AWAKE — the other battery, the one with no port
+const ME0 = 0.33;        // 처음 남아 있던 만큼. 여기서부터 줄기만 한다.
+let me = ME0;            // BODY — the other battery, the one with no port
 let bri = 0.42;          // screen brightness
 let plug = false, dragging = false;
 let idle = 0, slept = false;
@@ -1035,7 +1036,7 @@ function drawMe(g) {
   g.textAlign = 'left'; g.textBaseline = 'middle';
   // 위의 NATIONAL GRID LOAD 와 같은 짝 — 이름은 Orbitron, 숫자는 VT323
   const lf = (S * 0.024) | 0;
-  const LBL = 'AWAKE';
+  const LBL = 'BODY';
   track(g, lf * 0.2);
   g.font = `500 ${(lf * 0.62) | 0}px Orbitron, sans-serif`;
   g.fillStyle = `rgba(${C2},${(lit * 0.78).toFixed(3)})`;
@@ -1044,8 +1045,14 @@ function drawMe(g) {
   g.strokeStyle = `rgba(${C2},.25)`;
   g.lineWidth = 1;
   g.strokeRect(bx + 0.5, y - bh / 2 + 0.5, bw - 1, bh - 1);
+  // 빠져나간 자리 — 처음 있던 데까지 흐리게 남긴다. 떨어지는 중인 게 보여야 한다.
+  g.fillStyle = `rgba(${C3},${(lit * 0.45).toFixed(3)})`;
+  g.fillRect(bx + bw * me, y - bh / 2, bw * (ME0 - me), bh);
   g.fillStyle = me < 0.12 ? `rgba(${RED},${0.6 + lit * 0.4})` : `rgba(${C1},${lit})`;
   g.fillRect(bx, y - bh / 2, bw * me, bh);
+  const mx = (bx + bw * ME0) | 0;
+  g.fillStyle = `rgba(${C2},${(lit * 0.5).toFixed(3)})`;
+  g.fillRect(mx, y - bh * 1.1, 1, bh * 2.2);
   track(g, lf * 0.08);
   g.font = `400 ${(S * 0.023) | 0}px VT323, monospace`;
   g.fillStyle = `rgba(${me < 0.12 ? RED : WHT},${Math.min(1, lit + 0.18).toFixed(3)})`;
