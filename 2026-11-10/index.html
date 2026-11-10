@@ -136,11 +136,11 @@ function spawnMur(i) {
   const rtl = i % 2 === 1;
   murs.push({
     t: txt,
-    y: PH.y + (hsh(i, 41, 7) - 0.5) * PH.h * 0.84,
-    x0: rtl ? W * 1.05 : -W * 0.38,
-    x1: rtl ? -W * 0.38 : W * 1.05,
+    y: PH.y + (hsh(i, 41, 7) - 0.5) * PH.h * 0.95,
+    x0: rtl ? W * 1.6 : -W * 0.9,
+    x1: rtl ? -W * 0.9 : W * 1.6,
     p: 0,
-    dur: 15 + hsh(i, 43, 11) * 5,
+    dur: 17 + hsh(i, 43, 11) * 6,
   });
 }
 
@@ -182,133 +182,146 @@ function seeded(seed) {
   };
 }
 
-const hzY = () => H * 0.545;
+// 카메라 — 하늘에서 비스듬히 내려다본다. 지평선은 화면 위쪽에 걸친다.
+const CAM = { h: 10, p: 0.6, f: 1 };
 
-// 바닥 — 소실점 하나로 모이고, 멀수록 가로선이 촘촘하다
-function floorGrid(g, hz) {
-  const vx = W / 2, n = 30, far = H - hz;
+function setCam() {
+  CAM.f = S * 0.55;
+  CAM.p = Math.atan((H / 2 - H * 0.18) / CAM.f);
+}
+
+// (x 오른쪽, y 위, z 앞) → 화면. 뒤로 넘어가면 null.
+function prj(x, y, z) {
+  const sp = Math.sin(CAM.p), cp = Math.cos(CAM.p);
+  const Y = y - CAM.h;
+  const yr = Y * cp + z * sp;
+  const zr = -Y * sp + z * cp;
+  if (zr < 0.25) return null;
+  return [W / 2 + CAM.f * x / zr, H / 2 - CAM.f * yr / zr, zr];
+}
+
+const hzY = () => H / 2 - CAM.f * Math.tan(CAM.p);
+
+function poly(g, pts) {
+  g.beginPath();
+  g.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]);
+  g.closePath();
+}
+
+// 바닥 — 소실점으로 모이는 격자. 투영이 알아서 모아 준다.
+function floorGrid(g) {
+  const Z0 = 3, Z1 = 190, X = 108;
   g.lineCap = 'butt';
 
-  for (let i = -n; i <= n; i++) {
-    const u = i / n;
-    g.beginPath();
-    g.moveTo(vx + u * W * 0.045, hz);
-    g.lineTo(vx + u * W * 2.6, H + far * 0.4);
-    g.strokeStyle = `rgba(${i % 4 === 0 ? GRN : LIME},${(0.07 + 0.2 * (1 - Math.abs(u))).toFixed(3)})`;
-    g.lineWidth = Math.abs(i) < 2 ? 1.4 : 1;
-    g.stroke();
-  }
-
-  for (let i = 1; i <= 26; i++) {
-    const u = i / 26;
-    const y = hz + far * Math.pow(u, 2.1) * 1.3;
-    if (y > H + 4) break;
-    g.beginPath();
-    g.moveTo(0, y); g.lineTo(W, y);
-    g.strokeStyle = `rgba(${i % 4 === 0 ? GRN : LIME},${(0.06 + u * 0.22).toFixed(3)})`;
-    g.lineWidth = 1 + u * 0.8;
-    g.stroke();
-  }
-
-  // 지평선 자체는 한 줄 더 밝다
-  g.beginPath();
-  g.moveTo(0, hz); g.lineTo(W, hz);
-  g.strokeStyle = `rgba(${MINT},.22)`;
-  g.lineWidth = 1;
-  g.stroke();
-}
-
-// 돔 — 도시를 감싸는 점선 반구
-function wireDome(g, hz) {
-  const cx = W / 2, R = Math.min(W * 0.43, hz * 0.96);
-  g.strokeStyle = `rgba(${LIME},.13)`;
-  g.lineWidth = 1;
-  for (let k = 0; k < 4; k++) {
-    const r = R * (1 - k * 0.19);
-    g.beginPath();
-    g.ellipse(cx, hz, r, r * (0.92 - k * 0.14), 0, Math.PI, TAU);
-    g.stroke();
-  }
-  for (let i = 0; i <= 14; i++) {
-    const th = Math.PI + (i / 14) * Math.PI;
-    g.beginPath();
-    g.moveTo(cx, hz);
-    g.lineTo(cx + Math.cos(th) * R, hz + Math.sin(th) * R * 0.92);
-    g.strokeStyle = `rgba(${LIME},.07)`;
-    g.stroke();
-  }
-  // 교차점마다 점을 찍는다
-  for (let k = 0; k < 4; k++) {
-    const r = R * (1 - k * 0.19), ry = r * (0.92 - k * 0.14);
-    for (let i = 0; i <= 28; i++) {
-      const th = Math.PI + (i / 28) * Math.PI;
-      const x = cx + Math.cos(th) * r, y = hz + Math.sin(th) * ry;
-      g.beginPath();
-      g.arc(x, y, S * (0.0012 + k * 0.0004), 0, TAU);
-      g.fillStyle = `rgba(${k % 2 ? GRN : LIME},${(0.3 - k * 0.05).toFixed(3)})`;
-      g.fill();
-    }
-  }
-}
-
-// 도시 — 선으로만 선 건물. 가운데는 폰이 서니 한 단 죽인다.
-function wireCity(g, hz) {
-  const rnd = seeded(0x43484732);
-  const towers = [];
-  for (let i = 0; i < 26; i++) {
-    const x = (0.02 + rnd() * 0.96) * W;
-    const w = S * (0.028 + rnd() * 0.075);
-    const h = S * (0.06 + Math.pow(rnd(), 1.7) * 0.42);
-    towers.push({ x: x - w / 2, w, h, c: rnd() > 0.45 ? LIME : GRN, k: rnd() });
-  }
-  towers.sort((p, q) => p.h - q.h);   // 낮은 것부터, 높은 게 앞에 겹치게
-
-  for (const b of towers) {
-    const mid = Math.abs((b.x + b.w / 2) / W - 0.5) * 2;
-    const a = (0.2 + mid * 0.5) * (0.55 + b.k * 0.45);
-    const top = hz - b.h;
-
-    g.fillStyle = 'rgba(10,7,14,.8)';
-    g.fillRect(b.x, top, b.w, b.h);
-
-    g.strokeStyle = `rgba(${b.c},${a.toFixed(3)})`;
+  for (let i = -X; i <= X; i += 3) {
+    const a = prj(i, 0, Z0), b = prj(i, 0, Z1);
+    if (!a || !b) continue;
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+    g.strokeStyle = `rgba(${i % 12 === 0 ? GRN : LIME},${i % 12 === 0 ? .16 : .085})`;
     g.lineWidth = 1;
-    g.strokeRect(b.x + 0.5, top + 0.5, b.w - 1, b.h - 1);
-
-    const cols = Math.max(2, Math.round(b.w / (S * 0.009)));
-    for (let i = 1; i < cols; i++) {
-      const x = b.x + (b.w * i) / cols;
-      g.beginPath(); g.moveTo(x, top); g.lineTo(x, hz);
-      g.strokeStyle = `rgba(${b.c},${(a * 0.42).toFixed(3)})`;
-      g.stroke();
-    }
-    const rows = Math.max(3, Math.round(b.h / (S * 0.013)));
-    for (let i = 1; i < rows; i++) {
-      const y = top + (b.h * i) / rows;
-      g.beginPath(); g.moveTo(b.x, y); g.lineTo(b.x + b.w, y);
-      g.strokeStyle = `rgba(${b.c},${(a * 0.3).toFixed(3)})`;
-      g.stroke();
-    }
-    // 창 몇 개만 켜져 있다
-    for (let i = 0; i < 5; i++) {
-      if (rnd() > 0.5) continue;
-      const wx = b.x + rnd() * b.w, wy = top + rnd() * b.h;
-      const r = S * 0.003;
-      g.fillStyle = `rgba(${MINT},${(a * 0.9).toFixed(3)})`;
-      g.fillRect(wx, wy, r * 2.2, r);
-    }
+    g.stroke();
+  }
+  for (let z = Z0; z <= Z1; z += 3) {
+    const a = prj(-X, 0, z), b = prj(X, 0, z);
+    if (!a || !b) continue;
+    const f = 1 - z / Z1;
+    g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
+    g.strokeStyle = `rgba(${z % 12 === 0 ? GRN : LIME},${(0.05 + f * 0.17).toFixed(3)})`;
+    g.lineWidth = 1;
+    g.stroke();
   }
 }
 
-// 지평선 위에 흩어진 점들
+// 상자 하나 — 윗면과 보이는 옆면 둘. 속은 메우고 모서리만 긋는다.
+function box(g, x0, z0, bw, bd, h, rgb, a) {
+  const x1 = x0 + bw, z1 = z0 + bd;
+  const P = (x, y, z) => prj(x, y, z);
+  const t = [P(x0, h, z0), P(x1, h, z0), P(x1, h, z1), P(x0, h, z1)];
+  if (t.some(v => !v)) return;
+
+  const dark = 'rgba(9,6,13,.88)';
+  const faces = [];
+
+  // 앞면 — 카메라는 z=0 쪽에 있다
+  faces.push([P(x0, 0, z0), P(x1, 0, z0), t[1], t[0]]);
+  // 옆면 — 카메라 쪽을 보는 쪽만
+  if (x1 < 0) faces.push([P(x1, 0, z0), P(x1, 0, z1), t[2], t[1]]);
+  else if (x0 > 0) faces.push([P(x0, 0, z0), P(x0, 0, z1), t[3], t[0]]);
+
+  for (const f of faces) {
+    if (f.some(v => !v)) continue;
+    poly(g, f);
+    g.fillStyle = dark; g.fill();
+    g.strokeStyle = `rgba(${rgb},${(a * 0.72).toFixed(3)})`;
+    g.lineWidth = 1; g.stroke();
+
+    // 층 — 가로로만 몇 줄
+    const n = Math.max(2, Math.min(9, Math.round(h * 1.6)));
+    g.strokeStyle = `rgba(${rgb},${(a * 0.24).toFixed(3)})`;
+    for (let i = 1; i < n; i++) {
+      const u = i / n;
+      g.beginPath();
+      g.moveTo(lerp(f[0][0], f[3][0], u), lerp(f[0][1], f[3][1], u));
+      g.lineTo(lerp(f[1][0], f[2][0], u), lerp(f[1][1], f[2][1], u));
+      g.stroke();
+    }
+  }
+
+  // 윗면 — 여기가 제일 밝다. 내려다보고 있다는 건 윗면이 말해 준다.
+  poly(g, t);
+  g.fillStyle = 'rgba(14,10,19,.9)'; g.fill();
+  g.strokeStyle = `rgba(${rgb},${a.toFixed(3)})`;
+  g.lineWidth = 1; g.stroke();
+  const m = 4;
+  g.strokeStyle = `rgba(${rgb},${(a * 0.26).toFixed(3)})`;
+  for (let i = 1; i < m; i++) {
+    const u = i / m;
+    g.beginPath();
+    g.moveTo(lerp(t[0][0], t[3][0], u), lerp(t[0][1], t[3][1], u));
+    g.lineTo(lerp(t[1][0], t[2][0], u), lerp(t[1][1], t[2][1], u));
+    g.stroke();
+    g.beginPath();
+    g.moveTo(lerp(t[0][0], t[1][0], u), lerp(t[0][1], t[1][1], u));
+    g.lineTo(lerp(t[3][0], t[2][0], u), lerp(t[3][1], t[2][1], u));
+    g.stroke();
+  }
+}
+
+// 도시 — 블록마다 한 채씩. 가운데 길은 비워 둔다. 폰이 거기 선다.
+function wireCity(g) {
+  const rnd = seeded(0x43484735);
+  const bs = [];
+  const G = 6, FAR = 170;
+  for (let z = 4; z < FAR; z += G) {
+    for (let x = -90; x < 90; x += G) {
+      if (Math.abs(x) < 5) continue;                   // 가운데 길
+      if (Math.abs(x) < 14 && z < 34) continue;        // 폰 자리
+      if (Math.abs(x) < 26 && z < 12) continue;        // 아래쪽 숫자 자리
+      if (rnd() > 0.88) continue;
+      const bw = 2.8 + rnd() * 2.4, bd = 2.8 + rnd() * 2.4;
+      const h = 0.8 + Math.pow(rnd(), 2.3) * 12;
+      bs.push({
+        x: x + rnd() * (G - bw), z: z + rnd() * (G - bd),
+        bw, bd, h,
+        c: rnd() > 0.5 ? LIME : GRN,
+        a: 0.26 + rnd() * 0.4,
+      });
+    }
+  }
+  bs.sort((p, q) => q.z - p.z);                        // 먼 것부터
+  for (const b of bs) box(g, b.x, b.z, b.bw, b.bd, b.h, b.c, b.a * Math.pow(1 - b.z / (FAR * 1.25), 1.4));
+}
+
+// 지평선 위 — 별 몇 개만
 function starField(g, hz) {
   const rnd = seeded(0x43484733);
-  for (let i = 0; i < 160; i++) {
-    const x = rnd() * W, y = rnd() * hz * 0.95;
-    const r = S * (0.0006 + rnd() * 0.0016);
+  for (let i = 0; i < 90; i++) {
+    const x = rnd() * W, y = rnd() * Math.max(hz, 4);
+    const r = S * (0.0006 + rnd() * 0.0014);
     g.beginPath();
     g.arc(x, y, r, 0, TAU);
-    g.fillStyle = `rgba(${rnd() > 0.6 ? GRN : LIME},${(0.1 + rnd() * 0.45).toFixed(3)})`;
+    g.fillStyle = `rgba(${rnd() > 0.6 ? GRN : LIME},${(0.1 + rnd() * 0.4).toFixed(3)})`;
     g.fill();
   }
 }
@@ -320,22 +333,22 @@ function bakeBed() {
   const g = bed.getContext('2d');
   g.scale(DPR, DPR);
 
+  setCam();
   const hz = hzY();
   const sky = g.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, '#241a2b');
-  sky.addColorStop(.52, '#180f1e');
+  sky.addColorStop(.3, '#180f1e');
   sky.addColorStop(1, '#0b0810');
   g.fillStyle = sky;
   g.fillRect(0, 0, W, H);
 
   starField(g, hz);
-  wireDome(g, hz);
-  wireCity(g, hz);
-  floorGrid(g, hz);
+  floorGrid(g);
+  wireCity(g);
 
   grain(g, W, H, 13);
 
-  const vg = g.createRadialGradient(W / 2, hz, S * 0.1, W / 2, hz, S * 1.05);
+  const vg = g.createRadialGradient(W / 2, H * 0.5, S * 0.1, W / 2, H * 0.5, S * 1.05);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
   vg.addColorStop(1, 'rgba(0,0,0,.6)');
   g.fillStyle = vg;
@@ -871,59 +884,17 @@ function drawPhone(g) {
 function drawMurmurs(g) {
   if (!murs.length) return;
   g.textAlign = 'left'; g.textBaseline = 'middle';
-  const fs = Math.max(11, S * 0.023);
-  track(g, fs * 0.12);
+  const fs = Math.max(22, S * 0.082);
+  track(g, fs * 0.06);
   g.font = `400 ${fs | 0}px VT323, monospace`;
   const dim = slept ? 0.18 : 1;
   for (const m of murs) {
     const a = Math.sin(clamp(m.p, 0, 1) * Math.PI) * dim;
     if (a < 0.012) continue;
-    g.fillStyle = `rgba(${LIME},${(a * 0.4).toFixed(3)})`;
+    g.fillStyle = `rgba(${LIME},${(a * 0.3).toFixed(3)})`;
     g.fillText(m.t, lerp(m.x0, m.x1, m.p), m.y);
   }
   track(g, 0);
-}
-
-// ── the room's own word ────────────────────────────────────────────────────
-// Once the phone is full it has nothing left to say, so the sentence moves off
-// the screen and onto the sheet. It empties from the bottom, the way the screen
-// filled from the bottom. Vertical, because a battery is a column.
-const DRAIN = [...'DRAINING'];
-
-function drawDrain(g) {
-  if (done < 0.004) return;
-  const margin = W / 2 - PH.w / 2;
-  const fs = Math.max(11, Math.min(S * 0.072, margin * 0.5));
-  const lh = fs * 1.06;
-  const cx = W - margin * 0.5, cy = PH.y;   // 곡선이 왼쪽에 있으니 이쪽은 오른쪽
-  const top = cy - lh * DRAIN.length / 2, bot = top + lh * DRAIN.length;
-  const fy = bot - (bot - top) * me;
-
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = `700 ${fs | 0}px Orbitron, sans-serif`;
-
-  g.lineWidth = Math.max(1, fs * 0.03);
-  g.strokeStyle = `rgba(${LIME},${done * 0.16})`;
-  for (let i = 0; i < DRAIN.length; i++) g.strokeText(DRAIN[i], cx, top + lh * (i + 0.5));
-
-  g.save();
-  g.beginPath();
-  g.rect(cx - fs, fy, fs * 2, bot - fy + 2);
-  g.clip();
-  g.shadowColor = `rgba(${GRN},${done * 0.5})`;
-  g.shadowBlur = fs * 0.35;
-  g.fillStyle = `rgba(${LIME},${done * 0.5})`;
-  for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
-  g.restore();
-
-  if (me > 0.001) {
-    const lg = g.createLinearGradient(cx - fs * 0.9, 0, cx + fs * 0.9, 0);
-    lg.addColorStop(0, `rgba(${GRN},0)`);
-    lg.addColorStop(.5, `rgba(${MINT},${done * 0.36})`);
-    lg.addColorStop(1, `rgba(${GRN},0)`);
-    g.fillStyle = lg;
-    g.fillRect(cx - fs * 0.9, fy - 0.5, fs * 1.8, 1);
-  }
 }
 
 // the other battery. No port, no cable, and the number only goes one way.
@@ -1037,7 +1008,6 @@ function draw() {
   if (bed) ctx.drawImage(bed, 0, 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   drawGlow(ctx);
-  drawDrain(ctx);
   drawMurmurs(ctx);
   drawCable(ctx);
   drawPhone(ctx);
