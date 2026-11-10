@@ -1,41 +1,41 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>충전 중 — 03:57</title>
+<title>CHARGING — 03:57</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@500;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #06070a; }
-  body { font-family: 'Space Mono', monospace; cursor: default; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05030c; }
+  body { font-family: 'Share Tech Mono', monospace; cursor: default; }
   body.grab { cursor: grabbing; }
   canvas { display: block; }
 
   .home-btn {
     position: fixed; left: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
-    color: #7f9ab4; text-decoration: none; padding: 9px 13px;
-    border: 1px solid rgba(127,154,180,.3); background: rgba(6,7,10,.55);
+    font: 700 11px/1 'Share Tech Mono', monospace; letter-spacing: .22em;
+    color: #3ddcf5; text-decoration: none; padding: 9px 13px;
+    border: 1px solid rgba(61,220,245,.3); background: rgba(5,3,12,.6);
     transition: color .3s, border-color .3s;
   }
-  .home-btn:hover { color: #cfe4f7; border-color: rgba(207,228,247,.5); }
+  .home-btn:hover { color: #ff2d9b; border-color: rgba(255,45,155,.55); }
 
   .snd {
     position: fixed; right: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
-    color: #7f9ab4; padding: 9px 13px; cursor: pointer;
-    border: 1px solid rgba(127,154,180,.3); background: rgba(6,7,10,.55);
+    font: 700 11px/1 'Share Tech Mono', monospace; letter-spacing: .18em;
+    color: #3ddcf5; padding: 9px 13px; cursor: pointer;
+    border: 1px solid rgba(61,220,245,.3); background: rgba(5,3,12,.6);
     transition: color .3s, border-color .3s;
   }
-  .snd:hover { color: #cfe4f7; border-color: rgba(207,228,247,.5); }
+  .snd:hover { color: #ff2d9b; border-color: rgba(255,45,155,.55); }
 
   .hint {
     position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20;
-    font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
-    color: rgba(127,154,180,.6); white-space: nowrap; pointer-events: none;
+    font: 400 10px/1 'Share Tech Mono', monospace; letter-spacing: .2em;
+    color: rgba(61,220,245,.58); white-space: nowrap; pointer-events: none;
     transition: opacity 1.4s ease;
   }
   .hint.off { opacity: 0; }
@@ -47,7 +47,7 @@
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
 <div class="snd" id="snd">SOUND: ON</div>
-<div class="hint" id="hint">DRAG THE CABLE INTO THE PORT · 케이블을 꽂아보세요</div>
+<div class="hint" id="hint">// DRAG THE CABLE INTO THE PORT</div>
 
 <script>
 const cv = document.getElementById('cv');
@@ -75,7 +75,7 @@ let W = 0, H = 0, S = 0;        // S = min side, the one unit everything scales 
 const ROT = -0.054;
 const CS = Math.cos(ROT), SN = Math.sin(ROT);
 const PH = { x: 0, y: 0, w: 0, h: 0, r: 0 };
-const SCR = { w: 0, h: 0 };
+const SCR = { w: 0, h: 0, r: 0 };
 const toW = (px, py) => [PH.x + px * CS - py * SN, PH.y + px * SN + py * CS];
 
 // ── state ──────────────────────────────────────────────────────────────────
@@ -156,7 +156,7 @@ function grain(g, w, h, amt) {
   const d = im.data;
   for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
     const i = (y * gw + x) * 4;
-    d[i] = 150; d[i + 1] = 170; d[i + 2] = 200;
+    d[i] = 110; d[i + 1] = 180; d[i + 2] = 215;
     d[i + 3] = Math.random() * amt;
   }
   gg.putImageData(im, 0, 0);
@@ -171,8 +171,20 @@ function bakeBed() {
   const g = bed.getContext('2d');
   g.scale(DPR, DPR);
 
-  g.fillStyle = '#080a0e';
+  g.fillStyle = '#05030c';
   g.fillRect(0, 0, W, H);
+
+  // 방 끝에서 들어오는 간판 빛 — 왼쪽은 청록, 오른쪽은 자홍
+  for (const [cx, cy, rr, col] of [
+    [W * 0.08, H * 0.18, S * 1.0, '0,170,220'],
+    [W * 0.96, H * 0.88, S * 0.9, '190,30,120'],
+  ]) {
+    const gd = g.createRadialGradient(cx, cy, 0, cx, cy, rr);
+    gd.addColorStop(0, `rgba(${col},.2)`);
+    gd.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gd;
+    g.fillRect(cx - rr, cy - rr, rr * 2, rr * 2);
+  }
 
   // soft folds. Cloth read as cloth only once the light had somewhere to pool,
   // so these are big and very low contrast rather than many and sharp.
@@ -181,7 +193,7 @@ function bakeBed() {
     const x = hsh(i, 2, 5) * W, y = hsh(i, 3, 9) * H;
     const up = hsh(i, 4, 11) > 0.45;
     const gd = g.createRadialGradient(x, y, 0, x, y, r);
-    gd.addColorStop(0, up ? 'rgba(42,54,72,.3)' : 'rgba(2,3,5,.42)');
+    gd.addColorStop(0, up ? 'rgba(34,58,96,.3)' : 'rgba(3,1,8,.46)');
     gd.addColorStop(1, 'rgba(0,0,0,0)');
     g.fillStyle = gd;
     g.fillRect(x - r, y - r, r * 2, r * 2);
@@ -196,7 +208,7 @@ function bakeBed() {
     for (let x = -40; x <= W + 40; x += 70) {
       g.lineTo(x, y0 + Math.sin(x / (160 + i * 40) + i) * S * 0.035 + (hsh(i, x | 0, 17) - 0.5) * 8);
     }
-    g.strokeStyle = `rgba(56,70,92,${0.07 + hsh(i, 6, 19) * 0.05})`;
+    g.strokeStyle = `rgba(46,74,112,${0.08 + hsh(i, 6, 19) * 0.05})`;
     g.lineWidth = 2 + hsh(i, 7, 23) * 5;
     g.stroke();
     g.strokeStyle = 'rgba(0,0,0,.14)';
@@ -209,7 +221,7 @@ function bakeBed() {
   // the room is darker at the corners than it is by the pillow
   const vg = g.createRadialGradient(W / 2, H * 0.52, S * 0.1, W / 2, H * 0.52, S * 0.95);
   vg.addColorStop(0, 'rgba(0,0,0,0)');
-  vg.addColorStop(1, 'rgba(0,0,0,.72)');
+  vg.addColorStop(1, 'rgba(0,0,0,.76)');
   g.fillStyle = vg;
   g.fillRect(0, 0, W, H);
 }
@@ -317,51 +329,141 @@ function rrect(g, x, y, w, h, r) {
   g.closePath();
 }
 
+// 아이폰 모서리는 원호가 아니라 이어지는 곡선이다. 베지어로 흉내 낸다.
+function squircle(g, x, y, w, h, r) {
+  const k = Math.min(r * 1.42, w / 2, h / 2), c = k * 0.31;
+  const x1 = x + w, y1 = y + h;
+  g.beginPath();
+  g.moveTo(x + k, y);
+  g.lineTo(x1 - k, y);
+  g.bezierCurveTo(x1 - c, y, x1, y + c, x1, y + k);
+  g.lineTo(x1, y1 - k);
+  g.bezierCurveTo(x1, y1 - c, x1 - c, y1, x1 - k, y1);
+  g.lineTo(x + k, y1);
+  g.bezierCurveTo(x + c, y1, x, y1 - c, x, y1 - k);
+  g.lineTo(x, y + k);
+  g.bezierCurveTo(x, y + c, x + c, y, x + k, y);
+  g.closePath();
+}
+
 function drawGlow(g) {
   const r = S * (0.40 + bri * 0.32);
   const gd = g.createRadialGradient(PH.x, PH.y, 0, PH.x, PH.y, r);
-  gd.addColorStop(0, `rgba(86,142,200,${bri * 0.26})`);
-  gd.addColorStop(.42, `rgba(62,104,154,${bri * 0.1})`);
+  gd.addColorStop(0, `rgba(0,190,235,${bri * 0.26})`);
+  gd.addColorStop(.42, `rgba(34,88,168,${bri * 0.1})`);
   gd.addColorStop(1, 'rgba(0,0,0,0)');
   g.globalCompositeOperation = 'lighter';
   g.fillStyle = gd;
   g.fillRect(PH.x - r, PH.y - r, r * 2, r * 2);
+  const mr = r * 0.78;
+  const md = g.createRadialGradient(PH.x, PH.y + r * 0.3, 0, PH.x, PH.y + r * 0.3, mr);
+  md.addColorStop(0, `rgba(255,45,155,${bri * 0.09})`);
+  md.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = md;
+  g.fillRect(PH.x - mr, PH.y + r * 0.3 - mr, mr * 2, mr * 2);
   g.globalCompositeOperation = 'source-over';
 }
 
 function portPos() { return toW(0, PH.h / 2 + S * 0.006); }
 
+// ── USB-C ──────────────────────────────────────────────────────────────────
+// 실물 치수대로 — 금속 쉘 8.3 x 2.4 mm, 하우징은 그보다 조금 넓고 두 배쯤 길다.
+// 위에서 내려다보는 그림이라 금속은 폭이 넓고 길이는 짧은 토막으로 보인다.
+function plugGeo() {
+  const pw = PH.w * 0.12;              // 단자 구멍 너비
+  return {
+    mW: pw * 0.965, mL: pw * 0.76,     // 금속 쉘 8.3 x 6.5 mm
+    hW: pw * 1.16,  hL: pw * 2.05,     // 몰딩 하우징 10 x 18 mm
+    sL: pw * 0.74,                     // 선이 빠져나오는 목
+  };
+}
+
+// 플러그가 보는 쪽. 포트에 가까워질수록 포트 축으로 돌아선다 —
+// 아무 각도로나 비스듬히 꽂히는 단자는 없다.
+function plugAngle(mx, my) {
+  const free = Math.atan2(tip.y - my, tip.x - mx);
+  const aim = ROT - Math.PI / 2;       // 아래 모서리에서 폰 안으로 들어가는 방향
+  const [px, py] = portPos();
+  const d = Math.hypot(tip.x - px, tip.y - py);
+  const k = plug ? 1 : Math.pow(clamp(1 - d / (S * 0.3), 0, 1), 1.5);
+  const df = Math.atan2(Math.sin(aim - free), Math.cos(aim - free));
+  return free + df * k;
+}
+
 function drawCable(g) {
+  const G = plugGeo();
   const ax = W + S * 0.08, ay = H + S * 0.1;
   const d = Math.hypot(tip.x - ax, tip.y - ay);
   // the shorter the run, the more cable there is to pool on the sheet
   const sag = clamp((S * 1.3 - d) * 0.42, 0, S * 0.3);
   const mx = (ax + tip.x) / 2, my = (ay + tip.y) / 2 + sag;
+  const ang = plugAngle(mx, my);
+  const ca = Math.cos(ang), sa = Math.sin(ang);
+
+  // 꽂으면 금속은 폰 안으로 들어간다. 폰을 뒤에 그리니 저절로 가려진다.
+  const ins = plug ? G.mL * 0.8 : 0;
+  const tx = tip.x + ca * ins, ty = tip.y + sa * ins;
+
+  // 선은 플러그 끝이 아니라 하우징 뒤에서 끝난다
+  const tot = G.mL + G.hL + G.sL;
+  const bx = tx - ca * tot, by = ty - sa * tot;
+  const c2x = bx - ca * S * 0.07, c2y = by - sa * S * 0.07;
 
   g.lineCap = 'round'; g.lineJoin = 'round';
   g.beginPath();
   g.moveTo(ax, ay);
-  g.quadraticCurveTo(mx, my, tip.x, tip.y);
+  g.bezierCurveTo(mx, my, c2x, c2y, bx, by);
   g.strokeStyle = '#040508'; g.lineWidth = S * 0.0205; g.stroke();
   g.strokeStyle = '#191e27'; g.lineWidth = S * 0.0145; g.stroke();
   g.strokeStyle = `rgba(146,178,210,${0.08 + bri * 0.07})`;
   g.lineWidth = S * 0.0035; g.stroke();
 
-  const ang = Math.atan2(tip.y - my, tip.x - mx);
   g.save();
-  g.translate(tip.x, tip.y);
+  g.translate(tx, ty);
   g.rotate(ang);
-  const L = S * 0.062, D = S * 0.031;
-  rrect(g, -L, -D / 2, L, D, D * 0.28);
-  g.fillStyle = '#20252e'; g.fill();
-  g.strokeStyle = 'rgba(150,180,212,.16)'; g.lineWidth = 1; g.stroke();
-  rrect(g, -D * 0.1, -D * 0.25, L * 0.52, D * 0.5, D * 0.14);
-  const mg = g.createLinearGradient(0, -D * 0.25, 0, D * 0.25);
-  mg.addColorStop(0, '#b6c4d2'); mg.addColorStop(.5, '#7a8795'); mg.addColorStop(1, '#49535e');
+
+  // 목 — 뒤로 갈수록 가늘어진다
+  const n0 = -(G.mL + G.hL), n1 = n0 - G.sL, nr = S * 0.0082;
+  g.beginPath();
+  g.moveTo(n0, -G.hW * 0.4); g.lineTo(n1, -nr);
+  g.lineTo(n1, nr);          g.lineTo(n0, G.hW * 0.4);
+  g.closePath();
+  g.fillStyle = '#13171f'; g.fill();
+
+  // 하우징
+  rrect(g, n0, -G.hW / 2, G.hL, G.hW, G.hW * 0.2);
+  const hg = g.createLinearGradient(0, -G.hW / 2, 0, G.hW / 2);
+  hg.addColorStop(0, '#242b34'); hg.addColorStop(.42, '#161b22'); hg.addColorStop(1, '#0a0d13');
+  g.fillStyle = hg; g.fill();
+  g.strokeStyle = 'rgba(160,192,224,.13)'; g.lineWidth = 1; g.stroke();
+
+  // 금속 쉘 — 위에서 보면 모서리만 살짝 둥근 네모다
+  rrect(g, -G.mL, -G.mW / 2, G.mL, G.mW, G.mW * 0.1);
+  // 둥글게 말린 쉘이라 가운데가 밝고 양 가장자리가 어둡다
+  const mg = g.createLinearGradient(0, -G.mW / 2, 0, G.mW / 2);
+  mg.addColorStop(0, '#2b333d'); mg.addColorStop(.18, '#6d7a89');
+  mg.addColorStop(.42, '#9aa8b7'); mg.addColorStop(.72, '#5e6a78');
+  mg.addColorStop(1, '#262d36');
   g.fillStyle = mg; g.fill();
+
+  // 쉘 이음선 — 가운데를 길게 지나간다
+  g.beginPath();
+  g.moveTo(-G.mL * 0.88, 0); g.lineTo(-G.mL * 0.08, 0);
+  g.strokeStyle = 'rgba(16,21,28,.3)';
+  g.lineWidth = Math.max(1, S * 0.0009); g.stroke();
+
+  // 끝 입술
+  g.beginPath();
+  g.moveTo(-G.mL * 0.04, -G.mW * 0.4); g.lineTo(-G.mL * 0.04, G.mW * 0.4);
+  g.strokeStyle = 'rgba(206,224,244,.22)';
+  g.lineWidth = Math.max(1, S * 0.0012); g.stroke();
+
   if (!plug) {
-    g.fillStyle = `rgba(150,180,212,${0.1 + 0.1 * Math.sin(t * 2.4)})`;
-    g.fillRect(-L * 0.78, -D * 0.1, L * 0.22, D * 0.2);
+    // 아직 안 꽂힌 동안만 — 집어 들라고 금속에 빛이 한 번씩 돈다
+    const a = 0.1 + 0.13 * (0.5 + 0.5 * Math.sin(t * 2.4));
+    rrect(g, -G.mL, -G.mW / 2, G.mL, G.mW, G.mW * 0.1);
+    g.strokeStyle = `rgba(190,224,255,${a.toFixed(3)})`;
+    g.lineWidth = Math.max(1, S * 0.0022); g.stroke();
   }
   g.restore();
 }
@@ -369,7 +471,7 @@ function drawCable(g) {
 const two = n => String(n | 0).padStart(2, '0');
 
 // drawn rather than typed: the emoji bolt comes back in colour on most systems
-function bolt(g, x, y, h, a) {
+function bolt(g, x, y, h, a, rgb) {
   g.save();
   g.translate(x, y);
   g.beginPath();
@@ -380,23 +482,122 @@ function bolt(g, x, y, h, a) {
   g.lineTo(h * 0.24, -h * 0.08);
   g.lineTo(h * 0.03, -h * 0.08);
   g.closePath();
-  g.fillStyle = `rgba(190,224,255,${a})`;
+  g.fillStyle = `rgba(${rgb || '0,226,255'},${a})`;
   g.fill();
   g.restore();
+}
+
+// 자간. 캔버스가 letterSpacing 을 모르면 그냥 넘어간다.
+function track(g, px) {
+  if ('letterSpacing' in g) g.letterSpacing = px ? px.toFixed(2) + 'px' : '0px';
+}
+
+// 화면에 가로줄이 깔리고, 밝은 띠 하나가 천천히 내려간다
+function scanlines(g, sw, sh) {
+  const step = Math.max(2, sh * 0.0075);
+  g.fillStyle = `rgba(0,0,0,${0.1 + bri * 0.12})`;
+  for (let y = -sh / 2; y < sh / 2; y += step) g.fillRect(-sw / 2, y, sw, step * 0.42);
+  const by = -sh / 2 + ((t * 0.09) % 1) * sh;
+  const bg = g.createLinearGradient(0, by - sh * 0.1, 0, by + sh * 0.1);
+  bg.addColorStop(0, 'rgba(0,226,255,0)');
+  bg.addColorStop(.5, `rgba(0,226,255,${bri * 0.045})`);
+  bg.addColorStop(1, 'rgba(0,226,255,0)');
+  g.fillStyle = bg;
+  g.fillRect(-sw / 2, by - sh * 0.1, sw, sh * 0.2);
+}
+
+// ── iOS 화면 ───────────────────────────────────────────────────────────────
+// 다이내믹 아일랜드 125 x 37 pt, 상태바 글자 왼쪽, 아이콘 오른쪽,
+// 맨 아래 홈 인디케이터. 아이폰에서 재 본 비율 그대로 옮겼다.
+function islandBox(sw, sh) {
+  const w = sw * 0.318, h = sw * 0.094;
+  return { x: -w / 2, y: -sh / 2 + sh * 0.0138, w, h };
+}
+
+function drawIsland(g, sw, sh) {
+  const b = islandBox(sw, sh);
+  rrect(g, b.x, b.y, b.w, b.h, b.h / 2);
+  g.fillStyle = '#000'; g.fill();
+  const r = b.h * 0.2, cx = b.x + b.w - b.h * 0.5, cy = b.y + b.h / 2;
+  g.beginPath(); g.arc(cx, cy, r, 0, TAU);
+  g.fillStyle = '#0a1018'; g.fill();
+  g.beginPath(); g.arc(cx - r * 0.26, cy - r * 0.26, r * 0.42, 0, TAU);
+  g.fillStyle = `rgba(58,96,142,${0.22 + bri * 0.2})`; g.fill();
+}
+
+function drawStatusBar(g, sw, sh) {
+  const b = islandBox(sw, sh);
+  const cy = b.y + b.h / 2, a = bri * 0.92;
+  const fg = `rgba(240,247,255,${a})`;
+
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.font = `600 ${(sw * 0.053) | 0}px Inter, system-ui, sans-serif`;
+  g.fillStyle = fg;
+  g.fillText(`${two(clk / 60)}:${two(clk % 60)}`, (b.x - sw * 0.5) / 2, cy + sw * 0.002);
+
+  let x = sw * 0.5 - sw * 0.062;        // 오른쪽 끝에서부터 왼쪽으로
+
+  // 배터리 — 충전 중이면 초록으로 바뀌고 안에 번개가 뜬다
+  const bw = sw * 0.083, bh = sw * 0.04, lw = Math.max(1, sw * 0.0042);
+  rrect(g, x - bw, cy - bh / 2, bw, bh, bh * 0.36);
+  g.strokeStyle = `rgba(236,245,255,${a * 0.4})`; g.lineWidth = lw; g.stroke();
+  g.beginPath();
+  g.moveTo(x + lw, cy - bh * 0.13);
+  g.arcTo(x + bh * 0.16, cy - bh * 0.13, x + bh * 0.16, cy + bh * 0.13, bh * 0.1);
+  g.arcTo(x + bh * 0.16, cy + bh * 0.13, x + lw, cy + bh * 0.13, bh * 0.1);
+  g.lineTo(x + lw, cy + bh * 0.13);
+  g.strokeStyle = `rgba(236,245,255,${a * 0.3})`; g.stroke();
+
+  const ip = lw * 1.6, iw = (bw - ip * 2) * clamp(chg, 0.03, 1);
+  rrect(g, x - bw + ip, cy - bh / 2 + ip, iw, bh - ip * 2, (bh - ip * 2) * 0.3);
+  g.fillStyle = plug && !slept ? `rgba(48,209,88,${a})` : `rgba(240,247,255,${a})`;
+  g.fill();
+  if (plug && !slept) bolt(g, x - bw / 2, cy, bh * 0.92, a, '6,22,10');
+
+  // 와이파이
+  x -= bw + sw * 0.028;
+  const wr = sw * 0.027;
+  g.strokeStyle = fg; g.lineWidth = Math.max(1, sw * 0.0062);
+  g.lineCap = 'round';
+  for (let i = 2; i >= 1; i--) {
+    g.beginPath();
+    g.arc(x - wr, cy + wr * 0.52, wr * (i * 0.44 + 0.12), -Math.PI * 0.76, -Math.PI * 0.24);
+    g.stroke();
+  }
+  g.beginPath();
+  g.arc(x - wr, cy + wr * 0.46, wr * 0.09, 0, TAU);
+  g.fillStyle = fg; g.fill();
+
+  // 신호 막대 네 개
+  x -= wr * 2 + sw * 0.026;
+  const sg = sw * 0.0105, sbw = sw * 0.0124, sh4 = sw * 0.038;
+  for (let i = 0; i < 4; i++) {
+    const hgt = sh4 * (0.34 + i * 0.22);
+    rrect(g, x - (4 - i) * (sbw + sg) + sg, cy + sh4 / 2 - hgt, sbw, hgt, sbw * 0.34);
+    g.fillStyle = `rgba(240,247,255,${a * (i < 3 ? 1 : 0.32)})`;
+    g.fill();
+  }
+}
+
+function drawHomeBar(g, sw, sh) {
+  const w = sw * 0.355, h = Math.max(2, sw * 0.0118);
+  rrect(g, -w / 2, sh / 2 - h * 2.6, w, h, h / 2);
+  g.fillStyle = `rgba(232,243,255,${0.18 + bri * 0.38})`;
+  g.fill();
 }
 
 function drawScreen(g) {
   const sw = SCR.w, sh = SCR.h;
   g.save();
-  rrect(g, -sw / 2, -sh / 2, sw, sh, PH.r * 0.74);
+  squircle(g, -sw / 2, -sh / 2, sw, sh, SCR.r);
   g.clip();
 
   g.fillStyle = '#05080d';
   g.fillRect(-sw / 2, -sh / 2, sw, sh);
   const bg = g.createLinearGradient(0, -sh / 2, 0, sh / 2);
-  bg.addColorStop(0, `rgba(20,42,68,${bri * 0.85})`);
-  bg.addColorStop(.55, `rgba(11,24,40,${bri * 0.8})`);
-  bg.addColorStop(1, `rgba(16,32,52,${bri * 0.9})`);
+  bg.addColorStop(0, `rgba(10,46,66,${bri * 0.9})`);
+  bg.addColorStop(.5, `rgba(10,14,34,${bri * 0.85})`);
+  bg.addColorStop(1, `rgba(36,12,46,${bri * 0.9})`);
   g.fillStyle = bg;
   g.fillRect(-sw / 2, -sh / 2, sw, sh);
 
@@ -404,67 +605,88 @@ function drawScreen(g) {
 
   if (slept) {
     // it finished, and then it turned itself off, and the room went back to dark
-    g.fillStyle = 'rgba(170,205,240,.3)';
-    g.font = `400 ${(sw * 0.1) | 0}px 'Space Mono', monospace`;
+    g.fillStyle = 'rgba(80,220,245,.3)';
+    g.font = `400 ${(sw * 0.1) | 0}px 'Share Tech Mono', monospace`;
     g.fillText('100%', 0, sh * 0.02);
     bolt(g, 0, -sh * 0.08, sw * 0.14, 0.2);
     g.restore();
     return;
   }
 
-  // status row — 꽂혀 있는 동안 밤이 간다
-  g.font = `400 ${(sw * 0.052) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(186,214,240,${bri * 0.55})`;
-  g.textAlign = 'left';
-  g.fillText(`${two(clk / 60)}:${two(clk % 60)}`, -sw * 0.38, -sh * 0.42);
-  g.textAlign = 'center';
-  if (plug) bolt(g, sw * 0.36, -sh * 0.42, sw * 0.07, bri * 0.6);
+  drawStatusBar(g, sw, sh);
+  drawIsland(g, sw, sh);
+  drawHomeBar(g, sw, sh);
+  g.textAlign = 'center'; g.textBaseline = 'middle';
 
   // the word is the battery. It fills from the bottom up.
-  const word = !plug && chg < 0.99 ? (chg < 0.05 ? '방전' : '충전 안 됨')
-    : chg >= 0.999 ? '충전 완료' : '충전 중';
-  let fs = sw * 0.88 / word.length * 1.08;
-  fs = Math.min(fs, sh * 0.2);
-  const cy = -sh * 0.05;
-  const top = cy - fs * 0.6, bot = cy + fs * 0.6;
-  const fy = bot - (bot - top) * chg;
+  const word = !plug && chg < 0.99 ? (chg < 0.05 ? 'DEPLETED' : 'NO POWER')
+    : chg >= 0.999 ? 'CHARGED' : 'CHARGING';
 
-  g.font = `900 ${fs | 0}px "Noto Sans KR", sans-serif`;
-  g.fillStyle = `rgba(152,190,224,${bri * 0.16})`;
-  g.fillText(word, 0, cy);
+  // 글자 수로 크기를 잡으면 영문은 안 맞는다. 재서 맞춘다.
+  const trk = 0.055;
+  track(g, 100 * trk);
+  g.font = `700 100px "Chakra Petch", sans-serif`;
+  const fs = Math.min(sh * 0.19, 100 * (sw * 0.8) / g.measureText(word).width) | 0;
+  track(g, fs * trk);
+  g.font = `700 ${fs}px "Chakra Petch", sans-serif`;
+
+  const cy = -sh * 0.05;
+  const top = cy - fs * 0.52, bot = cy + fs * 0.48;
+  const fy = bot - (bot - top) * chg;
+  const ox = fs * trk * 0.5;   // letterSpacing 은 뒤쪽에만 붙어서 가운데가 밀린다
+
+  // 꺼진 쪽 — 청록과 자홍이 어긋나 있다
+  g.fillStyle = `rgba(0,214,255,${0.05 + bri * 0.13})`;
+  g.fillText(word, -ox - fs * 0.021, cy);
+  g.fillStyle = `rgba(255,45,155,${0.04 + bri * 0.1})`;
+  g.fillText(word, -ox + fs * 0.021, cy);
 
   g.save();
   g.beginPath();
   g.rect(-sw / 2, fy, sw, bot - fy + 2);
   g.clip();
-  g.shadowColor = `rgba(120,190,255,${bri * 0.55})`;
-  g.shadowBlur = fs * 0.4;
-  g.fillStyle = `rgba(222,240,255,${bri * 0.96})`;
-  g.fillText(word, 0, cy);
+  g.shadowColor = `rgba(255,45,155,${bri * 0.5})`;
+  g.shadowBlur = fs * 0.18;
+  g.fillStyle = `rgba(255,45,155,${bri * 0.55})`;
+  g.fillText(word, -ox + fs * 0.018, cy);
+  g.shadowColor = `rgba(0,226,255,${bri * 0.7})`;
+  g.shadowBlur = fs * 0.22;
+  g.fillStyle = `rgba(226,252,255,${bri * 0.97})`;
+  g.fillText(word, -ox, cy);
   g.restore();
+  track(g, 0);
 
   if (plug && chg < 0.999) {
     // the waterline, not a strike-through: it has to die out before the bezel
     const lg = g.createLinearGradient(-sw * 0.44, 0, sw * 0.44, 0);
-    lg.addColorStop(0, 'rgba(160,214,255,0)');
-    lg.addColorStop(.5, `rgba(170,220,255,${bri * 0.3})`);
-    lg.addColorStop(1, 'rgba(160,214,255,0)');
+    lg.addColorStop(0, 'rgba(0,226,255,0)');
+    lg.addColorStop(.5, `rgba(120,244,255,${bri * 0.26})`);
+    lg.addColorStop(1, 'rgba(255,45,155,0)');
     g.fillStyle = lg;
     g.fillRect(-sw * 0.44, fy - 0.5, sw * 0.88, 1);
   }
 
-  g.font = `700 ${(sw * 0.25) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(206,232,255,${bri * 0.9})`;
+  const pf = (sw * 0.25) | 0;
+  g.font = `400 ${pf}px 'Share Tech Mono', monospace`;
+  g.fillStyle = `rgba(255,45,155,${bri * 0.34})`;
+  g.fillText(Math.round(chg * 100) + '%', pf * 0.022, sh * 0.18);
+  g.shadowColor = `rgba(0,226,255,${bri * 0.5})`;
+  g.shadowBlur = pf * 0.3;
+  g.fillStyle = `rgba(216,250,255,${bri * 0.92})`;
   g.fillText(Math.round(chg * 100) + '%', 0, sh * 0.18);
+  g.shadowBlur = 0;
 
   const rem = Math.max(1, Math.round((1 - chg) * 22));
-  const cap = chg >= 0.999 ? '더 채울 것이 없음'
-    : plug ? `완충까지 ${rem}분`
-    : '전원 연결 안 됨';
-  g.font = `400 ${(sw * 0.058) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(166,198,226,${bri * 0.5})`;
+  const cap = chg >= 0.999 ? 'NOTHING LEFT TO FILL'
+    : plug ? `FULL IN ${rem} MIN`
+    : 'NO SOURCE CONNECTED';
+  track(g, sw * 0.012);
+  g.font = `400 ${(sw * 0.055) | 0}px 'Share Tech Mono', monospace`;
+  g.fillStyle = `rgba(104,214,238,${bri * 0.6})`;
   g.fillText(cap, 0, sh * 0.31);
+  track(g, 0);
 
+  scanlines(g, sw, sh);
   g.restore();
 }
 
@@ -473,26 +695,68 @@ function drawPhone(g) {
   g.translate(PH.x, PH.y);
   g.rotate(ROT);
 
+  const hw = PH.w / 2, hh = PH.h / 2;
+
+  // 옆 버튼 — 위에서 내려다보면 테두리 밖으로 조금 나온 턱이다
+  const bd = Math.max(1.5, PH.w * 0.012);
+  const side = (y0, len, left) => {
+    const x = left ? -hw - bd * 0.68 : hw - bd * 0.32;
+    rrect(g, x, y0, bd, len, bd * 0.4);
+    const bg = g.createLinearGradient(x, 0, x + bd, 0);
+    bg.addColorStop(0, left ? '#3a434e' : '#272e37');
+    bg.addColorStop(1, left ? '#181d24' : '#454f5b');
+    g.fillStyle = bg; g.fill();
+  };
+  side(-hh + PH.h * 0.152, PH.h * 0.040, true);    // 액션 버튼
+  side(-hh + PH.h * 0.222, PH.h * 0.060, true);    // 볼륨 업
+  side(-hh + PH.h * 0.298, PH.h * 0.060, true);    // 볼륨 다운
+  side(-hh + PH.h * 0.226, PH.h * 0.104, false);   // 측면 버튼
+
   g.shadowColor = 'rgba(0,0,0,.8)';
   g.shadowBlur = S * 0.055;
   g.shadowOffsetY = S * 0.014;
-  rrect(g, -PH.w / 2, -PH.h / 2, PH.w, PH.h, PH.r);
+  squircle(g, -hw, -hh, PH.w, PH.h, PH.r);
   g.fillStyle = '#0d1016';
   g.fill();
   g.shadowColor = 'transparent'; g.shadowBlur = 0; g.shadowOffsetY = 0;
 
-  rrect(g, -PH.w / 2, -PH.h / 2, PH.w, PH.h, PH.r);
-  g.strokeStyle = `rgba(158,190,222,${0.1 + bri * 0.17})`;
-  g.lineWidth = Math.max(1, S * 0.0022);
+  // 티타늄 테두리 — 한쪽이 밝고 반대쪽은 어둡다
+  squircle(g, -hw, -hh, PH.w, PH.h, PH.r);
+  const fg = g.createLinearGradient(-hw, -hh, hw, hh);
+  fg.addColorStop(0, `rgba(198,218,240,${0.3 + bri * 0.24})`);
+  fg.addColorStop(.34, `rgba(118,144,174,${0.14 + bri * 0.12})`);
+  fg.addColorStop(.72, `rgba(82,102,126,${0.1 + bri * 0.1})`);
+  fg.addColorStop(1, `rgba(172,198,224,${0.2 + bri * 0.2})`);
+  g.strokeStyle = fg;
+  g.lineWidth = Math.max(1.2, PH.w * 0.0095);
   g.stroke();
+
+  // 테두리와 화면 사이 검은 띠
+  const pad = (PH.w - SCR.w) / 2;
+  squircle(g, -SCR.w / 2 - pad * 0.34, -SCR.h / 2 - pad * 0.34,
+           SCR.w + pad * 0.68, SCR.h + pad * 0.68, SCR.r + pad * 0.34);
+  g.fillStyle = '#04060a';
+  g.fill();
 
   drawScreen(g);
 
-  // the port, a dark slot in the bottom edge
-  const pw = PH.w * 0.17, ph = Math.max(2, PH.w * 0.025);
-  rrect(g, -pw / 2, PH.h / 2 - ph * 0.5, pw, ph, ph * 0.5);
-  g.fillStyle = '#04060a';
-  g.fill();
+  // 아래 모서리 — 단자 구멍과 양옆 스피커
+  const pw = PH.w * 0.12, ph = Math.max(2, PH.w * 0.024);
+  if (!plug) {
+    rrect(g, -pw / 2, hh - ph * 1.05, pw, ph, ph * 0.5);
+    g.fillStyle = '#04060a';
+    g.fill();
+  }
+  const sr = Math.max(0.8, PH.w * 0.0075);
+  g.fillStyle = 'rgba(4,6,10,.85)';
+  for (let i = 0; i < 3; i++) {
+    const ox = pw * 0.82 + i * sr * 3.1;
+    for (const sx of [-ox, ox]) {
+      g.beginPath();
+      g.arc(sx, hh - sr * 0.9, sr, 0, TAU);
+      g.fill();
+    }
+  }
 
   g.restore();
 }
@@ -501,52 +765,54 @@ function drawMurmurs(g) {
   if (!murs.length) return;
   g.textAlign = 'left'; g.textBaseline = 'middle';
   const fs = Math.max(10, S * 0.0205);
-  g.font = `400 ${fs | 0}px 'Space Mono', monospace`;
+  track(g, fs * 0.1);
+  g.font = `400 ${fs | 0}px 'Share Tech Mono', monospace`;
   const dim = slept ? 0.18 : 1;
   for (const m of murs) {
     const a = Math.sin(clamp(m.p, 0, 1) * Math.PI) * dim;
     if (a < 0.012) continue;
-    g.fillStyle = `rgba(150,180,208,${(a * 0.46).toFixed(3)})`;
+    g.fillStyle = `rgba(84,206,232,${(a * 0.44).toFixed(3)})`;
     g.fillText(m.t, lerp(m.x0, m.x1, m.p), m.y);
   }
+  track(g, 0);
 }
 
 // ── the room's own word ────────────────────────────────────────────────────
 // Once the phone is full it has nothing left to say, so the sentence moves off
 // the screen and onto the sheet. It empties from the bottom, the way the screen
 // filled from the bottom. Vertical, because a battery is a column.
-const DRAIN = ['방', '전', '중'];
+const DRAIN = [...'DRAINING'];
 
 function drawDrain(g) {
   if (done < 0.004) return;
   const margin = W / 2 - PH.w / 2;
-  const fs = Math.max(14, Math.min(S * 0.2, margin * 0.62));
-  const lh = fs * 1.12;
+  const fs = Math.max(11, Math.min(S * 0.075, margin * 0.5));
+  const lh = fs * 1.02;
   const cx = W - margin * 0.5, cy = PH.y;   // 곡선이 왼쪽에 있으니 이쪽은 오른쪽
   const top = cy - lh * DRAIN.length / 2, bot = top + lh * DRAIN.length;
   const fy = bot - (bot - top) * me;
 
   g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = `400 ${fs | 0}px "Nanum Myeongjo", serif`;
+  g.font = `700 ${fs | 0}px "Chakra Petch", sans-serif`;
 
-  g.fillStyle = `rgba(120,152,186,${done * 0.07})`;
+  g.fillStyle = `rgba(0,214,255,${done * 0.09})`;
   for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
 
   g.save();
   g.beginPath();
   g.rect(cx - fs, fy, fs * 2, bot - fy + 2);
   g.clip();
-  g.shadowColor = `rgba(84,134,190,${done * 0.45})`;
-  g.shadowBlur = fs * 0.34;
-  g.fillStyle = `rgba(176,206,236,${done * 0.34})`;
+  g.shadowColor = `rgba(255,45,155,${done * 0.5})`;
+  g.shadowBlur = fs * 0.4;
+  g.fillStyle = `rgba(255,150,205,${done * 0.42})`;
   for (let i = 0; i < DRAIN.length; i++) g.fillText(DRAIN[i], cx, top + lh * (i + 0.5));
   g.restore();
 
   if (me > 0.001) {
     const lg = g.createLinearGradient(cx - fs * 0.9, 0, cx + fs * 0.9, 0);
-    lg.addColorStop(0, 'rgba(150,196,240,0)');
-    lg.addColorStop(.5, `rgba(160,204,245,${done * 0.26})`);
-    lg.addColorStop(1, 'rgba(150,196,240,0)');
+    lg.addColorStop(0, 'rgba(255,45,155,0)');
+    lg.addColorStop(.5, `rgba(255,120,190,${done * 0.3})`);
+    lg.addColorStop(1, 'rgba(255,45,155,0)');
     g.fillStyle = lg;
     g.fillRect(cx - fs * 0.9, fy - 0.5, fs * 1.8, 1);
   }
@@ -557,17 +823,20 @@ function drawMe(g) {
   const x = W * 0.07, y = H * 0.925, bw = S * 0.16, bh = Math.max(2, S * 0.011);
   const lit = 0.34 + (1 - me) * 0.38;   // it gets harder to ignore as it empties
   g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.font = `400 ${(S * 0.027) | 0}px "Nanum Myeongjo", serif`;
-  g.fillStyle = `rgba(158,186,212,${lit})`;
-  g.fillText('나', x, y);
+  const lf = (S * 0.022) | 0;
+  track(g, lf * 0.2);
+  g.font = `400 ${lf}px 'Share Tech Mono', monospace`;
+  g.fillStyle = `rgba(84,214,240,${lit})`;
+  g.fillText('ME', x, y);
   const bx = x + S * 0.048;
-  g.fillStyle = 'rgba(158,186,212,.12)';
+  g.fillStyle = 'rgba(84,214,240,.12)';
   g.fillRect(bx, y - bh / 2, bw, bh);
-  g.fillStyle = me < 0.12 ? `rgba(206,110,86,${0.5 + lit * 0.4})` : `rgba(158,186,212,${lit})`;
+  g.fillStyle = me < 0.12 ? `rgba(255,45,155,${0.55 + lit * 0.4})` : `rgba(84,214,240,${lit})`;
   g.fillRect(bx, y - bh / 2, bw * me, bh);
-  g.font = `400 ${(S * 0.021) | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(158,186,212,${lit})`;
+  g.font = `400 ${(S * 0.021) | 0}px 'Share Tech Mono', monospace`;
+  g.fillStyle = `rgba(84,214,240,${lit})`;
   g.fillText(Math.round(me * 100) + '%', bx + bw + S * 0.016, y);
+  track(g, 0);
 }
 
 // ── 하루 ───────────────────────────────────────────────────────────────────
@@ -575,7 +844,7 @@ function drawMe(g) {
 // 제일 낮아진다. 점 하나가 지금 몇 시인지 짚고 있다.
 function curveBox() {
   // 케이블이 오른쪽 아래를 지나가니 왼쪽에 둔다
-  return { x: W * 0.07, y: H * 0.845, w: Math.min(W * 0.42, S * 0.5), h: S * 0.08 };
+  return { x: W * 0.07, y: H * 0.845, w: Math.min(W * 0.4, S * 0.44), h: S * 0.08 };
 }
 
 function curveXY(b, m) {
@@ -600,18 +869,26 @@ function drawCurve(g) {
       const [x, y] = curveXY(b, m);
       if (m === sa) g.moveTo(x, y); else g.lineTo(x, y);
     }
-    g.strokeStyle = `rgba(158,190,222,${(a * (pass ? 0.1 : 0.42)).toFixed(3)})`;
+    if (!pass) {
+      g.shadowColor = `rgba(0,226,255,${(a * 0.5).toFixed(3)})`;
+      g.shadowBlur = S * 0.012;
+    }
+    g.strokeStyle = pass
+      ? `rgba(84,206,232,${(a * 0.12).toFixed(3)})`
+      : `rgba(120,240,255,${(a * 0.68).toFixed(3)})`;
     g.lineWidth = Math.max(1, S * 0.0018);
     g.stroke();
+    g.shadowBlur = 0;
   }
 
   // 밑줄과 눈금
-  g.fillStyle = `rgba(158,190,222,${(a * 0.09).toFixed(3)})`;
+  g.fillStyle = `rgba(84,206,232,${(a * 0.12).toFixed(3)})`;
   g.fillRect(b.x, b.y, b.w, Math.max(1, S * 0.0012));
   const tf = Math.max(8, S * 0.0155);
-  g.font = `400 ${tf | 0}px 'Space Mono', monospace`;
+  track(g, tf * 0.14);
+  g.font = `400 ${tf | 0}px 'Share Tech Mono', monospace`;
   g.textAlign = 'center'; g.textBaseline = 'top';
-  g.fillStyle = `rgba(158,190,222,${(a * 0.3).toFixed(3)})`;
+  g.fillStyle = `rgba(84,206,232,${(a * 0.34).toFixed(3)})`;
   for (const h of TICKS) {
     const u = ((h - WIN_A + 24) % 24) / WIN_H;
     g.fillText(two(h), b.x + b.w * u, b.y + tf * 0.6);
@@ -621,21 +898,28 @@ function drawCurve(g) {
   const [dx, dy] = curveXY(b, clk);
   const r = Math.max(2, S * 0.0042);
   g.beginPath(); g.arc(dx, dy, r * 3.4, 0, TAU);
-  g.fillStyle = `rgba(120,186,255,${(a * 0.1).toFixed(3)})`; g.fill();
+  g.fillStyle = `rgba(0,226,255,${(a * 0.14).toFixed(3)})`; g.fill();
   g.beginPath(); g.arc(dx, dy, r, 0, TAU);
-  g.fillStyle = `rgba(214,236,255,${(a * 0.85).toFixed(3)})`; g.fill();
+  g.shadowColor = `rgba(0,226,255,${a.toFixed(3)})`;
+  g.shadowBlur = r * 4;
+  g.fillStyle = `rgba(226,252,255,${(a * 0.92).toFixed(3)})`; g.fill();
+  g.shadowBlur = 0;
 
   // 숫자
   const nf = Math.max(10, S * 0.021);
   const y = b.y - b.h - nf * 1.4;
   g.textAlign = 'left'; g.textBaseline = 'middle';
-  g.font = `400 ${(nf * 0.9) | 0}px "Nanum Myeongjo", serif`;
-  g.fillStyle = `rgba(150,180,208,${(a * 0.46).toFixed(3)})`;
-  g.fillText('전국 전력수요', b.x, y);
-  const lw = g.measureText('전국 전력수요').width;
-  g.font = `700 ${nf | 0}px 'Space Mono', monospace`;
-  g.fillStyle = `rgba(198,226,255,${(a * 0.66).toFixed(3)})`;
+  const LBL = 'NATIONAL GRID LOAD';
+  track(g, nf * 0.18);
+  g.font = `500 ${(nf * 0.9) | 0}px "Chakra Petch", sans-serif`;
+  g.fillStyle = `rgba(84,206,232,${(a * 0.5).toFixed(3)})`;
+  g.fillText(LBL, b.x, y);
+  const lw = g.measureText(LBL).width;
+  track(g, nf * 0.08);
+  g.font = `400 ${nf | 0}px 'Share Tech Mono', monospace`;
+  g.fillStyle = `rgba(226,252,255,${(a * 0.72).toFixed(3)})`;
   g.fillText(Math.round(demandAt(clk)).toLocaleString() + ' MWh', b.x + lw + nf * 0.7, y);
+  track(g, 0);
 }
 
 function draw() {
@@ -682,7 +966,7 @@ function step(dt) {
   // 자야 하는 시각이 지나면, 끄는 법을 알려준다
   if (!hint2 && plug && !slept && clk >= 257) {
     hint2 = true;
-    hintEl.textContent = 'TAP THE SCREEN TO TURN IT OFF · 화면을 누르면 꺼져요';
+    hintEl.textContent = '// TAP THE SCREEN TO TURN IT OFF';
     hintEl.classList.remove('off');
   }
 
@@ -766,14 +1050,16 @@ function resize() {
   cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
 
+  // 아이폰 실측 비율 — 71.6 x 147.6 mm, 모서리 반지름 13.5 mm, 베젤 2.6 mm
   PH.h = Math.min(H * (PREVIEW ? 0.94 : 0.72), S * 0.98);
-  PH.w = PH.h * 0.472;
-  PH.r = PH.w * 0.1;
+  PH.w = PH.h * 0.485;
+  PH.r = PH.w * 0.188;
   PH.x = W * 0.5;
   PH.y = H * (PREVIEW ? 0.5 : 0.455);
-  const pad = PH.w * 0.042;
+  const pad = PH.w * 0.036;
   SCR.w = PH.w - pad * 2;
   SCR.h = PH.h - pad * 2;
+  SCR.r = PH.r - pad;
 
   rest.x = W - S * 0.11; rest.y = H - S * 0.09;
   if (!plug && !dragging) { tip.x = rest.x; tip.y = rest.y; }
@@ -787,9 +1073,9 @@ window.addEventListener('resize', resize);
   try {
     await Promise.all([
       // 한글 서브셋은 실제 글자를 넘겨야 받아온다
-      document.fonts.load('900 60px "Noto Sans KR"', '충전중방안됨완료'),
-      document.fonts.load('400 30px "Nanum Myeongjo"', '나방전중전국력수요'),
-      document.fonts.load('700 30px "Space Mono"', '0123456789%:·,MWh'),
+      document.fonts.load('700 60px "Chakra Petch"'),
+      document.fonts.load('400 30px "Share Tech Mono"'),
+      document.fonts.load('600 30px Inter', '0123456789:'),
     ]);
     await document.fonts.ready;
   } catch (e) { /* fall back to whatever is there */ }
