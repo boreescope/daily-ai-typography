@@ -144,6 +144,7 @@
   }
   // act 1 speaks on a clock. act 0 only speaks when the road gives it something to say
   function navLine(t) {
+    if (depart < DEPART) return '경로 안내를 시작합니다';
     if (t >= ROUTE.length - 1) return '목적지에 도착했습니다';
     const left = routeLeft(t);
     if (left < 110) return '잠시 후 목적지입니다';
@@ -190,6 +191,8 @@
   let vx = 0, vy = 0, speed = 0;   // how hard the hand is pushing
   let head = -Math.PI / 2;         // which way the arrow points
   let prog = 0;                    // how far along the route we have actually driven
+  let depart = 0;                  // the car waits at the start line until the map is up
+  const DEPART = 1.8;              // seconds of standing still before it pulls away
   let d = 0, alt = 0, night = 0;   // the one variable, and what it grows into
   let T = 0;
   let line = ACTS[0].lines[0], lineT = 0, lineAct = 0, lineIdx = 0;
@@ -724,7 +727,7 @@
     // keys push, drag pushes, the ride home pushes hardest
     if (backing > 0) {
       const dist = Math.hypot(wx, wy);
-      if (dist < 40) { wx = 0; wy = 0; vx = 0; vy = 0; backing = 0; prog = 0; }
+      if (dist < 40) { wx = 0; wy = 0; vx = 0; vy = 0; backing = 0; prog = 0; depart = 0; }
       else {
         const k = Math.min(1, dt * 0.9);
         wx -= wx * k; wy -= wy * k;
@@ -732,8 +735,9 @@
       }
     } else {
       // hands off and still near the road, it just drives, like any nav
+      if (tex.map) depart += dt;   // the clock only starts once there is a map to look at
       const rp = routePt(prog);
-      if (!dragging && keys.size === 0 && prog < ROUTE.length - 1 &&
+      if (depart >= DEPART && !dragging && keys.size === 0 && prog < ROUTE.length - 1 &&
           Math.hypot(wx - rp[0], wy - rp[1]) < 90) {
         prog = Math.min(ROUTE.length - 1, prog + dt * 15 / RSTEP);   // 15 m/s. the alleys are too tight to drive any faster
         const np = routePt(prog), k = Math.min(1, dt * 4);
