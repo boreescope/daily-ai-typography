@@ -9,7 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=VT323&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #16101c; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #040a0d; }
   body { font-family: 'VT323', monospace; cursor: default; }
   body.grab { cursor: grabbing; }
   canvas { display: block; }
@@ -17,25 +17,25 @@
   .home-btn {
     position: fixed; left: 26px; top: 22px; z-index: 20;
     font: 700 11px/1 Orbitron, sans-serif; letter-spacing: .22em;
-    color: #a8ff3e; text-decoration: none; padding: 8px 13px;
-    border: 1px solid rgba(168,255,62,.32); background: rgba(14,9,18,.62);
+    color: #84ecf8; text-decoration: none; padding: 8px 13px;
+    border: 1px solid rgba(132,236,248,.3); background: rgba(4,12,16,.66);
     transition: color .3s, border-color .3s;
   }
-  .home-btn:hover { color: #2bff9e; border-color: rgba(43,255,158,.6); }
+  .home-btn:hover { color: #ffb03a; border-color: rgba(255,176,58,.6); }
 
   .snd {
     position: fixed; right: 26px; top: 22px; z-index: 20;
     font: 700 11px/1 Orbitron, sans-serif; letter-spacing: .18em;
-    color: #a8ff3e; padding: 8px 13px; cursor: pointer;
-    border: 1px solid rgba(168,255,62,.32); background: rgba(14,9,18,.62);
+    color: #84ecf8; padding: 8px 13px; cursor: pointer;
+    border: 1px solid rgba(132,236,248,.3); background: rgba(4,12,16,.66);
     transition: color .3s, border-color .3s;
   }
-  .snd:hover { color: #2bff9e; border-color: rgba(43,255,158,.6); }
+  .snd:hover { color: #ffb03a; border-color: rgba(255,176,58,.6); }
 
   .hint {
     position: fixed; left: 50%; bottom: 26px; transform: translateX(-50%); z-index: 20;
     font: 400 15px/1 VT323, monospace; letter-spacing: .24em;
-    color: rgba(168,255,62,.62); white-space: nowrap; pointer-events: none;
+    color: rgba(255,176,58,.72); white-space: nowrap; pointer-events: none;
     transition: opacity 1.4s ease;
   }
   .hint.off { opacity: 0; }
@@ -141,7 +141,7 @@ function spawnMur(i) {
     x1: rtl ? -W * 0.9 : W * 1.6,
     p: 0,
     dur: 9 + hsh(i, 43, 11) * 4,
-    c: [PUR, MINT, PNK, CYN][i % 4],
+    c: [C2, C3, C2, C1][i % 4],
   });
 }
 
@@ -168,14 +168,19 @@ function grain(g, w, h, amt) {
 // ── 바깥 ───────────────────────────────────────────────────────────────────
 // 방이 아니라 격자다. 선으로만 선 도시가 지평선 위에 있고, 바닥은 소실점으로
 // 모이는 그리드다. 전부 한 번 구워서 쓴다.
-const LIME = '168,255,62';
-const GRN = '43,255,158';
-const MINT = '120,255,214';
-const PUR = '172,88,255';
-const PNK = '255,74,186';
-const CYN = '64,214,255';
-// 연두가 바탕이고 보라·분홍·청록은 점으로만 들어간다
-const NEON = [LIME, LIME, GRN, GRN, MINT, PUR, PUR, PNK, CYN];
+// 색은 둘이다. 청록이 구조를 전부 맡고, 호박은 데이터 위에만 올라간다.
+// 흰색은 제일 중요한 숫자 하나, 빨강은 경고 하나.
+const C1 = '132,236,248';    // 청록 — 제일 밝은 쪽
+const C2 = '74,190,210';     // 청록 — 한 단계 아래
+const C3 = '38,128,150';     // 청록 — 멀리 있는 것
+const WHT = '226,250,255';
+const AMB = '255,176,58';    // 호박
+const RED = '255,78,48';
+
+// 예전 이름들은 이 두 색으로 모인다
+const LIME = C1, GRN = C2, MINT = WHT, PUR = C3, PNK = AMB, CYN = AMB;
+// 건물은 색이 아니라 밝기만 다르다
+const NEON = [C1, C2, C2, C2, C3, C3, C3, C1, C2];
 
 // hsh 는 고르게 안 퍼져서 점이 대각선으로 줄을 선다. 여긴 따로 쓴다.
 function seeded(seed) {
@@ -224,7 +229,7 @@ function floorGrid(g) {
     const a = prj(i, 0, Z0), b = prj(i, 0, Z1);
     if (!a || !b) continue;
     g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
-    g.strokeStyle = i % 24 === 0 ? `rgba(${PUR},.2)`
+    g.strokeStyle = i % 24 === 0 ? `rgba(${C2},.18)`
       : `rgba(${i % 12 === 0 ? GRN : LIME},${i % 12 === 0 ? .16 : .085})`;
     g.lineWidth = 1;
     g.stroke();
@@ -234,7 +239,7 @@ function floorGrid(g) {
     if (!a || !b) continue;
     const f = 1 - z / Z1;
     g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]);
-    g.strokeStyle = z % 24 === 0 ? `rgba(${PUR},${(0.07 + f * 0.18).toFixed(3)})`
+    g.strokeStyle = z % 24 === 0 ? `rgba(${C2},${(0.06 + f * 0.16).toFixed(3)})`
       : `rgba(${z % 12 === 0 ? GRN : LIME},${(0.05 + f * 0.17).toFixed(3)})`;
     g.lineWidth = 1;
     g.stroke();
@@ -266,7 +271,7 @@ function box(g, b) {
   for (const f of faces) {
     if (f.some(v => !v)) continue;
     poly(g, f);
-    g.fillStyle = 'rgba(9,6,13,.9)'; g.fill();
+    g.fillStyle = 'rgba(5,9,12,.9)'; g.fill();
     g.strokeStyle = `rgba(${rgb},${(a * 0.7).toFixed(3)})`;
     g.lineWidth = 1; g.stroke();
 
@@ -293,22 +298,16 @@ function box(g, b) {
       }
     }
     if (any) {
-      g.shadowColor = `rgba(${rgb},${(a * 0.8).toFixed(3)})`;
-      g.shadowBlur = S * 0.006;
-      g.fillStyle = `rgba(${rgb},${Math.min(0.95, a * 1.5).toFixed(3)})`;
+      g.fillStyle = `rgba(${rgb},${Math.min(0.9, a * 1.6).toFixed(3)})`;
       g.fill();
-      g.shadowBlur = 0;
     }
   }
 
   // 윗면 — 여기가 제일 밝다. 내려다보고 있다는 건 윗면이 말해 준다.
   poly(g, t);
-  g.fillStyle = 'rgba(14,10,19,.9)'; g.fill();
-  g.shadowColor = `rgba(${rgb},${(a * 0.9).toFixed(3)})`;
-  g.shadowBlur = S * 0.009;
-  g.strokeStyle = `rgba(${rgb},${Math.min(1, a * 1.6).toFixed(3)})`;
+  g.fillStyle = 'rgba(8,13,16,.9)'; g.fill();
+  g.strokeStyle = `rgba(${rgb},${Math.min(1, a * 1.7).toFixed(3)})`;
   g.lineWidth = 1; g.stroke();
-  g.shadowBlur = 0;
 
   g.strokeStyle = `rgba(${rgb},${(a * 0.26).toFixed(3)})`;
   for (let i = 1; i < 4; i++) {
@@ -374,17 +373,17 @@ function bakeBed() {
   setCam();
   const hz = hzY();
   const sky = g.createLinearGradient(0, 0, 0, H);
-  sky.addColorStop(0, '#2a1840');
-  sky.addColorStop(.26, '#1a1026');
-  sky.addColorStop(1, '#0a0710');
+  sky.addColorStop(0, '#0b2630');
+  sky.addColorStop(.3, '#07161d');
+  sky.addColorStop(1, '#040a0d');
   g.fillStyle = sky;
   g.fillRect(0, 0, W, H);
 
   // 지평선에 보라 기운 한 겹
   const hg = g.createLinearGradient(0, hz - H * 0.22, 0, hz + H * 0.16);
-  hg.addColorStop(0, `rgba(${PUR},0)`);
-  hg.addColorStop(.62, `rgba(${PUR},.16)`);
-  hg.addColorStop(1, `rgba(${PUR},0)`);
+  hg.addColorStop(0, `rgba(${C3},0)`);
+  hg.addColorStop(.62, `rgba(${C3},.2)`);
+  hg.addColorStop(1, `rgba(${C3},0)`);
   g.fillStyle = hg;
   g.fillRect(0, hz - H * 0.22, W, H * 0.38);
 
@@ -526,7 +525,7 @@ function drawGlow(g) {
   const gd = g.createRadialGradient(PH.x, PH.y, 0, PH.x, PH.y, r);
   gd.addColorStop(0, `rgba(${LIME},${bri * 0.17})`);
   gd.addColorStop(.34, `rgba(${GRN},${bri * 0.08})`);
-  gd.addColorStop(.66, `rgba(${PUR},${bri * 0.07})`);
+  gd.addColorStop(.66, `rgba(${C3},${bri * 0.09})`);
   gd.addColorStop(1, 'rgba(0,0,0,0)');
   g.globalCompositeOperation = 'lighter';
   g.fillStyle = gd;
@@ -854,10 +853,11 @@ function drawScreen(g) {
   }
 
   const pf = (sw * 0.36) | 0;
+  const low = !plug && chg < 0.1;
   g.font = `400 ${pf}px VT323, monospace`;
-  g.shadowColor = `rgba(${GRN},${bri * 0.5})`;
+  g.shadowColor = `rgba(${low ? RED : C1},${bri * 0.5})`;
   g.shadowBlur = pf * 0.16;
-  g.fillStyle = `rgba(${LIME},${bri * 0.92})`;
+  g.fillStyle = `rgba(${low ? RED : WHT},${bri * 0.95})`;
   g.fillText(Math.round(chg * 100) + '%', 0, sh * 0.18);
   g.shadowBlur = 0;
 
@@ -974,7 +974,7 @@ function drawMe(g) {
   g.strokeStyle = `rgba(${LIME},.2)`;
   g.lineWidth = 1;
   g.strokeRect(bx + 0.5, y - bh / 2 + 0.5, bw - 1, bh - 1);
-  g.fillStyle = me < 0.12 ? `rgba(${MINT},${0.55 + lit * 0.4})` : `rgba(${LIME},${lit})`;
+  g.fillStyle = me < 0.12 ? `rgba(${RED},${0.6 + lit * 0.4})` : `rgba(${C1},${lit})`;
   g.fillRect(bx, y - bh / 2, bw * me, bh);
   g.font = `400 ${(S * 0.023) | 0}px VT323, monospace`;
   g.fillStyle = `rgba(${LIME},${lit})`;
@@ -992,61 +992,97 @@ function curveBox() {
 
 function curveXY(b, m) {
   const u = clamp(((m / 60 + 24) % 24 - WIN_A + 24) % 24 / WIN_H, 0, 1);
-  const v = (demandAt(m) - DEM_LO) / (DEM_HI - DEM_LO);
+  const k = Math.min(WIN_H - 1, (u * WIN_H) | 0);
+  const v = (DEM[(WIN_A + k) % 24] - DEM_LO) / (DEM_HI - DEM_LO);
   return [b.x + b.w * u, b.y - b.h * v];
 }
 
+// 시간당 평균이다. 사이를 이어 붙이면 없는 값을 지어내는 거라 계단으로 둔다.
+function stepPts(b) {
+  const pts = [];
+  for (let k = 0; k < WIN_H; k++) {
+    const v = (DEM[(WIN_A + k) % 24] - DEM_LO) / (DEM_HI - DEM_LO);
+    const y = b.y - b.h * v;
+    pts.push([b.x + b.w * k / WIN_H, y], [b.x + b.w * (k + 1) / WIN_H, y]);
+  }
+  return pts;
+}
+
 const TICKS = [18, 21, 0, 3, 6, 9];
+const CALL = [[19, 1], [4, -1]];   // 꼭대기는 선 아래, 바닥은 선 위
 
 function drawCurve(g) {
   const b = curveBox();
   const a = slept ? 0.3 : 1;
-  const m0 = WIN_A * 60, m1 = m0 + WIN_H * 60;
+  const px = curveXY(b, clk)[0];
 
-  // 지나온 쪽과 아직 안 온 쪽을 나눠 그린다
-  const passed = Math.max(m0, Math.min(clk < 12 * 60 ? clk + 24 * 60 : clk, m1));
+  // 가로 점선 격자 — 값이 어디쯤인지 눈이 재게 한다
+  g.save();
+  g.setLineDash([1, Math.max(3, S * 0.0055)]);
+  g.lineWidth = 1;
+  g.strokeStyle = `rgba(${C3},${(a * 0.75).toFixed(3)})`;
+  for (let i = 1; i <= 4; i++) {
+    const y = (b.y - b.h * i / 4) | 0;
+    g.beginPath(); g.moveTo(b.x, y + 0.5); g.lineTo(b.x + b.w, y + 0.5); g.stroke();
+  }
+  g.restore();
+
+  // 계단선 — 지나온 쪽만 밝다
+  const pts = stepPts(b);
   for (let pass = 0; pass < 2; pass++) {
+    g.save();
     g.beginPath();
-    const sa = pass ? passed : m0, sb = pass ? m1 : passed;
-    for (let m = sa; m <= sb + 0.1; m += 10) {
-      const [x, y] = curveXY(b, m);
-      if (m === sa) g.moveTo(x, y); else g.lineTo(x, y);
+    if (pass) g.rect(px, 0, W, H); else g.rect(0, 0, px, H);
+    g.clip();
+    g.beginPath();
+    for (let i = 0; i < pts.length; i++) {
+      if (i) g.lineTo(pts[i][0], pts[i][1]);
+      else g.moveTo(pts[i][0], pts[i][1]);
     }
-    if (!pass) {
-      g.shadowColor = `rgba(${GRN},${(a * 0.5).toFixed(3)})`;
-      g.shadowBlur = S * 0.012;
-    }
-    g.strokeStyle = pass
-      ? `rgba(${LIME},${(a * 0.14).toFixed(3)})`
-      : `rgba(${LIME},${(a * 0.72).toFixed(3)})`;
-    g.lineWidth = Math.max(1, S * 0.0018);
+    g.strokeStyle = `rgba(${AMB},${(a * (pass ? 0.18 : 0.92)).toFixed(3)})`;
+    g.lineWidth = Math.max(1, S * 0.0022);
     g.stroke();
-    g.shadowBlur = 0;
+    g.restore();
   }
 
-  // 밑줄과 눈금
-  g.fillStyle = `rgba(${LIME},${(a * 0.14).toFixed(3)})`;
+  // 밑줄과 시각 눈금
+  g.fillStyle = `rgba(${C3},${(a * 0.7).toFixed(3)})`;
   g.fillRect(b.x, b.y, b.w, Math.max(1, S * 0.0012));
   const tf = Math.max(9, S * 0.017);
   track(g, tf * 0.16);
   g.font = `400 ${tf | 0}px VT323, monospace`;
   g.textAlign = 'center'; g.textBaseline = 'top';
-  g.fillStyle = `rgba(${LIME},${(a * 0.36).toFixed(3)})`;
+  g.fillStyle = `rgba(${C2},${(a * 0.46).toFixed(3)})`;
   for (const h of TICKS) {
     const u = ((h - WIN_A + 24) % 24) / WIN_H;
     g.fillText(two(h), b.x + b.w * u, b.y + tf * 0.6);
+  }
+
+  // 꼬리표 — 짧은 세로 막대로 선에 매단다
+  const cf = Math.max(9, S * 0.016);
+  track(g, cf * 0.1);
+  g.font = `400 ${cf | 0}px VT323, monospace`;
+  for (const [h, dir] of CALL) {
+    const k = (h - WIN_A + 24) % 24;
+    const v = (DEM[h] - DEM_LO) / (DEM_HI - DEM_LO);
+    const x = ((b.x + b.w * (k + 0.5) / WIN_H) | 0) + 0.5;
+    const y = b.y - b.h * v;
+    const ly = y + dir * cf * 1.3;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x, ly);
+    g.strokeStyle = `rgba(${AMB},${(a * 0.5).toFixed(3)})`;
+    g.lineWidth = 1; g.stroke();
+    g.textBaseline = dir > 0 ? 'top' : 'bottom';
+    g.fillStyle = `rgba(${AMB},${(a * 0.8).toFixed(3)})`;
+    g.fillText(DEM[h].toLocaleString(), x, ly + dir * cf * 0.2);
   }
 
   // 지금
   const [dx, dy] = curveXY(b, clk);
   const r = Math.max(2, S * 0.0042);
   g.beginPath(); g.arc(dx, dy, r * 3.4, 0, TAU);
-  g.fillStyle = `rgba(${GRN},${(a * 0.14).toFixed(3)})`; g.fill();
+  g.fillStyle = `rgba(${AMB},${(a * 0.16).toFixed(3)})`; g.fill();
   g.beginPath(); g.arc(dx, dy, r, 0, TAU);
-  g.shadowColor = `rgba(${GRN},${a.toFixed(3)})`;
-  g.shadowBlur = r * 4;
-  g.fillStyle = `rgba(${MINT},${(a * 0.95).toFixed(3)})`; g.fill();
-  g.shadowBlur = 0;
+  g.fillStyle = `rgba(${WHT},${(a * 0.95).toFixed(3)})`; g.fill();
 
   // 숫자
   const nf = Math.max(11, S * 0.023);
@@ -1055,14 +1091,57 @@ function drawCurve(g) {
   const LBL = 'NATIONAL GRID LOAD';
   track(g, nf * 0.2);
   g.font = `500 ${(nf * 0.62) | 0}px Orbitron, sans-serif`;
-  g.fillStyle = `rgba(${LIME},${(a * 0.52).toFixed(3)})`;
+  g.fillStyle = `rgba(${C2},${(a * 0.6).toFixed(3)})`;
   g.fillText(LBL, b.x, y);
   const lw = g.measureText(LBL).width;
   track(g, nf * 0.08);
   g.font = `400 ${nf | 0}px VT323, monospace`;
-  g.fillStyle = `rgba(${MINT},${(a * 0.78).toFixed(3)})`;
+  g.fillStyle = `rgba(${AMB},${(a * 0.9).toFixed(3)})`;
   g.fillText(Math.round(demandAt(clk)).toLocaleString() + ' MWh', b.x + lw + nf * 0.7, y);
   track(g, 0);
+}
+
+// 양 옆 눈금 — 왼쪽은 전력, 오른쪽은 배터리. 장식이 아니라 계기다.
+function drawRails(g) {
+  const n = 28, y0 = H * 0.2, y1 = H * 0.8;
+  const bh = Math.max(2, S * 0.003);
+  const dim = slept ? 0.35 : 1;
+  const demU = (demandAt(clk) - DEM_LO) / (DEM_HI - DEM_LO);
+  for (let side = 0; side < 2; side++) {
+    const u = side ? chg : demU;
+    const rgb = side ? C1 : AMB;
+    for (let i = 0; i < n; i++) {
+      const f = i / (n - 1);
+      const y = lerp(y1, y0, f);
+      const len = S * 0.016 * (1 + (i % 5 === 0 ? 1.1 : ((i * 7) % 4) * 0.28));
+      const on = f <= u;
+      g.fillStyle = `rgba(${rgb},${((on ? 0.8 : 0.16) * dim).toFixed(3)})`;
+      g.fillRect(side ? W - S * 0.016 - len : S * 0.016, y, len, bh);
+    }
+  }
+}
+
+// 가로선 무리 — 충전이 올라가는 만큼 아래에서 위로 쌓인다
+let rays = [];
+function makeRays() {
+  const r = seeded(0x5ea17);
+  rays = [];
+  for (let i = 0; i < 190; i++) {
+    const y = r();
+    const w = 0.05 + Math.pow(r(), 2.2) * 0.55;
+    rays.push({ y, x: r() * (1 - w), w, a: 0.06 + Math.pow(r(), 1.6) * 0.4 });
+  }
+}
+function drawRays(g) {
+  if (!rays.length) makeRays();
+  const dim = slept ? 0.22 : 1;
+  const h = Math.max(1, S * 0.0014);
+  for (const q of rays) {
+    const v = clamp((chg - (1 - q.y)) * 5, 0, 1);
+    if (v < 0.02) continue;
+    g.fillStyle = `rgba(${AMB},${(q.a * v * dim * 0.55).toFixed(3)})`;
+    g.fillRect(q.x * W, q.y * H, q.w * W, h);
+  }
 }
 
 function draw() {
@@ -1070,12 +1149,14 @@ function draw() {
   ctx.clearRect(0, 0, cv.width, cv.height);
   if (bed) ctx.drawImage(bed, 0, 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawRays(ctx);
   drawGlow(ctx);
   drawMurmurs(ctx);
   drawCable(ctx);
   drawPhone(ctx);
   drawMe(ctx);
   drawCurve(ctx);
+  drawRails(ctx);
 }
 
 // ── step ───────────────────────────────────────────────────────────────────
