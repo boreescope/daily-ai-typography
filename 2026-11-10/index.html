@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>충전 중 — 74</title>
+<title>충전 중 — 03:57</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Noto+Sans+KR:wght@500;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -90,28 +90,59 @@ let t = 0;
 const tip = { x: 0, y: 0, vx: 0, vy: 0 };
 const rest = { x: 0, y: 0 };
 
-// ── the lines that turn up in the dark while it fills ──────────────────────
-const THOUGHTS = [
-  { at: .14, t: '자야 하는데',     x: -.30, y: -.30, s: .030, a: 0 },
-  { at: .38, t: '5퍼센트만 더',    x:  .29, y: -.13, s: .026, a: 0 },
-  { at: .58, t: '아까 그 말',      x: -.28, y:  .11, s: .029, a: 0 },
-  { at: .79, t: '내일 몇 시였지',  x:  .27, y:  .27, s: .024, a: 0 },
-  { at: .99, t: '다 찼는데',       x: -.26, y:  .33, s: .033, a: 0 },
+// ── 하루 24시간 전국 전력수요 ──────────────────────────────────────────────
+// 2025년 365일 시간대별 평균 MWh · 한국전력거래소
+// 제일 낮은 때가 04시, 제일 높은 때가 19시. 새벽 3시 반은 그 바로 앞이다.
+const DEM = [64550, 60760, 58367, 56921, 56180, 56321, 57537, 60105,
+             63445, 66431, 66742, 65878, 64095, 61939, 64197, 65765,
+             67562, 70052, 71554, 72524, 72210, 70411, 67978, 66554];
+const DEM_LO = 56180, DEM_HI = 72524;
+
+// 곡선에 보이는 구간 — 저녁 6시부터 아침 9시까지. 꼭대기와 바닥이 둘 다 들어온다.
+const WIN_A = 18, WIN_H = 15;
+
+// 시계. 꽂기 전엔 03:30에 멈춰 있다. 꽂으면 1초에 54초씩 간다.
+const T0 = 3 * 60 + 30;
+const RATE = 0.9;            // 분 / 초
+let clk = T0, plugAt = T0;
+
+const demandAt = m => {
+  const h = (m / 60 + 24) % 24;
+  const i = Math.floor(h);
+  return lerp(DEM[i], DEM[(i + 1) % 24], h - i);
+};
+
+// ── 혼잣말 ─────────────────────────────────────────────────────────────────
+// 폰 뒤를 가로질러 간다. 네 시가 지나면 뜸해지고 같은 말만 남는다.
+const MURMURS = [
+  [213, "i'll sleep after this"],
+  [220, 'just one more'],
+  [227, 'i should really sleep'],
+  [234, 'nothing new to look at'],
+  [241, 'why am i still awake'],
+  [248, 'everyone else is asleep'],
+  [257, 'i really have to sleep now'],
+  [265, "it's four"],
+  [278, 'i am not going to sleep'],
+  [296, 'still awake'],
+  [318, 'still awake'],
 ];
+const murs = [];
+let nextMur = 0;
+let hint2 = false;
 
-// ── 내가 꽂은 건 한 대인데, 내 몫으로 흐른 전기는 한 대 분이 아니다 ────────
-// 새벽 3시 전국 전력수요를 인구로 나누면 한 사람 몫이 나온다.
-// 그걸 폰 한 대 완충분으로 다시 나눈 수가 화면에 떠 있는 「충전 중」의 개수다.
-const DEMAND_MWH = 56921;       // 2025년 365일 03시 평균 · 한국전력거래소
-const POP        = 51075282;    // 2026-10-31 주민등록인구 · 행정안전부
-const PHONE_WH   = 15;          // 폰 한 대 완충. 가정값이라 화면에 밝힌다
-const SHARE_WH   = DEMAND_MWH * 1e6 / POP;                 // 1,114.5
-const N_ALL      = Math.round(SHARE_WH / PHONE_WH);        // 74
-const N_OTHER    = N_ALL - 1;                              // 73 — 내가 꽂지 않은 것
-const WORD = '충전 중';
-
-const OTHERS = [];
-let endT = 0, endA = 0;   // 내 폰이 꺼진 뒤 흐르는 시간
+function spawnMur(i) {
+  const txt = MURMURS[i][1];
+  const rtl = i % 2 === 1;
+  murs.push({
+    t: txt,
+    y: PH.y + (hsh(i, 41, 7) - 0.5) * PH.h * 0.84,
+    x0: rtl ? W * 1.05 : -W * 0.38,
+    x1: rtl ? -W * 0.38 : W * 1.05,
+    p: 0,
+    dur: 15 + hsh(i, 43, 11) * 5,
+  });
+}
 
 // ── the sheet, baked once ──────────────────────────────────────────────────
 let bed = null;
@@ -264,13 +295,14 @@ const sound = (() => {
     },
     kick() { if (!ac) build(); else if (ac.state === 'suspended') ac.resume(); },
     ping,
-    set(charging, level, bright) {
+    set(charging, level, bright, load) {
       if (!ac || !on) return;
       const n = ac.currentTime;
       // the whine thins out as the cell fills — that is how you hear it finish
       coilg.gain.setTargetAtTime(charging ? 0.014 * (0.25 + 0.75 * (1 - level)) : 0, n, 0.25);
       coilo.frequency.setTargetAtTime(2290 + level * 260 + Math.sin(t * 2.3) * 14, n, 0.3);
-      humg.gain.setTargetAtTime(0.04 + bright * 0.016, n, 0.4);
+      // 웅웅거림은 그 시각 전국이 쓰는 전기를 따라간다. 네 시에 제일 얇다.
+      humg.gain.setTargetAtTime(0.018 + load * 0.04 + bright * 0.008, n, 0.6);
     },
   };
 })();
@@ -380,12 +412,11 @@ function drawScreen(g) {
     return;
   }
 
-  // status row — the night moves while it fills
-  const mins = 7 + chg * 48;
+  // status row — 꽂혀 있는 동안 밤이 간다
   g.font = `400 ${(sw * 0.052) | 0}px 'Space Mono', monospace`;
   g.fillStyle = `rgba(186,214,240,${bri * 0.55})`;
   g.textAlign = 'left';
-  g.fillText(`03:${two(mins)}`, -sw * 0.38, -sh * 0.42);
+  g.fillText(`${two(clk / 60)}:${two(clk % 60)}`, -sw * 0.38, -sh * 0.42);
   g.textAlign = 'center';
   if (plug) bolt(g, sw * 0.36, -sh * 0.42, sw * 0.07, bri * 0.6);
 
@@ -426,7 +457,7 @@ function drawScreen(g) {
   g.fillStyle = `rgba(206,232,255,${bri * 0.9})`;
   g.fillText(Math.round(chg * 100) + '%', 0, sh * 0.18);
 
-  const rem = Math.max(1, Math.round((1 - chg) * 48));
+  const rem = Math.max(1, Math.round((1 - chg) * 22));
   const cap = chg >= 0.999 ? '더 채울 것이 없음'
     : plug ? `완충까지 ${rem}분`
     : '전원 연결 안 됨';
@@ -466,20 +497,17 @@ function drawPhone(g) {
   g.restore();
 }
 
-function drawThoughts(g) {
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  for (const th of THOUGHTS) {
-    // they belong to the filling. Once it is full they have nothing left to want.
-    const al = th.a * (1 - done);
-    if (al < 0.004) continue;
-    const px = (th.s * S) | 0;
-    g.font = `400 ${px}px "Nanum Myeongjo", serif`;
-    const x = W / 2 + th.x * W, y = H / 2 + th.y * H;
-    g.shadowColor = `rgba(76,124,176,${al * 0.5})`;
-    g.shadowBlur = px * 0.7;
-    g.fillStyle = `rgba(158,186,212,${al * 0.52})`;
-    g.fillText(th.t, x, y);
-    g.shadowBlur = 0; g.shadowColor = 'transparent';
+function drawMurmurs(g) {
+  if (!murs.length) return;
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  const fs = Math.max(10, S * 0.0205);
+  g.font = `400 ${fs | 0}px 'Space Mono', monospace`;
+  const dim = slept ? 0.18 : 1;
+  for (const m of murs) {
+    const a = Math.sin(clamp(m.p, 0, 1) * Math.PI) * dim;
+    if (a < 0.012) continue;
+    g.fillStyle = `rgba(150,180,208,${(a * 0.46).toFixed(3)})`;
+    g.fillText(m.t, lerp(m.x0, m.x1, m.p), m.y);
   }
 }
 
@@ -494,7 +522,7 @@ function drawDrain(g) {
   const margin = W / 2 - PH.w / 2;
   const fs = Math.max(14, Math.min(S * 0.2, margin * 0.62));
   const lh = fs * 1.12;
-  const cx = margin * 0.5, cy = PH.y;
+  const cx = W - margin * 0.5, cy = PH.y;   // 곡선이 왼쪽에 있으니 이쪽은 오른쪽
   const top = cy - lh * DRAIN.length / 2, bot = top + lh * DRAIN.length;
   const fy = bot - (bot - top) * me;
 
@@ -526,7 +554,7 @@ function drawDrain(g) {
 
 // the other battery. No port, no cable, and the number only goes one way.
 function drawMe(g) {
-  const x = W * 0.08, y = H * 0.88, bw = S * 0.16, bh = Math.max(2, S * 0.011);
+  const x = W * 0.07, y = H * 0.925, bw = S * 0.16, bh = Math.max(2, S * 0.011);
   const lit = 0.34 + (1 - me) * 0.38;   // it gets harder to ignore as it empties
   g.textAlign = 'left'; g.textBaseline = 'middle';
   g.font = `400 ${(S * 0.027) | 0}px "Nanum Myeongjo", serif`;
@@ -542,168 +570,72 @@ function drawMe(g) {
   g.fillText(Math.round(me * 100) + '%', bx + bw + S * 0.016, y);
 }
 
-// ── 73대 ───────────────────────────────────────────────────────────────────
-// 같은 단어를 같은 방식으로 띄운다. 크기만 다르다. 내 것이 아니라서.
-function drawOthers(g) {
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  for (const o of OTHERS) {
-    if (o.on < 0.01) continue;
-    const a = o.on * (0.6 + endA * 0.4) * (1 - done * 0.55 * o.dim);
-    if (a < 0.01) continue;
-    const fs = o.fs;
-    g.save();
-    g.translate(o.x, o.y);
-    g.rotate(o.rot);
-    g.font = '900 ' + (fs | 0) + 'px "Noto Sans KR", sans-serif';
-    const top = -fs * 0.6, bot = fs * 0.6;
-    const fy = bot - (bot - top) * o.c;
-    g.fillStyle = 'rgba(118,150,186,' + (a * 0.24).toFixed(3) + ')';
-    g.fillText(WORD, 0, 0);
+// ── 하루 ───────────────────────────────────────────────────────────────────
+// 저녁 여섯 시부터 아침 아홉 시까지의 전국 전력수요. 선이 내려와서 네 시에
+// 제일 낮아진다. 점 하나가 지금 몇 시인지 짚고 있다.
+function curveBox() {
+  // 케이블이 오른쪽 아래를 지나가니 왼쪽에 둔다
+  return { x: W * 0.07, y: H * 0.845, w: Math.min(W * 0.42, S * 0.5), h: S * 0.08 };
+}
+
+function curveXY(b, m) {
+  const u = clamp(((m / 60 + 24) % 24 - WIN_A + 24) % 24 / WIN_H, 0, 1);
+  const v = (demandAt(m) - DEM_LO) / (DEM_HI - DEM_LO);
+  return [b.x + b.w * u, b.y - b.h * v];
+}
+
+const TICKS = [18, 21, 0, 3, 6, 9];
+
+function drawCurve(g) {
+  const b = curveBox();
+  const a = slept ? 0.3 : 1;
+  const m0 = WIN_A * 60, m1 = m0 + WIN_H * 60;
+
+  // 지나온 쪽과 아직 안 온 쪽을 나눠 그린다
+  const passed = Math.max(m0, Math.min(clk < 12 * 60 ? clk + 24 * 60 : clk, m1));
+  for (let pass = 0; pass < 2; pass++) {
     g.beginPath();
-    g.rect(-fs * 1.8, fy, fs * 3.6, bot - fy + 1);
-    g.clip();
-    g.shadowColor = 'rgba(104,168,236,' + (a * 0.45).toFixed(3) + ')';
-    g.shadowBlur = fs * 0.55;
-    g.fillStyle = 'rgba(198,226,255,' + (a * 0.62).toFixed(3) + ')';
-    g.fillText(WORD, 0, 0);
-    g.restore();
-  }
-}
-
-// 73이라는 수가 세어지는 걸 보여준다. 나 게이지의 맞은편.
-function drawCount(g) {
-  let n = 0;
-  for (const o of OTHERS) if (o.on > 0.02) n++;
-  if (n < 1) return;
-  const a = clamp(n / 5, 0, 1) * (0.46 + endA * 0.48);
-  const x = W * 0.92, y = H * 0.88;
-  g.textAlign = 'right'; g.textBaseline = 'middle';
-  g.font = '700 ' + ((S * 0.034) | 0) + 'px \'Space Mono\', monospace';
-  g.fillStyle = 'rgba(198,226,255,' + a.toFixed(3) + ')';
-  g.fillText(String(n), x, y);
-  const nw = g.measureText(String(n)).width;
-  g.font = '400 ' + ((S * 0.022) | 0) + 'px "Nanum Myeongjo", serif';
-  g.fillStyle = 'rgba(158,186,212,' + (a * 0.76).toFixed(3) + ')';
-  g.fillText('내가 꽂지 않은 것', x - nw - S * 0.022, y);
-}
-
-// ── 출처 ───────────────────────────────────────────────────────────────────
-const SRC = [
-  DEMAND_MWH.toLocaleString() + ' MWh ÷ ' + POP.toLocaleString() + '명 = ' +
-    Math.round(SHARE_WH).toLocaleString() + ' Wh ÷ ' + PHONE_WH + ' Wh = ' + N_ALL + '대',
-  '새벽 3시 전국 전력수요 · 주민등록인구 · 폰 완충 가정값 — 한국전력거래소, 행정안전부',
-];
-
-function drawSource(g) {
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  // 좁은 화면에서 넘치면 줄이 잘리니 들어갈 때까지 줄인다
-  let sf = Math.max(9, S * 0.0148);
-  for (let i = 0; i < 12; i++) {
-    g.font = '400 ' + (sf | 0) + 'px \'Space Mono\', "Nanum Myeongjo", serif';
-    if (Math.max(g.measureText(SRC[0]).width, g.measureText(SRC[1]).width) < W * 0.9) break;
-    sf -= 0.5;
-    if (sf < 7) break;
-  }
-  g.fillStyle = 'rgba(146,174,202,.42)';
-  const y = H - Math.max(56, H * 0.088);
-  g.fillText(SRC[0], W / 2, y - sf * 0.82);
-  g.fillStyle = 'rgba(146,174,202,.3)';
-  g.fillText(SRC[1], W / 2, y + sf * 0.82);
-}
-
-// ── 마지막 세 줄 ───────────────────────────────────────────────────────────
-const END = [
-  '한 대를 꽂고 잤다',
-  '그 시각 내 몫의 전기는 일흔네 대 분이었다',
-  '일흔세 대는 내가 켠 적이 없다',
-];
-
-function drawEnd(g) {
-  if (endT <= 0.4) return;
-  const fs = Math.max(13, Math.min(S * 0.042, W * 0.048));
-  const lh = fs * 2.0;
-  const cy = PH.y;
-  let top = 0;
-  const as = END.map((_, k) => {
-    const v = clamp((endT - 0.6 - k * 1.05) / 0.95, 0, 1);
-    if (v > top) top = v;
-    return v;
-  });
-  if (top < 0.004) return;
-
-  const bh = lh * END.length + fs * 1.6;
-  const sg = g.createLinearGradient(0, cy - bh / 2, 0, cy + bh / 2);
-  sg.addColorStop(0, 'rgba(5,8,12,0)');
-  sg.addColorStop(.5, 'rgba(5,8,12,' + (top * 0.88).toFixed(3) + ')');
-  sg.addColorStop(1, 'rgba(5,8,12,0)');
-  g.fillStyle = sg;
-  g.fillRect(0, cy - bh / 2, W, bh);
-
-  g.textAlign = 'center'; g.textBaseline = 'middle';
-  g.font = '400 ' + (fs | 0) + 'px "Nanum Myeongjo", serif';
-  for (let k = 0; k < END.length; k++) {
-    if (as[k] < 0.004) continue;
-    g.shadowColor = 'rgba(0,0,0,' + (as[k] * 0.9).toFixed(3) + ')';
-    g.shadowBlur = fs * 0.9;
-    g.fillStyle = 'rgba(214,232,250,' + (as[k] * 0.94).toFixed(3) + ')';
-    g.fillText(END[k], W / 2, cy + lh * (k - (END.length - 1) / 2));
-  }
-  g.shadowBlur = 0; g.shadowColor = 'transparent';
-}
-
-// ── 73대를 어디에 둘지 ─────────────────────────────────────────────────────
-// 폰이 놓인 자리와 글이 들어갈 아래쪽은 비우고, 남은 칸에 하나씩 흩어 놓는다.
-function layoutOthers() {
-  OTHERS.length = 0;
-  const px0 = PH.x - PH.w / 2 - S * 0.03, px1 = PH.x + PH.w / 2 + S * 0.03;
-  const py0 = PH.y - PH.h / 2 - S * 0.02, py1 = PH.y + PH.h / 2 + S * 0.02;
-  const margin = W / 2 - PH.w / 2;
-  const dfs = Math.max(14, Math.min(S * 0.2, margin * 0.62));
-  const dcx = margin * 0.5;
-
-  let cells = [];
-  for (let total = 96; total <= 900; total += 24) {
-    const rows = Math.max(3, Math.round(Math.sqrt(total * H / W)));
-    const cols = Math.max(3, Math.ceil(total / rows));
-    const cw = W / cols, ch = H / rows;
-    cells = [];
-    for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
-      const x0 = c * cw, y0 = r * ch;
-      if (x0 + cw > px0 && x0 < px1 && y0 + ch > py0 && y0 < py1) continue;
-      if (y0 + ch > H * 0.855) continue;        // 나 게이지 · 73 · 출처가 쓰는 줄
-      if (y0 < Math.max(64, S * 0.075)) continue;   // 상단 버튼
-      let hit = false;                          // 생각이 떠오르는 자리
-      for (const th of THOUGHTS) {
-        const tw = th.t.length * th.s * S * 0.62, tcx = W / 2 + th.x * W, tcy = H / 2 + th.y * H;
-        if (x0 + cw > tcx - tw && x0 < tcx + tw && y0 + ch > tcy - th.s * S && y0 < tcy + th.s * S) { hit = true; break; }
-      }
-      if (hit) continue;
-      cells.push([x0, y0, cw, ch]);
+    const sa = pass ? passed : m0, sb = pass ? m1 : passed;
+    for (let m = sa; m <= sb + 0.1; m += 10) {
+      const [x, y] = curveXY(b, m);
+      if (m === sa) g.moveTo(x, y); else g.lineTo(x, y);
     }
-    if (cells.length >= N_OTHER) break;
+    g.strokeStyle = `rgba(158,190,222,${(a * (pass ? 0.1 : 0.42)).toFixed(3)})`;
+    g.lineWidth = Math.max(1, S * 0.0018);
+    g.stroke();
   }
 
-  const ord = cells.map((c, i) => [hsh(i, 61, 7), i]).sort((a, b) => a[0] - b[0]);
-  for (let k = 0; k < Math.min(N_OTHER, ord.length); k++) {
-    const i = ord[k][1];
-    const cell = cells[i];
-    const cw = cell[2], ch = cell[3];
-    const want = Math.max(12, S * (0.024 + hsh(i, 79, 11) * 0.016));
-    const fs = Math.max(10, Math.min(want, cw / 3.7, ch / 1.7));
-    // 화면 밖으로 반쯤 나가면 잘린 글자가 되니 안쪽으로 당긴다
-    const x = clamp(cell[0] + cw * (0.32 + hsh(i, 71, 3) * 0.36), fs * 1.7, W - fs * 1.7);
-    const y = cell[1] + ch * (0.28 + hsh(i, 73, 5) * 0.44);
-    OTHERS.push({
-      x: x, y: y, fs: fs,
-      rot: (hsh(i, 83, 13) - 0.5) * 0.2,
-      at: 0.10 + 0.88 * (k + 0.5) / N_OTHER,
-      c: 0.06 + hsh(i, 89, 17) * 0.34,
-      v: 0.006 + hsh(i, 97, 19) * 0.016,
-      // 「방전 중」이 들어설 자리면 그때 비켜준다
-      dim: (Math.abs(x - dcx) < dfs * 1.1 && Math.abs(y - PH.y) < dfs * 1.9) ? 1 : 0,
-      on: 0,
-    });
+  // 밑줄과 눈금
+  g.fillStyle = `rgba(158,190,222,${(a * 0.09).toFixed(3)})`;
+  g.fillRect(b.x, b.y, b.w, Math.max(1, S * 0.0012));
+  const tf = Math.max(8, S * 0.0155);
+  g.font = `400 ${tf | 0}px 'Space Mono', monospace`;
+  g.textAlign = 'center'; g.textBaseline = 'top';
+  g.fillStyle = `rgba(158,190,222,${(a * 0.3).toFixed(3)})`;
+  for (const h of TICKS) {
+    const u = ((h - WIN_A + 24) % 24) / WIN_H;
+    g.fillText(two(h), b.x + b.w * u, b.y + tf * 0.6);
   }
+
+  // 지금
+  const [dx, dy] = curveXY(b, clk);
+  const r = Math.max(2, S * 0.0042);
+  g.beginPath(); g.arc(dx, dy, r * 3.4, 0, TAU);
+  g.fillStyle = `rgba(120,186,255,${(a * 0.1).toFixed(3)})`; g.fill();
+  g.beginPath(); g.arc(dx, dy, r, 0, TAU);
+  g.fillStyle = `rgba(214,236,255,${(a * 0.85).toFixed(3)})`; g.fill();
+
+  // 숫자
+  const nf = Math.max(10, S * 0.021);
+  const y = b.y - b.h - nf * 1.4;
+  g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.font = `400 ${(nf * 0.9) | 0}px "Nanum Myeongjo", serif`;
+  g.fillStyle = `rgba(150,180,208,${(a * 0.46).toFixed(3)})`;
+  g.fillText('전국 전력수요', b.x, y);
+  const lw = g.measureText('전국 전력수요').width;
+  g.font = `700 ${nf | 0}px 'Space Mono', monospace`;
+  g.fillStyle = `rgba(198,226,255,${(a * 0.66).toFixed(3)})`;
+  g.fillText(Math.round(demandAt(clk)).toLocaleString() + ' MWh', b.x + lw + nf * 0.7, y);
 }
 
 function draw() {
@@ -712,15 +644,12 @@ function draw() {
   if (bed) ctx.drawImage(bed, 0, 0);
   ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
   drawGlow(ctx);
-  drawOthers(ctx);
   drawDrain(ctx);
-  drawThoughts(ctx);
+  drawMurmurs(ctx);
   drawCable(ctx);
   drawPhone(ctx);
   drawMe(ctx);
-  drawCount(ctx);
-  drawSource(ctx);
-  drawEnd(ctx);
+  drawCurve(ctx);
 }
 
 // ── step ───────────────────────────────────────────────────────────────────
@@ -728,36 +657,34 @@ function step(dt) {
   if (PREVIEW) return;
   t += dt;
 
-  if (plug) chg = clamp(chg + dt * 0.052 * (1 - chg * 0.5), 0, 1);
+  // 꽂으면 밤이 간다. 안 꽂으면 시계도 안 간다.
+  if (plug && !slept) clk = Math.min(clk + dt * RATE, 9 * 60);
+
+  if (plug) chg = clamp(0.08 + (clk - plugAt) / 22 * 0.92, 0, 1);
   else chg = clamp(chg - dt * 0.005, 0.02, 1);   // never a flat 0. 방전 has to stay readable
 
   // this one runs down either way. Being awake with the phone just costs more.
   const prev = me;
-  me = clamp(me - dt * (plug ? 0.0075 : 0.003), 0, 1);
+  me = clamp(me - dt * (plug ? 0.0042 : 0.0018), 0, 1);
   if (prev > 0 && me <= 0) sound.ping(false);
 
   done += ((chg >= 0.999 ? 1 : 0) - done) * (1 - Math.pow(0.78, dt));
 
-  const want = slept ? 0.03 : plug ? 1 : 0.46;
+  const want = slept ? 0.02 : plug ? 1 : 0.46;
   bri += (want - bri) * (1 - Math.pow(0.004, dt));
 
-  for (const th of THOUGHTS) {
-    const w = chg >= th.at ? 1 : 0;
-    th.a += (w - th.a) * (1 - Math.pow(w ? 0.3 : 0.5, dt));
+  while (nextMur < MURMURS.length && clk >= MURMURS[nextMur][0]) spawnMur(nextMur++);
+  for (let i = murs.length - 1; i >= 0; i--) {
+    murs[i].p += dt / murs[i].dur;
+    if (murs[i].p >= 1) murs.splice(i, 1);
   }
 
-  // 내 화면이 차오르는 동안 내 몫의 나머지가 한 대씩 켜진다. 그리고 안 꺼진다.
-  for (const o of OTHERS) {
-    const w = chg >= o.at ? 1 : 0;
-    o.on += (w - o.on) * (1 - Math.pow(w ? 0.12 : 0.5, dt));
-    if (o.on > 0.02) o.c = clamp(o.c + dt * o.v, 0, 0.96);
+  // 자야 하는 시각이 지나면, 끄는 법을 알려준다
+  if (!hint2 && plug && !slept && clk >= 257) {
+    hint2 = true;
+    hintEl.textContent = 'TAP THE SCREEN TO TURN IT OFF · 화면을 누르면 꺼져요';
+    hintEl.classList.remove('off');
   }
-
-  if (plug && chg >= 0.999) { idle += dt; if (idle > 3.4) slept = true; }
-  else { idle = 0; slept = false; }
-
-  endT = slept ? endT + dt : 0;
-  endA = clamp(endT / 2.2, 0, 1);
 
   if (plug) {
     const [px, py] = portPos();
@@ -770,7 +697,7 @@ function step(dt) {
     tip.x += tip.vx * dt; tip.y += tip.vy * dt;
   }
 
-  sound.set(plug, chg, bri);
+  sound.set(plug && !slept, chg, bri, (demandAt(clk) - DEM_LO) / (DEM_HI - DEM_LO));
 }
 
 let last = performance.now();
@@ -796,8 +723,11 @@ cv.addEventListener('pointerdown', e => {
     dragging = true;
     document.body.classList.add('grab');
     cv.setPointerCapture(e.pointerId);
-  } else if (inPhone(e.clientX, e.clientY)) {
-    slept = false; idle = 0;
+  } else if (plug && inPhone(e.clientX, e.clientY)) {
+    // 끌 수 있는데 안 끄는 것 — 그게 이 시간의 전부다
+    slept = !slept;
+    sound.ping(!slept);
+    if (slept) hintEl.classList.add('off');
   }
 });
 
@@ -807,7 +737,7 @@ cv.addEventListener('pointermove', e => {
   const [px, py] = portPos();
   const d = Math.hypot(tip.x - px, tip.y - py);
   if (!plug && d < S * 0.055) {
-    plug = true; idle = 0;
+    plug = true; idle = 0; plugAt = clk;
     sound.ping(true);
     hintEl.classList.add('off');
   } else if (plug && d > S * 0.095) {
@@ -848,7 +778,6 @@ function resize() {
   rest.x = W - S * 0.11; rest.y = H - S * 0.09;
   if (!plug && !dragging) { tip.x = rest.x; tip.y = rest.y; }
 
-  layoutOthers();
   bakeBed();
 }
 window.addEventListener('resize', resize);
@@ -859,9 +788,8 @@ window.addEventListener('resize', resize);
     await Promise.all([
       // 한글 서브셋은 실제 글자를 넘겨야 받아온다
       document.fonts.load('900 60px "Noto Sans KR"', '충전중방안됨완료'),
-      document.fonts.load('400 30px "Nanum Myeongjo"',
-        '나방전중내가꽂지않은것한대를고잤다그시각몫의전기는일흔네분이었세켠적없새벽시전국력수요인구폰완충가정값—거래소행정안부자야하퍼센만더아까말일몇였채울수원연결'),
-      document.fonts.load('700 30px "Space Mono"', '0123456789%:+-·÷=,MWh대명'),
+      document.fonts.load('400 30px "Nanum Myeongjo"', '나방전중전국력수요'),
+      document.fonts.load('700 30px "Space Mono"', '0123456789%:·,MWh'),
     ]);
     await document.fonts.ready;
   } catch (e) { /* fall back to whatever is there */ }
@@ -869,9 +797,10 @@ window.addEventListener('resize', resize);
   resize();
 
   if (PREVIEW) {
-    plug = true; chg = 0.68; me = 0.19; bri = 1;
-    for (const th of THOUGHTS) th.a = chg >= th.at ? 1 : 0;
-    for (const o of OTHERS) o.on = chg >= o.at ? 1 : 0;
+    plug = true; plugAt = T0; clk = 227; me = 0.19; bri = 1;
+    chg = clamp(0.08 + (clk - plugAt) / 22 * 0.92, 0, 1);
+    nextMur = 3;
+    for (let i = 0; i < 3; i++) { spawnMur(i); murs[i].p = 0.62 - i * 0.16; }
     const [px, py] = portPos();
     tip.x = px; tip.y = py;
     draw();
