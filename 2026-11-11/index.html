@@ -6,7 +6,7 @@
 <title>빈 칸 — HALF LIT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gothic+A1:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Dokdo&family=Gaegu:wght@700&family=Gothic+A1:wght@400;700&family=Gowun+Batang:wght@700&family=Gugi&family=Hahmlet:wght@700&family=Jeju+Gothic&family=Jua&family=Kirang+Haerang&family=Nanum+Myeongjo:wght@800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@900&family=Song+Myung&family=Space+Mono:wght@400;700&family=Stylish&family=Sunflower:wght@700&family=Yeon+Sung&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #05070a; }
@@ -104,6 +104,29 @@ const NAMES = [
   '행화탕', '대림창고', '보안여관', '보령당', '설화철물', '서우제과', '통문관', '황해이발관',
   '대성표구사', '맨투맨양복점', '그날이오면', '태극당', '학림다방', '가원공방', '거안',
 ];
+
+// 간판마다 글자체가 다르다. s 는 글자체끼리 크기를 맞추는 값,
+// big 은 앞줄 큰 간판에도 걸 수 있는 굵은 글자체다.
+const FONTS = [
+  { f: "'Black Han Sans'",   w: 400, s: 1.00, big: 1 },
+  { f: "'Do Hyeon'",         w: 400, s: 1.04, big: 1 },
+  { f: "'Jua'",              w: 400, s: 1.06, big: 1 },
+  { f: "'Gugi'",             w: 400, s: 1.02, big: 1 },
+  { f: "'Kirang Haerang'",   w: 400, s: 1.10, big: 1 },
+  { f: "'Yeon Sung'",        w: 400, s: 1.06, big: 1 },
+  { f: "'Nanum Myeongjo'",   w: 800, s: 1.06, big: 1 },
+  { f: "'Noto Serif KR'",    w: 900, s: 1.02, big: 1 },
+  { f: "'Hahmlet'",          w: 700, s: 1.04, big: 1 },
+  { f: "'Gowun Batang'",     w: 700, s: 1.06, big: 1 },
+  { f: "'Song Myung'",       w: 400, s: 1.10, big: 0 },
+  { f: "'Jeju Gothic'",      w: 400, s: 1.04, big: 0 },
+  { f: "'Stylish'",          w: 400, s: 1.08, big: 0 },
+  { f: "'Sunflower'",        w: 700, s: 1.04, big: 0 },
+  { f: "'Nanum Pen Script'", w: 400, s: 1.46, big: 0 },
+  { f: "'Dokdo'",            w: 400, s: 1.30, big: 0 },
+  { f: "'Gaegu'",            w: 700, s: 1.24, big: 0 },
+];
+const BIGF = FONTS.filter(f => f.big);
 
 const PAL = [
   [255, 72, 58, 255, 150, 96],      // 적
@@ -203,8 +226,10 @@ function build() {
           sx < o.x + o.w + 12 && sx + bw + 12 > o.x &&
           y < o.y + o.h + 10 && y + bh + 10 > o.y)) continue;
         const c = PAL[Math.floor(Math.random() * PAL.length)];
+        const ff = pick(order || L.z === 2 ? BIGF : FONTS);
+        const gf = `${ff.w} ${(fs * ff.s).toFixed(1)}px ${ff.f}, sans-serif`;
         const sg = {
-          x: sx, y, w: bw, h: bh, vert, fs, z: L.z, text, order,
+          x: sx, y, w: bw, h: bh, vert, fs, z: L.z, text, order, gf,
           tone: [c[0], c[1], c[2]], warm: [c[3], c[4], c[5]],
           cells: [], shake: 0,
         };
@@ -214,7 +239,7 @@ function build() {
           const ccy = vert ? y + pad + fs * (i + 0.5) * 1.06 : y + bh / 2;
           sg.cells.push(cells.length);
           cells.push({
-            s: signs.length, i, ch: text[i], x: ccx, y: ccy, fs,
+            s: signs.length, i, ch: text[i], x: ccx, y: ccy, fs, gf,
             tone: sg.tone, warm: sg.warm, z: L.z,
             state: 'on', lum: 1, fp: 0, fon: true, ft: 0, rt: 0, revives: 0,
             seed: Math.random() * 100,
@@ -301,7 +326,7 @@ function bake() {
       drawBody(gto, s);
       for (const ci of s.cells) {
         const c = cells[ci];
-        const f = `${c.fs}px 'Black Han Sans', sans-serif`;
+        const f = c.gf;
         // 나간 글자 — 때 탄 회색 아크릴로 칸에 남는다
         gto.font = f;
         gto.fillStyle = 'rgba(31,35,43,.97)';
@@ -322,9 +347,9 @@ function bake() {
         gtl.fillText(c.ch, c.x, c.y);
         gtl.save();
         gtl.globalCompositeOperation = 'source-atop';
-        const core = gtl.createRadialGradient(c.x, c.y - c.fs * 0.1, 0, c.x, c.y, c.fs * 0.6);
-        core.addColorStop(0, 'rgba(255,255,255,.96)');
-        core.addColorStop(0.42, `rgba(${c.warm[0]},${c.warm[1]},${c.warm[2]},.7)`);
+        const core = gtl.createRadialGradient(c.x, c.y - c.fs * 0.1, 0, c.x, c.y, c.fs * 0.5);
+        core.addColorStop(0, 'rgba(255,255,255,.9)');
+        core.addColorStop(0.36, `rgba(${c.warm[0]},${c.warm[1]},${c.warm[2]},.7)`);
         core.addColorStop(1, 'rgba(255,255,255,0)');
         gtl.fillStyle = core;
         gtl.fillRect(c.x - c.fs, c.y - c.fs, c.fs * 2, c.fs * 2);
@@ -660,17 +685,21 @@ function loop(ms) {
   requestAnimationFrame(loop);
 }
 
-async function boot() {
-  try {
-    await Promise.all([
-      document.fonts.load("400 60px 'Black Han Sans'"),
-      document.fonts.load("400 14px 'Gothic A1'"),
-      document.fonts.load("700 11px 'Space Mono'"),
-    ]);
-  } catch (e) {}
+// 간판에 실제로 걸린 글자만 골라 글자체를 받는다. 한글 전체를 받으면 너무 느리다.
+async function loadFonts() {
+  const txt = [...new Set(cells.map(c => c.ch))].join('');
+  const jobs = FONTS.map(f => document.fonts.load(`${f.w} 80px ${f.f}`, txt));
+  jobs.push(document.fonts.load("400 14px 'Gothic A1'"));
+  jobs.push(document.fonts.load("700 11px 'Space Mono'"));
+  const wait = Promise.all(jobs).catch(() => {});
+  await Promise.race([wait, new Promise(r => setTimeout(r, 8000))]);
+}
 
+async function boot() {
   sizeCanvas();
-  build(); bake(); bakeAmbient();
+  build();
+  await loadFonts();
+  bake(); bakeAmbient();
 
   if (PREVIEW) { previewScene(); draw(); return; }
 
