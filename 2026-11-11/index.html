@@ -493,16 +493,16 @@ function bake() {
     go.drawImage(bgImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
 
     const veil = go.createLinearGradient(0, 0, 0, H);
-    veil.addColorStop(0, 'rgba(7,10,17,.56)');
-    veil.addColorStop(0.42, 'rgba(6,9,14,.40)');
-    veil.addColorStop(1, 'rgba(4,6,10,.58)');
+    veil.addColorStop(0, 'rgba(7,10,17,.40)');
+    veil.addColorStop(0.42, 'rgba(6,9,14,.24)');
+    veil.addColorStop(1, 'rgba(4,6,10,.44)');
     go.fillStyle = veil; go.fillRect(0, 0, W, H);
 
     // 가장자리는 더 떨어뜨린다
     const vig = go.createRadialGradient(W / 2, H * 0.46, Math.min(W, H) * 0.24,
                                         W / 2, H * 0.46, Math.max(W, H) * 0.72);
     vig.addColorStop(0, 'rgba(0,0,0,0)');
-    vig.addColorStop(1, 'rgba(0,0,0,.44)');
+    vig.addColorStop(1, 'rgba(0,0,0,.38)');
     go.fillStyle = vig; go.fillRect(0, 0, W, H);
   }
 
