@@ -26,7 +26,7 @@
   body.hit { cursor: pointer; }
   canvas { display: block; }
 
-  .home-btn, .snd {
+  .home-btn {
     position: fixed; top: 22px; z-index: 20;
     font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
     color: #7e8692; text-decoration: none; padding: 9px 13px;
@@ -34,8 +34,7 @@
     transition: color .3s, border-color .3s;
   }
   .home-btn { left: 26px; }
-  .snd { right: 26px; cursor: pointer; letter-spacing: .18em; }
-  .home-btn:hover, .snd:hover { color: #dfe6ef; border-color: rgba(223,230,239,.5); }
+  .home-btn:hover { color: #dfe6ef; border-color: rgba(223,230,239,.5); }
 
   .cnt {
     position: fixed; left: 50%; top: 22px; transform: translateX(-50%); z-index: 20;
@@ -54,14 +53,13 @@
   }
   .hint.off { opacity: 0; }
 
-  body.preview .home-btn, body.preview .snd,
+  body.preview .home-btn,
   body.preview .hint, body.preview .cnt { display: none; }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
-<div class="snd" id="snd">SOUND: ON</div>
 <div class="cnt" id="cnt">— / —</div>
 <div class="hint" id="hint">CLICK A SIGN · 간판을 치면 나간 글자가 잠깐 들어온다</div>
 
@@ -98,23 +96,37 @@ const HERO = [
   { text: '삼거리먼지막순대국', order: [3, 4, 5, 0, 1, 2, 8, 7, 6] }, // 삼거리순대국 · 순대국 · 순대
   { text: '이문설농탕', order: [0, 1, 4, 3, 2] },          // 문설농탕 · 설농탕 · 설농 · 설
   { text: '마포진짜원조최대포', order: [0, 1, 2, 3, 4, 5, 8, 7, 6] }, // 원조최대포 · 최대포 · 최대
+  { text: '옛날집낙원아구찜', order: [0, 1, 2, 5, 6, 7, 4, 3] }, // 낙원아구찜 · 낙원찜 · 낙원 · 낙
+  { text: '토속촌삼계탕', order: [2, 4, 3, 5, 1, 0] },      // 토속삼계탕 · 토속탕 · 토속 · 토
 ];
 
-// 뒷줄을 메우는 이름들. 모두 실제로 있거나 있었던 가게다.
+// 뒷줄을 메우는 이름들. 종로 일대에 실제로 있거나 있었던, 밤에 문을 여는 가게다.
 const NAMES = [
+  '청진옥', '열차집', '청일집', '선천집', '진아춘', '유진식당', '림스치킨', '미진',
+  '산골막국수', '영춘옥', '토속촌삼계탕', '황생가칼국수', '삼청동수제비', '체부동잔치집',
+  '순희네빈대떡', '박가네빈대떡', '노다지포차', '종로고집', '낙원포차', '익선동야장',
+  '옛날집낙원아구찜', '할머니떡볶이', '보스노래방', '인디안노래방', '질러노래방',
+  '영노래방', '앵콜노래방', '에코노래연습장', '낙원코인노래방', '종로호프',
   '우래옥', '을지면옥', '은주정', '평래옥', '통일집', '안동장', '사랑방칼국수', '경상도식당',
   '이남장', '삼수갑산', '장수보쌈', '보건옥', '순흥옥', '강산옥', '문화옥', '오구반점',
   '동경우동', '조선옥', '을지오뎅', '우일집', '전주옥', '호반집', '다전식당', '고향집',
-  '양미옥', '진아춘', '용금옥', '은호식당', '잼배옥', '청진옥', '한일관', '유진식당',
-  '대성관', '부여집', '마포옥', '연남서식당', '열차집', '미진', '대도식당', '부민옥',
-  '하동관', '유림면', '초가집', '황해', '서북면옥', '통술집', '산골막국수', '역전회관',
-  '진주회관', '창성옥', '대문점', '선천집', '청일집', '중림장', '림스치킨', '원대구탕',
-  '동흥관', '쌍다리식당', '기와집능이백숙', '송림식당', '장군갈비', '영화장', '행운돈까스',
-  '혜성칼국수', '홍능갈비집', '성수아구찜', '성수족발', '은성보쌈', '망우찜쌈밥', '굴다리식당',
-  '원조조박집', '일등식당', '만포면옥', '목노집', '서부감자국', '장가구', '코스모스분식',
-  '석교식당', '청송본관함흥냉면', '평택고여사집냉면', '반도이발관', '우정떡집', '칠성조선소',
-  '행화탕', '대림창고', '보안여관', '보령당', '설화철물', '서우제과', '통문관', '황해이발관',
-  '대성표구사', '맨투맨양복점', '그날이오면', '태극당', '학림다방', '가원공방', '거안',
+  '양미옥', '용금옥', '은호식당', '잼배옥', '한일관', '대성관', '부여집', '마포옥',
+  '연남서식당', '대도식당', '부민옥', '하동관', '유림면', '초가집', '황해', '서북면옥',
+  '통술집', '역전회관', '진주회관', '창성옥', '대문점', '중림장', '원대구탕', '동흥관',
+  '쌍다리식당', '기와집능이백숙', '송림식당', '장군갈비', '영화장', '행운돈까스',
+  '혜성칼국수', '홍능갈비집', '은성보쌈', '굴다리식당', '원조조박집', '일등식당',
+  '만포면옥', '목노집', '서부감자국', '코스모스분식', '석교식당', '청송본관함흥냉면',
+  '우정떡집', '그날이오면', '태극당', '학림다방', '거안',
+];
+
+// 낮에만 여는 가게들. 밤엔 셔터가 내려가 있으니 간판도 꺼져 있다.
+// 이 이름들은 사진 속 빈 간판 자리에 소실점을 따라 그대로 붙는다.
+const DAYNAMES = [
+  '보령약국', '종로약국', '온유약국', '서울약국', '대학약국', '효종약국',
+  '종로종합의료기', '종로의료기상사', '보청기센터', '서울의료기',
+  '신광악기', '한양악기', '낙원악기상가', '통문관', '삼일서적', '종로서적',
+  '대성표구사', '설화철물', '가원공방', '맨투맨양복점', '반도이발관', '황해이발관',
+  '보안여관', '서우제과', '종로안경원', '동일금은방',
 ];
 
 // 간판마다 글자체가 다르다. s 는 글자체끼리 크기를 맞추는 값,
@@ -143,15 +155,30 @@ const FONTS = [
 ];
 const BIGF = FONTS.filter(f => f.big);
 
+// 오래된 밥집·고깃집 상호는 획이 굵고 단단한 글자체로 쓴다.
+const CLASSIC = ["'Black Han Sans'", "'Nanum Myeongjo'", "'Noto Serif KR'", "'Hahmlet'",
+                 "'Gowun Batang'", "'Daehan'", "'ArirangPpuri'", "'ChosunMj'"];
+const CLASSICF = FONTS.filter(f => CLASSIC.includes(f.f));
+// 옥·관·집·식당·회관으로 끝나거나 반점·면옥이 붙은 이름
+const oldShop = t => /(옥|관|집|당|점|회관|식당|분식|제과|약국|철물|상사)$/.test(t);
+
+// 흰빛과 노란빛이 거리의 기본이다. 같은 색을 여러 번 넣어 그만큼 자주 걸리게 한다.
 const PAL = [
-  [255, 72, 58, 255, 150, 96],      // 적
-  [255, 186, 46, 255, 214, 120],    // 황
-  [86, 196, 255, 150, 222, 255],    // 청
   [235, 240, 248, 255, 248, 228],   // 백
+  [235, 240, 248, 255, 248, 228],
+  [248, 244, 228, 255, 250, 232],   // 백(따뜻한)
+  [255, 186, 46, 255, 214, 120],    // 황
+  [255, 186, 46, 255, 214, 120],
+  [255, 208, 96, 255, 230, 158],    // 황(옅은)
+  [255, 72, 58, 255, 150, 96],      // 적
+  [86, 196, 255, 150, 222, 255],    // 청
   [120, 232, 150, 186, 255, 196],   // 녹
   [255, 104, 150, 255, 170, 198],   // 분홍
   [255, 132, 46, 255, 186, 120],    // 주황
-  [178, 136, 255, 214, 192, 255],   // 보라
+  [196, 160, 255, 222, 200, 255],   // 보라
+  [38, 42, 52, 96, 102, 116],       // 먹 — 미색 아크릴판에 쓰던 검은 글자
+  [38, 42, 52, 96, 102, 116],
+  [26, 58, 118, 86, 122, 186],      // 감청
 ];
 // 바탕 밝기에 따라 글자색을 가린다. 미색 바탕엔 짙은 색, 남색 바탕엔 밝은 색
 const lum = c => c[0] * .299 + c[1] * .587 + c[2] * .114;
@@ -165,7 +192,7 @@ const PAL_ON_DEEP = PAL.filter(c => lum(c) > 150);
 // 색 바탕 — 빨강·남색·초록·노랑·자주·청록
 const BGC = [
   ['#9e2626', '#5e1414'], ['#1b3568', '#0f1d3c'], ['#1a5a3e', '#0d3524'],
-  ['#b8891f', '#7d5a11'], ['#6a2360', '#3d123a'], ['#1f5d6b', '#0f3640'],
+  ['#b8891f', '#7d5a11'], ['#6b3a1b', '#3f2010'], ['#1f5d6b', '#0f3640'],
 ];
 
 // 간판 몸통. 함석에 페인트로 쓰던 것부터 아크릴 내부등·네온관·채널·전광판까지
@@ -307,7 +334,8 @@ function build() {
         const bg = st.bg || pick(BGC);
         const c = pick(!st.lit ? PAL
           : hexLum(bg[0]) > 112 ? PAL_ON_PALE : PAL_ON_DEEP);
-        const ff = pick(order || L.z === 2 ? BIGF : FONTS);
+        const ff = oldShop(text) && Math.random() < 0.78 ? pick(CLASSICF)
+                 : pick(order || L.z === 2 ? BIGF : FONTS);
         const gf = `${ff.w} ${(fs * ff.s).toFixed(1)}px ${ff.f}, sans-serif`;
         const sg = {
           x: sx, y, w: bw, h: bh, vert, fs, z: L.z, text, order, gf, st, bg,
@@ -475,6 +503,108 @@ function deco(g, s, st) {
   }
 }
 
+// ── 사진에 붙는 간판 ───────────────────────────────────────────────────────
+// 사진 속 빈 간판 자리를 네 귀퉁이로 받아 적어 뒀다. 좌우 변은 수직이고,
+// 위아래 변은 소실점 쪽으로 기울어 있다. u 는 사진 가로 비율, t/b 는 세로 비율이다.
+const PANELS = [
+  { u1: .025, u2: .195, t1: .204, b1: .378, t2: .300, b2: .448 },
+  { u1: .197, u2: .263, t1: .310, b1: .460, t2: .380, b2: .540 },
+  { u1: .145, u2: .200, t1: -.02, b1: .168, t2: .005, b2: .176, vert: 1 },
+  { u1: .334, u2: .366, t1: .400, b1: .672, t2: .408, b2: .676, vert: 1 },
+  { u1: .585, u2: .610, t1: .462, b1: .660, t2: .464, b2: .662, vert: 1 },
+  { u1: .645, u2: .680, t1: .258, b1: .420, t2: .260, b2: .424, vert: 1 },
+  { u1: .695, u2: .740, t1: .080, b1: .290, t2: .082, b2: .292, vert: 1 },
+  { u1: .695, u2: .750, t1: .480, b1: .600, t2: .498, b2: .618 },
+  { u1: .780, u2: .840, t1: .020, b1: .310, t2: .015, b2: .305, vert: 1 },
+  { u1: .832, u2: 1.00, t1: .302, b1: .478, t2: .152, b2: .332 },
+];
+
+// 간판 한 장을 따로 그려 둔다. 바탕은 꺼진 아크릴, 글자는 어둡다.
+function panelArt(text, vert, wpx, hpx) {
+  const S = 2;
+  const c = document.createElement('canvas');
+  c.width = Math.max(8, Math.round(wpx * S));
+  c.height = Math.max(8, Math.round(hpx * S));
+  const g = c.getContext('2d');
+  g.scale(S, S);
+
+  const pale = Math.random() < 0.78;
+  const bg = g.createLinearGradient(0, 0, 0, hpx);
+  if (pale) { bg.addColorStop(0, '#7c848c'); bg.addColorStop(1, '#565e66'); }
+  else { bg.addColorStop(0, '#242a31'); bg.addColorStop(1, '#141820'); }
+  g.fillStyle = bg; g.fillRect(0, 0, wpx, hpx);
+
+  const lw = Math.max(1, Math.min(wpx, hpx) * 0.05);
+  g.strokeStyle = pale ? 'rgba(28,32,38,.7)' : 'rgba(150,158,168,.45)';
+  g.lineWidth = lw;
+  g.strokeRect(lw / 2, lw / 2, wpx - lw, hpx - lw);
+
+  const n = text.length;
+  const inset = lw * 1.8;
+  const fs = vert
+    ? Math.min((wpx - inset * 2) * 0.80, (hpx - inset * 2) / n * 0.88)
+    : Math.min((hpx - inset * 2) * 0.62, (wpx - inset * 2) / n * 0.90);
+  const ff = oldShop(text) ? pick(CLASSICF) : pick(BIGF);
+  g.font = `${ff.w} ${(fs * ff.s).toFixed(1)}px ${ff.f}, sans-serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = pale ? 'rgba(20,24,29,.88)' : 'rgba(158,167,177,.75)';
+  if (vert) {
+    const step = (hpx - inset * 2) / n;
+    for (let i = 0; i < n; i++) g.fillText(text[i], wpx / 2, inset + step * (i + 0.5));
+  } else {
+    g.fillText(text, wpx / 2, hpx * 0.52);
+  }
+  return c;
+}
+
+// 네 귀퉁이에 맞춰 세로로 잘게 썰어 붙인다. 멀어지는 쪽이 좁아지도록 보정한다.
+function drawQuad(g, img, x1, x2, t1, b1, t2, b2) {
+  const h1 = b1 - t1, h2 = b2 - t2, r = h2 / h1;
+  const N = Math.max(24, Math.min(420, Math.round(Math.abs(x2 - x1) * 1.4)));
+  for (let i = 0; i < N; i++) {
+    const s0 = i / N, s1 = (i + 1) / N;
+    const u0 = s0 / (r + s0 * (1 - r)), u1 = s1 / (r + s1 * (1 - r));
+    const sx = u0 * img.width, sw = Math.max(1, (u1 - u0) * img.width);
+    const dx = x1 + s0 * (x2 - x1), dw = (s1 - s0) * (x2 - x1) + 0.8;
+    const ty = t1 + s0 * (t2 - t1), by = b1 + s0 * (b2 - b1);
+    g.drawImage(img, sx, 0, sw, img.height, dx, ty, dw, by - ty);
+  }
+}
+
+function drawPanels(g, ox, oy, dw, dh) {
+  const pool = DAYNAMES.slice().sort(() => Math.random() - 0.5);
+  PANELS.forEach((q, k) => {
+    const x1 = ox + q.u1 * dw, x2 = ox + q.u2 * dw;
+    const t1 = oy + q.t1 * dh, b1 = oy + q.b1 * dh;
+    const t2 = oy + q.t2 * dh, b2 = oy + q.b2 * dh;
+    if (x2 - x1 < 14 || b1 - t1 < 10) return;
+
+    const wpx = x2 - x1, hpx = ((b1 - t1) + (b2 - t2)) / 2;
+    const vert = hpx > wpx * 1.25;
+    // 글자가 깨알같이 작아지지 않게, 칸 크기에 맞는 길이만 고른다
+    const maxLen = Math.max(2, Math.floor((vert ? hpx / wpx : wpx / hpx) * 1.9));
+    const fits = pool.filter(n => n.length <= maxLen);
+    const text = fits.length ? fits[Math.floor(Math.random() * fits.length)]
+                             : pool[k % pool.length];
+    const idx = pool.indexOf(text);
+    if (idx >= 0) pool.splice(idx, 1);
+
+    const art = panelArt(text, vert, wpx, hpx);
+
+    // 사진에 있던 밝은 판을 먼저 눌러 둔다
+    g.save();
+    g.globalAlpha = 0.9;
+    drawQuad(g, art, x1, x2, t1, b1, t2, b2);
+    g.globalAlpha = 0.3;
+    g.globalCompositeOperation = 'multiply';
+    g.fillStyle = '#1a2130';
+    g.beginPath();
+    g.moveTo(x1, t1); g.lineTo(x2, t2); g.lineTo(x2, b2); g.lineTo(x1, b1);
+    g.closePath(); g.fill();
+    g.restore();
+  });
+}
+
 function bake() {
   const [bo, go] = nc();
   const [bl, gl] = nc();
@@ -504,6 +634,8 @@ function bake() {
     vig.addColorStop(0, 'rgba(0,0,0,0)');
     vig.addColorStop(1, 'rgba(0,0,0,.38)');
     go.fillStyle = vig; go.fillRect(0, 0, W, H);
+
+    drawPanels(go, (W - dw) / 2, (H - dh) / 2, dw, dh);
   }
 
   for (let z = 0; z < 3; z++) {
@@ -662,7 +794,6 @@ function step(dt) {
     if (c.wake > 0) {
       c.wake -= dt;
       if (c.wake > 0) { c.lum = 0; continue; }
-      if (c.z === 2 && Math.random() < 0.25) sound.tick();
     }
     if (c.state === 'on') {
       const hum = 0.955 + 0.045 * Math.sin(t * 31 + c.seed) * Math.sin(t * 6.1 + c.seed * 3);
@@ -674,20 +805,17 @@ function step(dt) {
       if (c.fp <= 0) {
         c.fon = !c.fon;
         c.fp = c.fon ? rnd(0.04, 0.26) : rnd(0.03, 0.15);
-        if (c.fon && c.z === 2 && Math.random() < 0.5) sound.tick();
       }
       const k = 1 - c.ft / dyingTime(c);
       c.lum = c.fon ? rnd(0.5, 1) * (1 - k * 0.5) : rnd(0, 0.06);
       if (c.ft <= 0) {
         c.state = 'off'; c.lum = 0; litCount--;
-        if (c.z === 2) sound.die(1);
-        else if (c.z === 1 && Math.random() < 0.5) sound.die(0.45);
       }
     } else if (c.state === 'rev') {
       c.rt -= dt; c.fp -= dt;
       if (c.fp <= 0) { c.fon = Math.random() > 0.2; c.fp = rnd(0.03, 0.17); }
       c.lum = c.fon ? rnd(0.35, 0.95) : rnd(0, 0.09);
-      if (c.rt <= 0) { c.state = 'off'; c.lum = 0; if (c.z === 2) sound.die(0.4); }
+      if (c.rt <= 0) { c.state = 'off'; c.lum = 0; }
     } else {
       c.lum += (0 - c.lum) * Math.min(1, dt * 20);
     }
@@ -719,90 +847,7 @@ function relight() {
   build(); bake(); bakeAmbient();
   cells.forEach(c => { c.lum = 0; c.state = 'on'; c.wake = rnd(0.3, 3.4); });
   resetAt = -1; nextOut = t + 4.5;
-  sound.wake();
 }
-
-// ── 소리 ───────────────────────────────────────────────────────────────────
-// 간판이 많을수록 거리가 웅웅거린다. 안정기 소리는 켜진 글자 수를 따라간다.
-const sound = {
-  ac: null, master: null, humG: null, nb: null, on: true, last: 0,
-  init() {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ac = this.ac = new AC();
-    const m = this.master = ac.createGain();
-    m.gain.value = 0.85; m.connect(ac.destination);
-
-    const len = ac.sampleRate * 2;
-    const buf = ac.createBuffer(1, len, ac.sampleRate);
-    const d = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-    this.nb = buf;
-
-    const hg = this.humG = ac.createGain();
-    hg.gain.value = 0;
-    const lp = ac.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 620; lp.Q.value = 2;
-    hg.connect(lp); lp.connect(m);
-    [120, 180, 60, 240].forEach((f, i) => {
-      const o = ac.createOscillator();
-      o.type = i === 2 ? 'sine' : 'sawtooth';
-      o.frequency.value = f;
-      const g = ac.createGain();
-      g.gain.value = [0.46, 0.13, 0.4, 0.07][i];
-      o.connect(g); g.connect(hg); o.start();
-    });
-    const hiss = ac.createBufferSource();
-    hiss.buffer = buf; hiss.loop = true;
-    const hf = ac.createBiquadFilter();
-    hf.type = 'bandpass'; hf.frequency.value = 3200; hf.Q.value = 0.7;
-    const hgn = ac.createGain(); hgn.gain.value = 0.05;
-    hiss.connect(hf); hf.connect(hgn); hgn.connect(hg); hiss.start();
-  },
-  live() { return !!this.ac && this.ac.state === 'running'; },
-  kick() {
-    if (!this.ac) this.init();
-    if (this.ac && this.ac.state !== 'running') this.ac.resume();
-  },
-  hum(r) {
-    if (!this.humG || !this.ac) return;
-    const v = this.on ? 0.01 + 0.055 * r : 0;
-    this.humG.gain.setTargetAtTime(v, this.ac.currentTime, 0.25);
-  },
-  busy() {   // 한꺼번에 소리가 몰리면 잡음이 된다
-    const n = this.ac ? this.ac.currentTime : 0;
-    if (n - this.last < 0.045) return true;
-    this.last = n; return false;
-  },
-  noise(dur, freq, q, vol, type) {
-    if (!this.ac || !this.on) return;
-    const ac = this.ac, s = ac.createBufferSource();
-    s.buffer = this.nb; s.loop = true;
-    const f = ac.createBiquadFilter();
-    f.type = type || 'bandpass'; f.frequency.value = freq; f.Q.value = q;
-    const g = ac.createGain();
-    g.gain.setValueAtTime(vol, ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
-    s.connect(f); f.connect(g); g.connect(this.master);
-    s.start(); s.stop(ac.currentTime + dur + 0.02);
-  },
-  tone(f0, f1, dur, vol, type) {
-    if (!this.ac || !this.on) return;
-    const ac = this.ac, o = ac.createOscillator(), g = ac.createGain();
-    o.type = type || 'sine';
-    o.frequency.setValueAtTime(f0, ac.currentTime);
-    o.frequency.exponentialRampToValueAtTime(Math.max(20, f1), ac.currentTime + dur);
-    g.gain.setValueAtTime(vol, ac.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + dur);
-    o.connect(g); g.connect(this.master);
-    o.start(); o.stop(ac.currentTime + dur + 0.02);
-  },
-  tick() { if (!this.busy()) this.noise(0.04, rnd(2200, 3400), 1.2, 0.05); },
-  die(k) { this.noise(0.09, 1400, 0.9, 0.07 * k); this.tone(520, 68, 0.3, 0.05 * k, 'sine'); },
-  zap() { for (let i = 0; i < 5; i++) setTimeout(() => this.noise(0.04, rnd(1800, 4200), 1.4, 0.065), i * rnd(20, 70)); },
-  tap() { this.tone(180, 46, 0.19, 0.085, 'triangle'); this.noise(0.06, 880, 0.7, 0.055); },
-  wake() { this.tone(62, 126, 0.4, 0.06, 'sine'); },
-};
 
 // ── 손 ─────────────────────────────────────────────────────────────────────
 function signAt(mx, my) {
@@ -831,7 +876,6 @@ function hitSign(i) {
       c.blink = 0.16;
     }
   }
-  if (dead) sound.zap(); else sound.tap();
 }
 
 const hintEl = document.getElementById('hint');
@@ -842,17 +886,10 @@ cv.addEventListener('pointermove', e => {
   document.body.classList.toggle('hit', hover >= 0);
 });
 cv.addEventListener('pointerdown', e => {
-  sound.kick();
   const i = signAt(e.clientX, e.clientY);
   if (i >= 0) hitSign(i);
   if (!hinted) { hinted = true; hintEl.classList.add('off'); }
 });
-document.getElementById('snd').addEventListener('click', () => {
-  sound.on = !sound.on;
-  document.getElementById('snd').textContent = 'SOUND: ' + (sound.on ? 'ON' : 'OFF');
-  sound.kick();
-});
-
 // ── 부팅 ───────────────────────────────────────────────────────────────────
 function sizeCanvas() {
   W = window.innerWidth; H = window.innerHeight;
@@ -886,14 +923,13 @@ function loop(ms) {
   const dt = Math.min(0.05, (ms - last) / 1000 || 0);
   last = ms;
   step(dt);
-  sound.hum(totalCount ? litCount / totalCount : 0);
   draw();
   requestAnimationFrame(loop);
 }
 
 // 간판에 실제로 걸린 글자만 골라 글자체를 받는다. 한글 전체를 받으면 너무 느리다.
 async function loadFonts() {
-  const txt = [...new Set(cells.map(c => c.ch))].join('');
+  const txt = [...new Set(cells.map(c => c.ch).concat(DAYNAMES.join('').split('')))].join('');
   const jobs = FONTS.map(f => document.fonts.load(`${f.w} 80px ${f.f}`, txt));
   jobs.push(document.fonts.load("400 14px 'Gothic A1'"));
   jobs.push(document.fonts.load("700 11px 'Space Mono'"));
@@ -911,8 +947,6 @@ async function boot() {
 
   cells.forEach(c => { c.wake = rnd(0.1, 2.6); c.lum = 0; });
   nextOut = 3.4;
-  sound.kick();
-  setTimeout(() => sound.kick(), 400);
   setTimeout(() => { if (!hinted) hintEl.classList.add('off'); }, 15000);
   requestAnimationFrame(loop);
 }
@@ -924,7 +958,6 @@ window.__st = () => ({ signs: signs.length, cells: totalCount, lit: litCount,
 window.__signs = () => signs.map(s => ({ x: s.x, y: s.y, w: s.w, h: s.h, text: s.text, z: s.z, hero: !!s.order }));
 window.__cells = () => cells;
 window.__force = () => { cells.forEach(c => { if (c.state !== 'off') { c.state = 'off'; c.lum = 0; } }); litCount = 0; };
-window.__sound = () => sound.live();
 </script>
 </body>
 </html>
