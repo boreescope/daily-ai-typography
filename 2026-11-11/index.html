@@ -6,8 +6,22 @@
 <title>빈 칸 — HALF LIT</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Dokdo&family=Gaegu:wght@700&family=Gothic+A1:wght@400;700&family=Gowun+Batang:wght@700&family=Gugi&family=Hahmlet:wght@700&family=Jeju+Gothic&family=Jua&family=Kirang+Haerang&family=Nanum+Myeongjo:wght@800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@900&family=Song+Myung&family=Space+Mono:wght@400;700&family=Stylish&family=Sunflower:wght@700&family=Yeon+Sung&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fastly.jsdelivr.net" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Black+Han+Sans&family=Diphylleia&family=Dokdo&family=Gaegu:wght@700&family=Gasoek+One&family=Gothic+A1:wght@400;700&family=Gowun+Batang:wght@700&family=Gugi&family=Hahmlet:wght@700&family=Jeju+Gothic&family=Nanum+Brush+Script&family=Nanum+Myeongjo:wght@800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@900&family=Song+Myung&family=Space+Mono:wght@400;700&family=Stylish&family=Sunflower:wght@700&display=swap" rel="stylesheet">
 <style>
+  /* 눈누(projectnoonnu) 에 올라온 무료 글자체. 구글폰트와 달리 한 벌 통째로 받는다 */
+  @font-face { font-family: 'Yeoljeongdo'; font-display: block;
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/RixYeoljeongdo_Regular.woff') format('woff'); }
+  @font-face { font-family: 'Hoppang'; font-display: block;
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts-20-12@1.0/SDSamliphopangche_Basic.woff') format('woff'); }
+  @font-face { font-family: 'RetroSans'; font-display: block;
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2112@1.0/establishRetrosansOTF.woff') format('woff'); }
+  @font-face { font-family: 'ChosunMj'; font-display: block;
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_one@1.0/Chosunilbo_myungjo.woff') format('woff'); }
+  @font-face { font-family: 'Daehan'; font-display: block;
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_twelve@1.2/Daehan-Bold.woff') format('woff'); }
+  @font-face { font-family: 'ArirangPpuri'; font-display: block;
+    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2001@1.4/JSArirangPPURI-RegularA1.woff') format('woff'); }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #05070a; }
   body { font-family: 'Space Mono', monospace; cursor: default; }
@@ -109,11 +123,11 @@ const NAMES = [
 // big 은 앞줄 큰 간판에도 걸 수 있는 굵은 글자체다.
 const FONTS = [
   { f: "'Black Han Sans'",   w: 400, s: 1.00, big: 1 },
-  { f: "'Do Hyeon'",         w: 400, s: 1.04, big: 1 },
-  { f: "'Jua'",              w: 400, s: 1.06, big: 1 },
+  { f: "'Gasoek One'",       w: 400, s: 0.94, big: 1 },
+  { f: "'Bagel Fat One'",    w: 400, s: 0.96, big: 1 },
   { f: "'Gugi'",             w: 400, s: 1.02, big: 1 },
-  { f: "'Kirang Haerang'",   w: 400, s: 1.10, big: 1 },
-  { f: "'Yeon Sung'",        w: 400, s: 1.06, big: 1 },
+  { f: "'Diphylleia'",       w: 400, s: 1.00, big: 1 },
+  { f: "'Nanum Brush Script'", w: 400, s: 1.30, big: 0 },
   { f: "'Nanum Myeongjo'",   w: 800, s: 1.06, big: 1 },
   { f: "'Noto Serif KR'",    w: 900, s: 1.02, big: 1 },
   { f: "'Hahmlet'",          w: 700, s: 1.04, big: 1 },
@@ -125,6 +139,12 @@ const FONTS = [
   { f: "'Nanum Pen Script'", w: 400, s: 1.46, big: 0 },
   { f: "'Dokdo'",            w: 400, s: 1.30, big: 0 },
   { f: "'Gaegu'",            w: 700, s: 1.24, big: 0 },
+  { f: "'Hoppang'",          w: 400, s: 1.06, big: 1 },
+  { f: "'RetroSans'",        w: 400, s: 0.96, big: 1 },
+  { f: "'Daehan'",           w: 400, s: 1.04, big: 1 },
+  { f: "'ArirangPpuri'",     w: 400, s: 1.12, big: 1 },
+  { f: "'Yeoljeongdo'",      w: 400, s: 0.98, big: 1 },
+  { f: "'ChosunMj'",         w: 400, s: 1.08, big: 0 },
 ];
 const BIGF = FONTS.filter(f => f.big);
 
@@ -852,7 +872,7 @@ async function loadFonts() {
   jobs.push(document.fonts.load("400 14px 'Gothic A1'"));
   jobs.push(document.fonts.load("700 11px 'Space Mono'"));
   const wait = Promise.all(jobs).catch(() => {});
-  await Promise.race([wait, new Promise(r => setTimeout(r, 8000))]);
+  await Promise.race([wait, new Promise(r => setTimeout(r, 14000))]);
 }
 
 async function boot() {
