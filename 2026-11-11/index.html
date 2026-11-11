@@ -7,13 +7,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://fastly.jsdelivr.net" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Black+Han+Sans&family=Diphylleia&family=Dokdo&family=Gaegu:wght@700&family=Gasoek+One&family=Gothic+A1:wght@400;700&family=Gowun+Batang:wght@700&family=Gugi&family=Hahmlet:wght@700&family=Jeju+Gothic&family=Nanum+Brush+Script&family=Nanum+Myeongjo:wght@800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@900&family=Song+Myung&family=Space+Mono:wght@400;700&family=Stylish&family=Sunflower:wght@700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Diphylleia&family=Dokdo&family=Gasoek+One&family=Gothic+A1:wght@400;700&family=Gowun+Batang:wght@700&family=Gugi&family=Hahmlet:wght@700&family=Jeju+Gothic&family=Nanum+Brush+Script&family=Nanum+Myeongjo:wght@800&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@900&family=Song+Myung&family=Space+Mono:wght@400;700&family=Stylish&family=Sunflower:wght@700&display=swap" rel="stylesheet">
 <style>
   /* 눈누(projectnoonnu) 에 올라온 무료 글자체. 구글폰트와 달리 한 벌 통째로 받는다 */
   @font-face { font-family: 'Yeoljeongdo'; font-display: block;
     src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2102-01@1.0/RixYeoljeongdo_Regular.woff') format('woff'); }
-  @font-face { font-family: 'Hoppang'; font-display: block;
-    src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts-20-12@1.0/SDSamliphopangche_Basic.woff') format('woff'); }
   @font-face { font-family: 'RetroSans'; font-display: block;
     src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_2112@1.0/establishRetrosansOTF.woff') format('woff'); }
   @font-face { font-family: 'ChosunMj'; font-display: block;
@@ -124,7 +122,6 @@ const NAMES = [
 const FONTS = [
   { f: "'Black Han Sans'",   w: 400, s: 1.00, big: 1 },
   { f: "'Gasoek One'",       w: 400, s: 0.94, big: 1 },
-  { f: "'Bagel Fat One'",    w: 400, s: 0.96, big: 1 },
   { f: "'Gugi'",             w: 400, s: 1.02, big: 1 },
   { f: "'Diphylleia'",       w: 400, s: 1.00, big: 1 },
   { f: "'Nanum Brush Script'", w: 400, s: 1.30, big: 0 },
@@ -138,8 +135,6 @@ const FONTS = [
   { f: "'Sunflower'",        w: 700, s: 1.04, big: 0 },
   { f: "'Nanum Pen Script'", w: 400, s: 1.46, big: 0 },
   { f: "'Dokdo'",            w: 400, s: 1.30, big: 0 },
-  { f: "'Gaegu'",            w: 700, s: 1.24, big: 0 },
-  { f: "'Hoppang'",          w: 400, s: 1.06, big: 1 },
   { f: "'RetroSans'",        w: 400, s: 0.96, big: 1 },
   { f: "'Daehan'",           w: 400, s: 1.04, big: 1 },
   { f: "'ArirangPpuri'",     w: 400, s: 1.12, big: 1 },
@@ -216,6 +211,17 @@ const STW = STYLES.flatMap(st => Array(st.w).fill(st));
 let signs = [];      // {x,y,w,h,vert,fs,z,tone,warm,text,cells:[idx]}
 let cells = [];      // {s,ch,x,y,fs,pad,tone,warm,z, state,lum,fp,fon,ft,rt,revives, bx,by,bs}
 let baseOff = null, baseLit = null;
+
+// 야경 사진. 간판은 이 위에 붙는다
+const bgImg = new Image();
+let bgReady = false;
+function loadBg() {
+  return new Promise(res => {
+    bgImg.onload = () => { bgReady = true; res(); };
+    bgImg.onerror = () => res();
+    bgImg.src = 'night.jpg';
+  });
+}
 let t = 0, night = 0, nextOut = 0, hover = -1, dark = 0, resetAt = -1;
 let litCount = 0, totalCount = 0;
 
@@ -479,6 +485,26 @@ function bake() {
   sky.addColorStop(0.5, '#090c12');
   sky.addColorStop(1, '#05070a');
   go.fillStyle = sky; go.fillRect(0, 0, W, H);
+
+  // 야경 사진을 화면에 꽉 채워 깔고, 간판이 떠 보이지 않게 어둡게 눌러둔다
+  if (bgReady) {
+    const sc = Math.max(W / bgImg.naturalWidth, H / bgImg.naturalHeight);
+    const dw = bgImg.naturalWidth * sc, dh = bgImg.naturalHeight * sc;
+    go.drawImage(bgImg, (W - dw) / 2, (H - dh) / 2, dw, dh);
+
+    const veil = go.createLinearGradient(0, 0, 0, H);
+    veil.addColorStop(0, 'rgba(7,10,17,.56)');
+    veil.addColorStop(0.42, 'rgba(6,9,14,.40)');
+    veil.addColorStop(1, 'rgba(4,6,10,.58)');
+    go.fillStyle = veil; go.fillRect(0, 0, W, H);
+
+    // 가장자리는 더 떨어뜨린다
+    const vig = go.createRadialGradient(W / 2, H * 0.46, Math.min(W, H) * 0.24,
+                                        W / 2, H * 0.46, Math.max(W, H) * 0.72);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,.44)');
+    go.fillStyle = vig; go.fillRect(0, 0, W, H);
+  }
 
   for (let z = 0; z < 3; z++) {
     const [to, gto] = nc();
@@ -878,7 +904,7 @@ async function loadFonts() {
 async function boot() {
   sizeCanvas();
   build();
-  await loadFonts();
+  await Promise.all([loadFonts(), loadBg()]);
   bake(); bakeAmbient();
 
   if (PREVIEW) { previewScene(); draw(); return; }
