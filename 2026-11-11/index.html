@@ -361,6 +361,24 @@ function build() {
             seed: Math.random() * 100,
           });
         }
+        // 밤거리엔 이미 문 닫은 집도 있다. 처음부터 꺼진 간판을 섞는다
+        const r0 = Math.random();
+        if (r0 < 0.17) {
+          sg.dead = 1;
+          sg.cells.forEach(ci => { cells[ci].state = 'off'; cells[ci].lum = 0; });
+        } else if (r0 < 0.34) {
+          // 몇 글자만 먼저 나간 간판
+          const idx = sg.order ? sg.order.slice()
+                               : sg.cells.map((_, i) => i).sort(() => Math.random() - 0.5);
+          const k = Math.min(idx.length - 1, 1 + Math.floor(Math.random() * 2));
+          for (let j = 0; j < k; j++) {
+            const c0 = cells[sg.cells[idx[j]]];
+            if (sg.kind === 'bad' && j === k - 1) { c0.state = 'bad'; c0.fp = 0; c0.fon = false; }
+            else c0.state = 'off';
+            c0.lum = 0;
+          }
+        }
+
         signs.push(sg);
         left--;
       }
@@ -368,7 +386,7 @@ function build() {
   }
 
   totalCount = cells.length;
-  litCount = totalCount;
+  litCount = cells.filter(c => c.state === 'on').length;
 }
 
 // ── 굽기 ───────────────────────────────────────────────────────────────────
@@ -903,7 +921,7 @@ function step(dt) {
 
 function relight() {
   build(); bake(); bakeAmbient();
-  cells.forEach(c => { c.lum = 0; c.state = 'on'; c.wake = rnd(0.3, 3.4); });
+  cells.forEach(c => { c.lum = 0; c.wake = rnd(0.3, 3.4); });
   resetAt = -1; nextOut = t + 4.5; focus = -1; focusLeft = 0;
 }
 
@@ -962,8 +980,8 @@ window.addEventListener('resize', () => {
   clearTimeout(rt);
   rt = setTimeout(() => {
     sizeCanvas(); build(); bake(); bakeAmbient();
-    cells.forEach(c => { c.wake = 0; c.lum = 1; c.state = 'on'; });
-    litCount = totalCount; resetAt = -1; nextOut = t + 3; focus = -1; focusLeft = 0;
+    cells.forEach(c => { c.wake = 0; c.lum = c.state === 'on' ? 1 : 0; });
+    resetAt = -1; nextOut = t + 3; focus = -1; focusLeft = 0;
     if (PREVIEW) previewScene();
     draw();
   }, 220);
@@ -972,8 +990,8 @@ window.addEventListener('resize', () => {
 function previewScene() {
   cells.forEach(c => {
     c.wake = 0;
-    if (Math.random() < 0.3) { c.state = 'off'; c.lum = 0; }
-    else { c.state = 'on'; c.lum = 1; }
+    if (c.state !== 'on' || Math.random() < 0.26) { c.state = 'off'; c.lum = 0; }
+    else { c.lum = 1; }
   });
   litCount = cells.filter(c => c.state === 'on').length;
 }
