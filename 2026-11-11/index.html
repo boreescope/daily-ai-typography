@@ -138,6 +138,58 @@ const PAL = [
   [255, 132, 46, 255, 186, 120],    // 주황
   [178, 136, 255, 214, 192, 255],   // 보라
 ];
+// 바탕 밝기에 따라 글자색을 가린다. 미색 바탕엔 짙은 색, 남색 바탕엔 밝은 색
+const lum = c => c[0] * .299 + c[1] * .587 + c[2] * .114;
+const hexLum = h => {
+  const v = parseInt(h.slice(1), 16);
+  return (v >> 16 & 255) * .299 + (v >> 8 & 255) * .587 + (v & 255) * .114;
+};
+const PAL_ON_PALE = PAL.filter(c => lum(c) < 165);
+const PAL_ON_DEEP = PAL.filter(c => lum(c) > 150);
+
+// 색 바탕 — 빨강·남색·초록·노랑·자주·청록
+const BGC = [
+  ['#9e2626', '#5e1414'], ['#1b3568', '#0f1d3c'], ['#1a5a3e', '#0d3524'],
+  ['#b8891f', '#7d5a11'], ['#6a2360', '#3d123a'], ['#1f5d6b', '#0f3640'],
+];
+
+// 간판 몸통. 함석에 페인트로 쓰던 것부터 아크릴 내부등·네온관·채널·전광판까지
+// 거리에 같이 걸려 있던 것들이다. lit 은 바탕에 불이 들어온 간판
+const STYLES = [
+  { k: 'neon', w: 20, lit: 0, bg: ['#161a22', '#0b0e14'],
+    fr: ['rgba(142,153,171,.75)', 'rgba(44,51,63,.75)', 'rgba(68,77,93,.7)'], fw: .055,
+    ink: 'rgba(31,35,43,.97)', hl: 'rgba(122,132,150,.17)' },
+  { k: 'acryl', w: 15, lit: 1, glow: 1, bg: ['#c1b795', '#8f8368'],
+    fr: ['rgba(206,214,226,.8)', 'rgba(74,80,90,.7)', 'rgba(120,128,140,.7)'], fw: .05,
+    ink: 'rgba(24,20,16,.88)', hl: 'rgba(255,246,218,.26)' },
+  { k: 'acrylw', w: 9, lit: 1, glow: 1, bg: ['#afbac5', '#808b97'],
+    fr: ['rgba(206,214,226,.8)', 'rgba(74,80,90,.7)', 'rgba(120,128,140,.7)'], fw: .05,
+    ink: 'rgba(20,24,30,.88)', hl: 'rgba(244,250,255,.26)' },
+  { k: 'color', w: 14, lit: 1, glow: 1, bg: null,
+    fr: ['rgba(220,226,236,.7)', 'rgba(60,66,76,.7)', 'rgba(104,112,124,.7)'], fw: .05,
+    ink: 'rgba(14,14,18,.72)', hl: 'rgba(255,255,255,.2)' },
+  { k: 'steel', w: 10, lit: 0, bg: ['#3a3a36', '#22231f'], deco: 'bolts',
+    fr: ['rgba(126,124,112,.7)', 'rgba(52,52,46,.8)', 'rgba(82,82,74,.7)'], fw: .07,
+    ink: 'rgba(26,26,22,.95)', hl: 'rgba(146,142,124,.2)' },
+  { k: 'wood', w: 8, lit: 0, bg: ['#3f2a19', '#22150a'], deco: 'grain',
+    fr: ['rgba(198,164,96,.65)', 'rgba(96,74,38,.7)', 'rgba(146,116,62,.6)'], fw: .065,
+    ink: 'rgba(24,16,8,.95)', hl: 'rgba(188,156,96,.22)' },
+  { k: 'channel', w: 12, lit: 0, bare: 1,
+    ink: 'rgba(28,30,36,.96)', hl: 'rgba(130,138,154,.22)' },
+  { k: 'bulb', w: 8, lit: 0, bg: ['#20242c', '#12151b'], deco: 'bulbs',
+    fr: ['rgba(150,142,120,.7)', 'rgba(52,50,44,.8)', 'rgba(96,92,80,.7)'], fw: .06,
+    ink: 'rgba(28,28,32,.96)', hl: 'rgba(138,134,120,.2)' },
+  { k: 'awning', w: 4, lit: 1, bg: null, deco: 'stripe',
+    fr: ['rgba(188,194,204,.5)', 'rgba(40,44,52,.7)', 'rgba(70,76,86,.6)'], fw: .04,
+    ink: 'rgba(20,18,16,.8)', hl: 'rgba(255,250,236,.22)' },
+  { k: 'led', w: 6, lit: 0, bg: ['#0a0a0c', '#050506'], deco: 'dots',
+    fr: ['rgba(255,86,60,.55)', 'rgba(104,28,20,.7)', 'rgba(188,54,38,.5)'], fw: .07,
+    ink: 'rgba(22,16,16,.97)', hl: 'rgba(255,120,96,.14)' },
+  { k: 'tile', w: 6, lit: 1, glow: 1, bg: ['#6f767e', '#4b5158'],
+    fr: ['rgba(214,220,228,.6)', 'rgba(66,70,78,.7)', 'rgba(110,116,126,.6)'], fw: .04,
+    ink: 'rgba(22,24,28,.8)', hl: 'rgba(240,244,250,.22)' },
+];
+const STW = STYLES.flatMap(st => Array(st.w).fill(st));
 
 
 // ── 상태 ───────────────────────────────────────────────────────────────────
@@ -225,11 +277,14 @@ function build() {
         if (L.z === 2 && signs.some(o => o.z === 2 &&
           sx < o.x + o.w + 12 && sx + bw + 12 > o.x &&
           y < o.y + o.h + 10 && y + bh + 10 > o.y)) continue;
-        const c = PAL[Math.floor(Math.random() * PAL.length)];
+        const st = pick(STW);
+        const bg = st.bg || pick(BGC);
+        const c = pick(!st.lit ? PAL
+          : hexLum(bg[0]) > 112 ? PAL_ON_PALE : PAL_ON_DEEP);
         const ff = pick(order || L.z === 2 ? BIGF : FONTS);
         const gf = `${ff.w} ${(fs * ff.s).toFixed(1)}px ${ff.f}, sans-serif`;
         const sg = {
-          x: sx, y, w: bw, h: bh, vert, fs, z: L.z, text, order, gf,
+          x: sx, y, w: bw, h: bh, vert, fs, z: L.z, text, order, gf, st, bg,
           tone: [c[0], c[1], c[2]], warm: [c[3], c[4], c[5]],
           cells: [], shake: 0,
         };
@@ -239,7 +294,7 @@ function build() {
           const ccy = vert ? y + pad + fs * (i + 0.5) * 1.06 : y + bh / 2;
           sg.cells.push(cells.length);
           cells.push({
-            s: signs.length, i, ch: text[i], x: ccx, y: ccy, fs, gf,
+            s: signs.length, i, ch: text[i], x: ccx, y: ccy, fs, gf, st,
             tone: sg.tone, warm: sg.warm, z: L.z,
             state: 'on', lum: 1, fp: 0, fon: true, ft: 0, rt: 0, revives: 0,
             seed: Math.random() * 100,
@@ -267,6 +322,21 @@ function nc() {
 }
 
 function drawBody(g, s) {
+  const st = s.st;
+
+  // 채널 간판은 바탕판이 없다. 글자만 벽에 떠 있고 받침대만 보인다
+  if (st.bare) {
+    g.save();
+    g.strokeStyle = 'rgba(96,104,120,.3)';
+    g.lineWidth = Math.max(1, s.fs * 0.04);
+    g.beginPath();
+    if (s.vert) { g.moveTo(s.x + s.w / 2, s.y); g.lineTo(s.x + s.w / 2, s.y + s.h); }
+    else { g.moveTo(s.x, s.y + s.h * 0.92); g.lineTo(s.x + s.w, s.y + s.h * 0.92); }
+    g.stroke();
+    g.restore();
+    return;
+  }
+
   const r = Math.min(5, s.h * 0.1);
   g.save();
   g.shadowColor = 'rgba(0,0,0,.8)';
@@ -276,21 +346,27 @@ function drawBody(g, s) {
   g.restore();
 
   const fr = g.createLinearGradient(0, s.y, 0, s.y + s.h);
-  fr.addColorStop(0, 'rgba(142,153,171,.75)');
-  fr.addColorStop(0.45, 'rgba(44,51,63,.75)');
-  fr.addColorStop(1, 'rgba(68,77,93,.7)');
-  g.strokeStyle = fr; g.lineWidth = Math.max(1, s.fs * 0.055);
+  fr.addColorStop(0, st.fr[0]);
+  fr.addColorStop(0.45, st.fr[1]);
+  fr.addColorStop(1, st.fr[2]);
+  g.strokeStyle = fr; g.lineWidth = Math.max(1, s.fs * st.fw);
   g.beginPath(); g.roundRect(s.x, s.y, s.w, s.h, r); g.stroke();
 
   const ac = g.createLinearGradient(0, s.y, 0, s.y + s.h);
-  ac.addColorStop(0, '#161a22');
-  ac.addColorStop(1, '#0b0e14');
+  ac.addColorStop(0, s.bg[0]);
+  ac.addColorStop(1, s.bg[1]);
   g.fillStyle = ac;
   g.beginPath(); g.roundRect(s.x + 1, s.y + 1, s.w - 2, s.h - 2, Math.max(1, r - 1)); g.fill();
 
+  g.save();
+  g.beginPath(); g.roundRect(s.x + 1, s.y + 1, s.w - 2, s.h - 2, Math.max(1, r - 1)); g.clip();
+  deco(g, s, st);
+  g.restore();
+
   // 글자 칸을 가르는 이음선. 나간 글자가 어느 칸에 있었는지 남는다
   if (s.fs > 22) {
-    g.strokeStyle = 'rgba(150,162,182,.07)'; g.lineWidth = 1;
+    g.strokeStyle = st.lit ? 'rgba(20,18,16,.1)' : 'rgba(150,162,182,.07)';
+    g.lineWidth = 1;
     const n = s.text.length;
     for (let i = 1; i < n; i++) {
       if (s.vert) {
@@ -299,6 +375,75 @@ function drawBody(g, s) {
       } else {
         const lx = Math.round(s.x + (s.w / n) * i) + 0.5;
         g.beginPath(); g.moveTo(lx, s.y + 3); g.lineTo(lx, s.y + s.h - 3); g.stroke();
+      }
+    }
+  }
+}
+
+// 간판 바탕에 올라가는 것들 — 나뭇결, 볼트, 전구 알, 천막 줄무늬, 전광판 점
+function deco(g, s, st) {
+  const d = st.deco;
+  if (!d) return;
+
+  if (d === 'grain') {
+    g.strokeStyle = 'rgba(16,9,4,.3)'; g.lineWidth = 1;
+    for (let gy = s.y + 3; gy < s.y + s.h; gy += Math.max(3, s.fs * 0.17)) {
+      g.beginPath(); g.moveTo(s.x, gy + 0.5); g.lineTo(s.x + s.w, gy + 0.5); g.stroke();
+    }
+    return;
+  }
+
+  if (d === 'bolts') {
+    const m = Math.max(3, s.fs * 0.22);
+    g.fillStyle = 'rgba(158,154,138,.45)';
+    for (const bx of [s.x + m, s.x + s.w - m]) {
+      for (const by of [s.y + m, s.y + s.h - m]) {
+        g.beginPath(); g.arc(bx, by, Math.max(1, s.fs * 0.055), 0, 7); g.fill();
+      }
+    }
+    return;
+  }
+
+  if (d === 'bulbs') {
+    const gap = Math.max(5, s.fs * 0.42);
+    const rr = Math.max(1, s.fs * 0.075);
+    const dot = (bx, by) => {
+      g.fillStyle = 'rgba(255,226,170,.5)';
+      g.beginPath(); g.arc(bx, by, rr, 0, 7); g.fill();
+      g.fillStyle = 'rgba(255,246,222,.85)';
+      g.beginPath(); g.arc(bx, by, rr * 0.45, 0, 7); g.fill();
+    };
+    for (let bx = s.x + gap * 0.6; bx < s.x + s.w - gap * 0.3; bx += gap) {
+      dot(bx, s.y + gap * 0.5); dot(bx, s.y + s.h - gap * 0.5);
+    }
+    for (let by = s.y + gap * 1.4; by < s.y + s.h - gap; by += gap) {
+      dot(s.x + gap * 0.5, by); dot(s.x + s.w - gap * 0.5, by);
+    }
+    return;
+  }
+
+  if (d === 'stripe') {
+    const sw = Math.max(5, s.fs * 0.46);
+    g.fillStyle = '#b8ae95'; g.fillRect(s.x, s.y, s.w, s.h);
+    g.globalAlpha = 0.4; g.fillStyle = s.bg[1];
+    for (let bx = s.x - s.h; bx < s.x + s.w; bx += sw * 2) {
+      g.beginPath();
+      g.moveTo(bx, s.y + s.h); g.lineTo(bx + s.h * 0.5, s.y);
+      g.lineTo(bx + s.h * 0.5 + sw, s.y); g.lineTo(bx + sw, s.y + s.h);
+      g.closePath(); g.fill();
+    }
+    g.globalAlpha = 1;
+    g.fillStyle = 'rgba(0,0,0,.26)';
+    g.fillRect(s.x, s.y + s.h * 0.84, s.w, s.h * 0.16);
+    return;
+  }
+
+  if (d === 'dots') {
+    const gap = Math.max(2, s.fs * 0.11);
+    g.fillStyle = 'rgba(255,255,255,.035)';
+    for (let bx = s.x + gap; bx < s.x + s.w; bx += gap) {
+      for (let by = s.y + gap; by < s.y + s.h; by += gap) {
+        g.fillRect(bx, by, 1, 1);
       }
     }
   }
@@ -329,27 +474,34 @@ function bake() {
         const f = c.gf;
         // 나간 글자 — 때 탄 회색 아크릴로 칸에 남는다
         gto.font = f;
-        gto.fillStyle = 'rgba(31,35,43,.97)';
+        gto.fillStyle = c.st.ink;
         gto.fillText(c.ch, c.x, c.y);
-        gto.fillStyle = 'rgba(122,132,150,.17)';
+        gto.fillStyle = c.st.hl;
         gto.fillText(c.ch, c.x, c.y - Math.max(0.5, c.fs * 0.022));
 
-        // 켜진 글자 — 번짐 두 겹에 흰 심
+        // 켜진 글자 — 번짐 두 겹에 흰 심.
+        // 바탕에 불이 들어온 간판은 번짐을 줄이고 글자를 또렷하게 둔다
+        const li = c.st.lit;
         gtl.font = f;
-        gtl.filter = `blur(${c.fs * 0.17}px)`;
-        gtl.fillStyle = `rgba(${c.tone[0]},${c.tone[1]},${c.tone[2]},.95)`;
+        gtl.filter = `blur(${c.fs * (li ? 0.09 : 0.17)}px)`;
+        gtl.fillStyle = `rgba(${c.tone[0]},${c.tone[1]},${c.tone[2]},${li ? .55 : .95})`;
         gtl.fillText(c.ch, c.x, c.y);
-        gtl.filter = `blur(${c.fs * 0.45}px)`;
-        gtl.fillStyle = `rgba(${c.warm[0]},${c.warm[1]},${c.warm[2]},.45)`;
+        gtl.filter = `blur(${c.fs * (li ? 0.28 : 0.45)}px)`;
+        gtl.fillStyle = `rgba(${c.warm[0]},${c.warm[1]},${c.warm[2]},${li ? .16 : .45})`;
         gtl.fillText(c.ch, c.x, c.y);
         gtl.filter = 'none';
+        if (li) {
+          gtl.lineWidth = Math.max(1, c.fs * 0.07);
+          gtl.strokeStyle = 'rgba(8,8,10,.4)';
+          gtl.strokeText(c.ch, c.x, c.y);
+        }
         gtl.fillStyle = `rgb(${c.tone[0]},${c.tone[1]},${c.tone[2]})`;
         gtl.fillText(c.ch, c.x, c.y);
         gtl.save();
         gtl.globalCompositeOperation = 'source-atop';
-        const core = gtl.createRadialGradient(c.x, c.y - c.fs * 0.1, 0, c.x, c.y, c.fs * 0.5);
-        core.addColorStop(0, 'rgba(255,255,255,.9)');
-        core.addColorStop(0.36, `rgba(${c.warm[0]},${c.warm[1]},${c.warm[2]},.7)`);
+        const core = gtl.createRadialGradient(c.x, c.y - c.fs * 0.1, 0, c.x, c.y, c.fs * (li ? 0.4 : 0.5));
+        core.addColorStop(0, `rgba(255,255,255,${li ? .34 : .9})`);
+        core.addColorStop(0.36, `rgba(${c.warm[0]},${c.warm[1]},${c.warm[2]},${li ? .4 : .7})`);
         core.addColorStop(1, 'rgba(255,255,255,0)');
         gtl.fillStyle = core;
         gtl.fillRect(c.x - c.fs, c.y - c.fs, c.fs * 2, c.fs * 2);
@@ -384,6 +536,14 @@ function bakeAmbient() {
   c.width = Math.max(2, Math.ceil(W / 9)); c.height = Math.max(2, Math.ceil(H / 9));
   const g = c.getContext('2d');
   g.drawImage(baseLit, 0, 0, c.width, c.height);
+  const k = 1 / 9;
+  g.globalCompositeOperation = 'lighter';
+  for (const sg of signs) {
+    if (!sg.st.glow) continue;
+    g.globalAlpha = sg.z === 0 ? 0.2 : sg.z === 1 ? 0.3 : 0.4;
+    g.fillStyle = sg.bg[0];
+    g.fillRect(sg.x * k, sg.y * k, sg.w * k, sg.h * k);
+  }
   ambCv = c;
 }
 
