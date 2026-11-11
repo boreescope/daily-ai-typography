@@ -243,8 +243,8 @@ const STW = STYLES.flatMap(st => Array(st.w).fill(st));
 
 // ── 상태 ───────────────────────────────────────────────────────────────────
 let signs = [];      // {x,y,w,h,vert,fs,z,tone,warm,text,cells:[idx]}
-let cells = [];      // {s,ch,x,y,fs,pad,tone,warm,z, state,lum,fp,fon,ft,rt,revives, bx,by,bs}
-let baseOff = null, baseLit = null;
+let cells = [];      // {s,ch,x,y,fs,sp,vert,par,tone,warm,z, state,lum,fp,fon,ft,rt,revives, bx,by,bw,bh}
+let baseOff = null, baseLit = [null, null];
 
 // 야경 사진. 간판은 이 위에 붙는다
 const bgImg = new Image();
@@ -356,6 +356,7 @@ function build() {
           sg.cells.push(cells.length);
           cells.push({
             s: signs.length, i, ch: text[i], x: ccx, y: ccy, fs, gf, st,
+            vert, sp: fs * (vert ? 1.06 : 1.04), par: i & 1,
             tone: sg.tone, warm: sg.warm, z: L.z,
             state: 'on', lum: 1, fp: 0, fon: true, ft: 0, rt: 0, revives: 0,
             seed: Math.random() * 100,
@@ -632,7 +633,8 @@ function drawPanels(g, ox, oy, dw, dh) {
 
 function bake() {
   const [bo, go] = nc();
-  const [bl, gl] = nc();
+  const l0 = nc(), l1 = nc();
+  const bl = [l0[0], l1[0]], gl = [l0[1], l1[1]];
 
   // 밤. 위가 조금 덜 어둡다
   const sky = go.createLinearGradient(0, 0, 0, H);
@@ -665,9 +667,11 @@ function bake() {
 
   for (let z = 0; z < 3; z++) {
     const [to, gto] = nc();
-    const [tl, gtl] = nc();
+    // 켜진 글자는 한 칸 건너씩 두 장에 나눠 그린다.
+    // 한 장에 다 그리면 글자를 오려 낼 때 옆 글자가 딸려 온다.
+    const lits = [nc(), nc()];
     gto.textAlign = 'center'; gto.textBaseline = 'middle';
-    gtl.textAlign = 'center'; gtl.textBaseline = 'middle';
+    lits.forEach(([, g]) => { g.textAlign = 'center'; g.textBaseline = 'middle'; });
 
     for (const s of signs) {
       if (s.z !== z) continue;
@@ -688,6 +692,7 @@ function bake() {
         // 켜진 글자 — 번짐 두 겹에 흰 심.
         // 바탕에 불이 들어온 간판은 번짐을 줄이고 글자를 또렷하게 둔다
         const li = c.st.lit;
+        const gtl = lits[c.par][1];
         gtl.font = f;
         gtl.filter = `blur(${c.fs * (li ? 0.09 : 0.17)}px)`;
         gtl.fillStyle = `rgba(${c.tone[0]},${c.tone[1]},${c.tone[2]},${li ? .55 : .95})`;
@@ -717,7 +722,7 @@ function bake() {
 
     const blur = z === 0 ? 1.5 : z === 1 ? 0.6 : 0;
     const dim = z === 0 ? 0.62 : z === 1 ? 0.82 : 1;
-    [[go, to], [gl, tl]].forEach(([g, src]) => {
+    [[go, to], [gl[0], lits[0][0]], [gl[1], lits[1][0]]].forEach(([g, src]) => {
       g.save();
       if (blur) g.filter = `blur(${blur}px)`;
       g.globalAlpha = dim;
@@ -726,12 +731,14 @@ function bake() {
     });
   }
 
-  baseOff = bo; baseLit = bl;
+  baseOff = bo; baseLit = [bl[0], bl[1]];
 
-  // 칸마다 오려 낼 자리
+  // 칸마다 오려 낼 자리. 같은 장에 있는 옆 글자는 두 칸 떨어져 있어서
+  // 번짐까지 넉넉히 담아도 딸려 오지 않는다
   for (const c of cells) {
-    const p = c.fs * 1.05;
-    c.bx = c.x - p; c.by = c.y - p; c.bs = p * 2;
+    const p = Math.min(c.fs * 1.05, c.sp - 1);
+    c.bx = c.x - p; c.by = c.y - c.fs * 1.05;
+    c.bw = p * 2; c.bh = c.fs * 2.1;
   }
 }
 
@@ -741,7 +748,8 @@ function bakeAmbient() {
   const c = document.createElement('canvas');
   c.width = Math.max(2, Math.ceil(W / 9)); c.height = Math.max(2, Math.ceil(H / 9));
   const g = c.getContext('2d');
-  g.drawImage(baseLit, 0, 0, c.width, c.height);
+  g.drawImage(baseLit[0], 0, 0, c.width, c.height);
+  g.drawImage(baseLit[1], 0, 0, c.width, c.height);
   const k = 1 / 9;
   g.globalCompositeOperation = 'lighter';
   for (const sg of signs) {
@@ -776,9 +784,9 @@ function draw() {
   for (const c of cells) {
     if (c.lum < 0.012) continue;
     ctx.globalAlpha = Math.min(1, c.lum);
-    ctx.drawImage(baseLit,
-      c.bx * DPR, c.by * DPR, c.bs * DPR, c.bs * DPR,
-      c.bx + jit[c.s], c.by, c.bs, c.bs);
+    ctx.drawImage(baseLit[c.par],
+      c.bx * DPR, c.by * DPR, c.bw * DPR, c.bh * DPR,
+      c.bx + jit[c.s], c.by, c.bw, c.bh);
   }
   ctx.globalAlpha = 1;
 
