@@ -79,7 +79,7 @@ let imgs = [];
 
 const live = [];     // 떨어지거나 날아가는 잎
 const rest = [];     // 바닥에 내려앉은 잎
-let wind = 0, windDir = 1, blowing = false;
+let wind = 0, gust = 0, gustDir = 1, peelIn = 0;
 
 // ── 캔버스 ─────────────────────────────────────────────────────────────────
 function newCanvas() {
@@ -165,6 +165,7 @@ function makeLeaf(x, y) {
     rot: rnd(0, Math.PI * 2), vrot: rnd(-.03, .03),
     sway: rnd(0, Math.PI * 2), swaySp: rnd(.012, .03), swayAmp: rnd(.5, 1.6),
     flip: Math.random() < .5 ? -1 : 1,
+    drift: rnd(-.4, .4),
   };
 }
 
@@ -215,7 +216,15 @@ function settle(l, quiet) {
 
 function repaintPile() {
   pileCtx.clearRect(0, 0, W, H);
+  hmap.fill(ground);
   for (const l of rest) {
+    const [a, b] = spanOf(l);
+    const mid = (a + b) / 2, half = Math.max(1, (b - a) / 2);
+    for (let c = a; c <= b; c++) {
+      const t = 1 - Math.abs(c - mid) / half;
+      const top = l.y + l.h * .34 - l.h * .19 * (.45 + t * .55);
+      if (top < hmap[c]) hmap[c] = top;
+    }
     pileCtx.save();
     pileCtx.translate(l.x, l.y);
     pileCtx.rotate(l.rot);
@@ -234,22 +243,42 @@ function drop(x, n) {
 }
 
 function blow(power) {
-  windDir = Math.random() < .5 ? -1 : 1;
-  wind = Math.max(wind, power);
-  while (rest.length) {
-    const l = rest.pop();
-    l.vx = windDir * rnd(1.5, 4.5) * power;
-    l.vy = rnd(-4.5, -1.2) * power;
-    l.vrot = rnd(-.14, .14) * power;
+  if (gust < .12) gustDir = Math.random() < .5 ? -1 : 1;
+  gust = Math.max(gust, clamp(power, .4, 1.8));
+  hideHint();
+}
+
+// 바람이 닿는 쪽 · 위에 놓인 잎부터 몇 장씩 뜬다
+function peel(g) {
+  if (!rest.length) return;
+  const n = Math.min(rest.length, 1 + Math.round(rnd(0, 3.2) * g));
+  for (let k = 0; k < n; k++) {
+    let best = 0, score = -Infinity;
+    for (let t = 0; t < 5; t++) {
+      const i = rest.length - 1 - ((Math.random() ** 1.7) * rest.length | 0);
+      const sc = -gustDir * (rest[i].x / W) + (i / rest.length) * .7;
+      if (sc > score) { score = sc; best = i; }
+    }
+    const l = rest.splice(best, 1)[0];
+    const dir = Math.random() < .84 ? gustDir : -gustDir;
+    l.vx = dir * rnd(.5, 3.2) * g + rnd(-.7, .7);
+    l.vy = -rnd(.8, 4.2) * g;
+    l.vrot = rnd(-.17, .17);
+    l.drift = dir * rnd(.45, 1.6);
+    l.swayAmp = rnd(.7, 2);
+    l.swaySp = rnd(.014, .036);
     live.push(l);
   }
-  pileCtx.clearRect(0, 0, W, H);
-  hmap.fill(ground);
-  hideHint();
+  repaintPile();
 }
 
 // ── 루프 ───────────────────────────────────────────────────────────────────
 function tick() {
+  if (gust > .02) {
+    wind = Math.max(wind, gust);
+    if (--peelIn <= 0) { peelIn = 2 + (Math.random() * 4 | 0); peel(gust); }
+    gust -= .007;
+  } else gust = 0;
   if (wind > 0) wind = Math.max(0, wind - .012);
 
   for (let i = live.length - 1; i >= 0; i--) {
@@ -260,8 +289,8 @@ function tick() {
     l.vy += .052;
     l.vx += s * .035 * l.swayAmp;
     if (wind > .02) {
-      l.vx += windDir * wind * .34;
-      l.vy -= wind * .12;
+      l.vx += l.drift * wind * .5;
+      l.vy -= wind * .1 * (.4 + Math.abs(l.drift));
     }
     l.vx *= .985; l.vy *= .988;
     l.vy = clamp(l.vy, -9, 3.1);
@@ -274,10 +303,17 @@ function tick() {
       live.splice(i, 1);
       continue;
     }
-    if (wind <= .02 && l.vy > 0 && l.y + l.h * .34 >= surfaceAt(l)) {
-      live.splice(i, 1);
-      l.vrot = 0;
-      settle(l);
+    if (l.vy > 0 && l.y + l.h * .34 >= surfaceAt(l)) {
+      if (wind > .02 && Math.abs(l.vx) > .9) {
+        l.y = surfaceAt(l) - l.h * .34;       // 바닥을 긁으며 굴러간다
+        l.vy = -rnd(.3, 1.6) * wind;
+        l.vrot += l.vx * .004;
+        l.vx *= .9;
+      } else {
+        live.splice(i, 1);
+        l.vrot = 0;
+        settle(l);
+      }
     }
   }
 
@@ -354,10 +390,7 @@ function listen() {
 
   if (hot) {
     const power = clamp((low - base) / 60, .55, 1.7);
-    if (!blowing) { blowing = true; blow(power); }
-    else wind = Math.max(wind, power * .9);
-  } else {
-    blowing = false;
+    blow(power);
   }
   requestAnimationFrame(listen);
 }
