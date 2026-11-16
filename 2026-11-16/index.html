@@ -177,7 +177,7 @@ function makeLeaf(x, y) {
     sway: rnd(0, Math.PI * 2), swaySp: rnd(.012, .03), swayAmp: rnd(.5, 1.6),
     flip: Math.random() < .5 ? -1 : 1,
     drift: rnd(-.4, .4), land: 0, tx: 0, ty: 0,
-    ctl: rnd(.55, 1.5), tilt: rnd(-.5, .5),
+    ctl: rnd(.55, 1.5), tilt: rnd(-.5, .5), fall: rnd(.72, 1.45),
   };
 }
 
@@ -332,6 +332,8 @@ function tick(t = 0) {
     l.sway += l.swaySp;
     const s = Math.sin(l.sway);
 
+    // 잎마다 떨어지는 속도가 다르고, 아래로 내려올수록 빨라진다
+    const term = (1.7 + 3.0 * clamp(l.y / H, 0, 1)) * l.fall;
     l.vy += .052;
     l.vx += s * .035 * l.swayAmp;
     if (wind > .02) {
@@ -341,11 +343,12 @@ function tick(t = 0) {
     // 미는 힘이 아니라 끌고 가는 속도 — 한없이 빨라지지 않는다
     if (steerX) l.vx += (steerX * 2.4 * l.ctl - l.vx) * .055;
     if (steerY) {
-      const want = steerY < 0 ? -.8 : 2.6;
+      const want = steerY < 0 ? -.8 : term * 1.25;
       l.vy += (want * Math.abs(steerY) * l.ctl - l.vy) * .06;
     }
-    l.vx *= .985; l.vy *= .988;
-    l.vy = clamp(l.vy, -9, 3.1);
+    l.vx *= .985;
+    l.vy *= 1 - .052 / term;             // 제 속도에 이르면 더 안 빨라진다
+    l.vy = clamp(l.vy, -9, term * 1.25);
 
     // 잎은 가는 쪽으로 면을 돌린다 — 가까운 쪽으로만, 뱅글뱅글 돌지 않게
     const spd = Math.hypot(l.vx, l.vy);
@@ -369,7 +372,7 @@ function tick(t = 0) {
     if (l.vy > 0 && l.y + l.h * .34 >= surfaceAt(l)) {
       if ((wind > .02 || Math.abs(steerX) > .12) && Math.abs(l.vx) > .9) {
         l.y = surfaceAt(l) - l.h * .34;       // 바닥을 긁으며 굴러간다
-        l.vy = -rnd(.3, 1.6) * Math.max(wind, Math.abs(steerX) * .8);
+        l.vy = -rnd(.3, 1.6) * Math.max(wind, Math.abs(steerX) * .4);
         l.vrot += l.vx * .004;
         l.vx *= .9;
       } else {
