@@ -270,13 +270,35 @@ function drop(x, n) {
   hideHint();
 }
 
+// 바람은 한쪽 끝에서 들어와 반대편으로 지나간다
+function gustIn(power) {
+  gustDir = Math.random() < .5 ? -1 : 1;
+  gustX = gustDir > 0 ? -W * .3 : W * 1.3;
+  gustSp = gustDir * rnd(8, 15);
+  wind = Math.max(wind, power);
+}
+
 function blow(power) {
-  if (gust < .12) {
-    gustDir = Math.random() < .5 ? -1 : 1;
-    gustX = gustDir > 0 ? -W * .3 : W * 1.3;   // 바람은 한쪽 끝에서 들어온다
-    gustSp = gustDir * rnd(7, 13);
-  }
+  if (gust < .12) gustIn(clamp(power, .4, 1.8));
   gust = Math.max(gust, clamp(power, .4, 1.8));
+  hideHint();
+}
+
+// 엔터를 치는 순간이 돌풍이 들이치는 순간이다
+function gustDrop(n) {
+  if (wind < .3) gustIn(rnd(.55, 1));
+  const rush = clamp(live.length / 110, 0, 1);
+  const cnt = Math.round(n * (1 + rush * .5));
+  for (let i = 0; i < cnt; i++) {
+    // 바람이 들어오는 쪽에서, 바람을 타고 날아 들어온다
+    const x = gustDir > 0 ? rnd(-W * .1, W * .62) : rnd(W * .38, W * 1.1);
+    const l = makeLeaf(x, rnd(-H * .2, H * .5));
+    const [ax, ay] = airAt(l.x, l.y, T);
+    l.vx = ax * rnd(.55, 1.05) + rnd(-1, 1);
+    l.vy = ay * rnd(.25, .7) + rnd(.5, 2) + rush * 1.8;
+    l.fall *= 1 + rush * .6;
+    live.push(l);
+  }
   hideHint();
 }
 
@@ -323,18 +345,20 @@ function tick(t = 0) {
   T = t;
   if (gust > .02) {
     wind = Math.max(wind, gust);
-    gustX += gustSp;
-    // 계속 불면 다음 물결이 또 들어온다
-    if (gustDir > 0 ? gustX > W * 1.35 : gustX < -W * .35) {
-      gustX = gustDir > 0 ? -W * .35 : W * 1.35;
-      gustSp = gustDir * rnd(7, 13);
-    }
     if (--peelIn <= 0) { peelIn = 2 + (Math.random() * 4 | 0); peel(gust); }
     gust -= .007;
   } else gust = 0;
-  if (wind > 0) wind = Math.max(0, wind - .012);
+  if (wind > .02) {
+    gustX += gustSp;
+    // 바람이 이어지면 다음 물결이 또 들어온다
+    if (gustDir > 0 ? gustX > W * 1.35 : gustX < -W * .35) {
+      gustX = gustDir > 0 ? -W * .35 : W * 1.35;
+      gustSp = gustDir * rnd(8, 15);
+    }
+    wind -= .012;
+  } else wind = 0;
 
-  if (held && --heldIn <= 0) { heldIn = 5; drop(rnd(W * .18, W * .82), 7); }
+  if (held && --heldIn <= 0) { heldIn = 5; gustDrop(7); }
 
   const kx = KEYS.ArrowRight - KEYS.ArrowLeft;
   const ky = KEYS.ArrowDown - KEYS.ArrowUp;
@@ -455,7 +479,7 @@ addEventListener('keydown', e => {
     e.preventDefault();
     if (e.repeat) { held = 1; return; }   // 누르고 있으면 루프가 이어서 쏟는다
     held = 1; heldIn = 5;
-    drop(rnd(W * .18, W * .82), 10);
+    gustDrop(10);
     return;
   }
   if (e.key in KEYS) { e.preventDefault(); KEYS[e.key] = 1; hideHint(); }
