@@ -86,6 +86,7 @@ const live = [];     // 떨어지거나 날아가는 잎
 const rest = [];     // 바닥에 내려앉은 잎
 let wind = 0, gust = 0, gustDir = 1, peelIn = 0;
 let steerX = 0, steerY = 0, sweepIn = 0;   // 방향키 바람
+let held = 0, heldIn = 0;                  // 엔터를 누르고 있는 동안
 
 // ── 캔버스 ─────────────────────────────────────────────────────────────────
 function newCanvas() {
@@ -259,8 +260,9 @@ function drop(x, n) {
   const rush = clamp(live.length / 110, 0, 1);
   const cnt = Math.round(n * (1 + rush * .5));
   for (let i = 0; i < cnt; i++) {
-    const l = makeLeaf(clamp(x + rnd(-150, 150), 24, W - 24), rnd(-430, -40));
-    l.vy = rnd(.9, 2.3) + rush * 2.8;
+    // 화면 바로 위에서 나와 누르자마자 보인다
+    const l = makeLeaf(clamp(x + rnd(-150, 150), 24, W - 24), rnd(-150, 8));
+    l.vy = rnd(1.8, 3.4) + rush * 3.2;
     l.fall *= 1 + rush * .75;
     live.push(l);
   }
@@ -306,6 +308,8 @@ function tick(t = 0) {
     gust -= .007;
   } else gust = 0;
   if (wind > 0) wind = Math.max(0, wind - .012);
+
+  if (held && --heldIn <= 0) { heldIn = 5; drop(rnd(W * .18, W * .82), 7); }
 
   const kx = KEYS.ArrowRight - KEYS.ArrowLeft;
   const ky = KEYS.ArrowDown - KEYS.ArrowUp;
@@ -419,15 +423,22 @@ addEventListener('pointerdown', e => {
 const KEYS = { ArrowLeft: 0, ArrowRight: 0, ArrowUp: 0, ArrowDown: 0 };
 
 addEventListener('keydown', e => {
-  if (e.key === 'Enter') { e.preventDefault(); drop(rnd(W * .18, W * .82), 10); return; }
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (e.repeat) { held = 1; return; }   // 누르고 있으면 루프가 이어서 쏟는다
+    held = 1; heldIn = 5;
+    drop(rnd(W * .18, W * .82), 10);
+    return;
+  }
   if (e.key in KEYS) { e.preventDefault(); KEYS[e.key] = 1; hideHint(); }
 });
 
 addEventListener('keyup', e => {
+  if (e.key === 'Enter') held = 0;
   if (e.key in KEYS) KEYS[e.key] = 0;
 });
 
-addEventListener('blur', () => { for (const k in KEYS) KEYS[k] = 0; });
+addEventListener('blur', () => { held = 0; for (const k in KEYS) KEYS[k] = 0; });
 
 addEventListener('resize', () => { resize(); });
 
