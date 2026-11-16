@@ -177,7 +177,7 @@ function makeLeaf(x, y) {
     sway: rnd(0, Math.PI * 2), swaySp: rnd(.012, .03), swayAmp: rnd(.5, 1.6),
     flip: Math.random() < .5 ? -1 : 1,
     drift: rnd(-.4, .4), land: 0, tx: 0, ty: 0,
-    ctl: rnd(.55, 1.5),
+    ctl: rnd(.55, 1.5), tilt: rnd(-.5, .5),
   };
 }
 
@@ -339,10 +339,7 @@ function tick(t = 0) {
       l.vy -= wind * .1 * (.4 + Math.abs(l.drift));
     }
     // 미는 힘이 아니라 끌고 가는 속도 — 한없이 빨라지지 않는다
-    if (steerX) {
-      l.vx += (steerX * 2.4 * l.ctl - l.vx) * .055;
-      l.vrot += steerX * .0015 * l.ctl;
-    }
+    if (steerX) l.vx += (steerX * 2.4 * l.ctl - l.vx) * .055;
     if (steerY) {
       const want = steerY < 0 ? -.8 : 2.6;
       l.vy += (want * Math.abs(steerY) * l.ctl - l.vy) * .06;
@@ -350,9 +347,20 @@ function tick(t = 0) {
     l.vx *= .985; l.vy *= .988;
     l.vy = clamp(l.vy, -9, 3.1);
 
+    // 잎은 가는 쪽으로 면을 돌린다 — 가까운 쪽으로만, 뱅글뱅글 돌지 않게
+    const spd = Math.hypot(l.vx, l.vy);
+    if (spd > .25) {
+      let d = Math.atan2(l.vy, l.vx) + Math.PI / 2 + l.tilt - l.rot;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      if (d > Math.PI / 2) d -= Math.PI;
+      else if (d < -Math.PI / 2) d += Math.PI;
+      l.vrot += d * .0065 * Math.min(spd, 6) * l.ctl;
+    }
+    l.vrot *= .95;                       // 공기에 쓸려 회전이 잦아든다
+
     l.x += l.vx;
     l.y += l.vy;
-    l.rot += l.vrot + s * .006;
+    l.rot += l.vrot + s * .007;
 
     if (l.x < -220 || l.x > W + 220 || l.y < -600 || l.y > H + 320) {
       live.splice(i, 1);
