@@ -255,8 +255,13 @@ function repaintPile() {
 }
 
 function drop(x, n) {
-  for (let i = 0; i < n; i++) {
-    const l = makeLeaf(clamp(x + rnd(-150, 150), 24, W - 24), rnd(-200, -40));
+  // 한꺼번에 많이 날릴수록 급하게, 더 많이 쏟아진다
+  const rush = clamp(live.length / 110, 0, 1);
+  const cnt = Math.round(n * (1 + rush * .5));
+  for (let i = 0; i < cnt; i++) {
+    const l = makeLeaf(clamp(x + rnd(-150, 150), 24, W - 24), rnd(-430, -40));
+    l.vy = rnd(.9, 2.3) + rush * 2.8;
+    l.fall *= 1 + rush * .75;
     live.push(l);
   }
   hideHint();
@@ -333,7 +338,7 @@ function tick(t = 0) {
     const s = Math.sin(l.sway);
 
     // 잎마다 떨어지는 속도가 다르고, 아래로 내려올수록 빨라진다
-    const term = (1.7 + 3.0 * clamp(l.y / H, 0, 1)) * l.fall;
+    const term = (2.0 + 3.0 * clamp(l.y / H, 0, 1)) * l.fall;
     l.vy += .052;
     l.vx += s * .035 * l.swayAmp;
     if (wind > .02) {
