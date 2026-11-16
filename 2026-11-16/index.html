@@ -9,49 +9,55 @@
 <link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #ece6da; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #3b1708; }
   body { font-family: 'Space Mono', monospace; cursor: crosshair; user-select: none; }
   canvas { display: block; }
 
   .home-btn {
     position: fixed; left: 26px; top: 22px; z-index: 20;
     font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
-    color: #8a7a62; text-decoration: none; padding: 9px 13px;
-    border: 1px solid rgba(138,122,98,.3); background: rgba(236,230,218,.7);
+    color: rgba(248,218,186,.72); text-decoration: none; padding: 9px 13px;
+    border: 1px solid rgba(248,196,146,.22); background: rgba(52,20,8,.42);
     transition: color .3s, border-color .3s;
   }
-  .home-btn:hover { color: #9c4a24; border-color: rgba(156,74,36,.5); }
+  .home-btn:hover { color: #ffbc78; border-color: rgba(255,188,120,.5); }
 
-  .mic {
+  .tools {
     position: fixed; right: 26px; top: 22px; z-index: 20;
+    display: flex; align-items: stretch; gap: 10px;
+  }
+  .mic, .reset {
     display: flex; align-items: center; gap: 9px;
     font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
-    color: #8a7a62; padding: 9px 13px; cursor: pointer;
-    border: 1px solid rgba(138,122,98,.3); background: rgba(236,230,218,.7);
+    color: rgba(248,218,186,.72); padding: 9px 13px; cursor: pointer;
+    border: 1px solid rgba(248,196,146,.22); background: rgba(52,20,8,.42);
     transition: color .3s, border-color .3s;
   }
-  .mic:hover { color: #9c4a24; border-color: rgba(156,74,36,.5); }
-  .mic.on { color: #9c4a24; border-color: rgba(156,74,36,.45); }
-  .mic .bar { width: 46px; height: 3px; background: rgba(138,122,98,.25); overflow: hidden; }
-  .mic .bar i { display: block; width: 0; height: 100%; background: #9c4a24; }
+  .mic:hover, .reset:hover { color: #ffbc78; border-color: rgba(255,188,120,.5); }
+  .mic.on { color: #ffbc78; border-color: rgba(255,188,120,.45); }
+  .mic .bar { width: 46px; height: 3px; background: rgba(248,196,146,.2); overflow: hidden; }
+  .mic .bar i { display: block; width: 0; height: 100%; background: #ffbc78; }
 
   .hint {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
     font: 400 10px/1 'Space Mono', monospace; letter-spacing: .2em;
-    color: rgba(110,96,76,.85); white-space: nowrap; pointer-events: none;
-    background: rgba(236,230,218,.72); padding: 8px 13px;
+    color: rgba(248,218,186,.7); white-space: nowrap; pointer-events: none;
+    background: rgba(52,20,8,.4); padding: 8px 13px;
     transition: opacity .6s ease;
   }
   .hint.off { opacity: 0; }
 
-  body.preview .home-btn, body.preview .mic, body.preview .hint { display: none; }
+  body.preview .home-btn, body.preview .tools, body.preview .hint { display: none; }
 </style>
 </head>
 <body>
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
-<div class="mic" id="mic"><span id="micLabel">MIC: OFF</span><span class="bar"><i id="micBar"></i></span></div>
-<div class="hint" id="hint">클릭 · ENTER 로 쌓고, 마이크에 후 불면 흩어져요</div>
+<div class="tools">
+  <div class="mic" id="mic"><span id="micLabel">MIC: OFF</span><span class="bar"><i id="micBar"></i></span></div>
+  <div class="reset" id="reset">&#8635; RESET</div>
+</div>
+<div class="hint" id="hint">CLICK &middot; ENTER TO PILE &nbsp;/&nbsp; BLOW INTO THE MIC</div>
 
 <script>
 const cv = document.getElementById('cv');
@@ -70,10 +76,9 @@ const NAMES = [
   'maple-red', 'maple-yellow', 'oak-brown', 'oak-pale', 'plane-orange',
   'poplar-gold', 'roll-brown', 'twist-gold', 'willow-narrow', 'zelkova-brown',
 ];
-const LINE = '쌓이는 줄 모르고 쌓인다';
 
 let W = 0, H = 0, COLS = 0, CW = 8, ground = 0;
-let bgCv = null, pileCv = null, pileCtx = null;
+let texCv = null, pileCv = null, pileCtx = null;
 let hmap = null;
 let imgs = [];
 
@@ -90,45 +95,56 @@ function newCanvas() {
   return [c, g];
 }
 
-function paintBg() {
+// 천천히 흐르는 단풍색 바탕 — 매 프레임 다시 칠한다
+function paintSky(t) {
+  const a = Math.sin(t * .000115), b = Math.sin(t * .00008 + 1.7);
+  const g = ctx.createLinearGradient(W * .12, H * (-.1 + a * .07), W * .88, H * (1.06 + b * .05));
+  g.addColorStop(0, '#4d1d0b');
+  g.addColorStop(.33 + a * .07, '#9d4a15');
+  g.addColorStop(.67 + b * .06, '#6b2a0d');
+  g.addColorStop(1, '#2b1105');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, W, H);
+
+  // 느리게 도는 따뜻한 빛
+  const cx = W * (.5 + Math.sin(t * .000061) * .2);
+  const cy = H * (.36 + Math.cos(t * .000047) * .14);
+  const r = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(W, H) * .5);
+  r.addColorStop(0, 'rgba(230,136,48,.26)');
+  r.addColorStop(.46, 'rgba(168,74,22,.07)');
+  r.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.fillStyle = r;
+  ctx.fillRect(0, 0, W, H);
+}
+
+// 결·그늘·날짜는 한 번만 구워서 바탕 위에 덮는다
+function paintTex() {
   const [c, g] = newCanvas();
-  const grad = g.createLinearGradient(0, 0, 0, H);
-  grad.addColorStop(0, '#f3eee4');
-  grad.addColorStop(.62, '#ebe4d7');
-  grad.addColorStop(1, '#ddd4c3');
-  g.fillStyle = grad;
-  g.fillRect(0, 0, W, H);
 
-  // 종이결
-  g.save();
-  g.globalAlpha = .045;
-  for (let i = 0; i < 9000; i++) {
-    const x = Math.random() * W, y = Math.random() * H;
-    g.fillStyle = Math.random() < .5 ? '#6b5c46' : '#ffffff';
-    g.fillRect(x, y, 1.2, 1.2);
+  g.globalAlpha = .05;
+  for (let i = 0; i < 11000; i++) {
+    g.fillStyle = Math.random() < .5 ? '#2a1004' : '#ffd9a8';
+    g.fillRect(Math.random() * W, Math.random() * H, 1.2, 1.2);
   }
-  g.restore();
+  g.globalAlpha = .035;
+  for (let i = 0; i < 2400; i++) {
+    g.fillStyle = '#ffe6c4';
+    g.fillRect(Math.random() * W, Math.random() * H, rnd(2, 9), 1);
+  }
+  g.globalAlpha = 1;
 
-  // 가장자리 그늘
-  const vig = g.createRadialGradient(W / 2, H * .45, Math.min(W, H) * .22, W / 2, H * .5, Math.max(W, H) * .72);
+  const vig = g.createRadialGradient(W / 2, H * .44, Math.min(W, H) * .2, W / 2, H * .5, Math.max(W, H) * .74);
   vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(78,62,40,.16)');
+  vig.addColorStop(1, 'rgba(28,10,2,.52)');
   g.fillStyle = vig;
   g.fillRect(0, 0, W, H);
 
-  // 문장
-  const fs = clamp(W * .046, 26, 62);
-  g.font = `700 ${fs}px 'Nanum Myeongjo', serif`;
-  g.textAlign = 'center';
-  g.textBaseline = 'alphabetic';
-  g.fillStyle = 'rgba(46,40,32,.9)';
-  g.fillText(LINE, W / 2, H * .78);
-
   g.font = `400 ${clamp(W * .0082, 9, 12)}px 'Space Mono', monospace`;
-  g.fillStyle = 'rgba(110,96,76,.6)';
-  g.fillText('N  O  V  E  M  B  E  R    1  6', W / 2, H * .78 - fs * 1.15);
+  g.textAlign = 'center';
+  g.fillStyle = 'rgba(255,220,180,.4)';
+  g.fillText('N  O  V  E  M  B  E  R    1  6', W / 2, H * .8);
 
-  bgCv = c;
+  texCv = c;
 }
 
 function resize() {
@@ -141,7 +157,7 @@ function resize() {
   ground = H - 2;
   hmap = new Float32Array(COLS).fill(ground);
 
-  paintBg();
+  paintTex();
   const [pc, pg] = newCanvas();
   pileCv = pc; pileCtx = pg;
 
@@ -149,7 +165,6 @@ function resize() {
   const keep = rest.splice(0);
   for (const l of keep) { l.x = clamp(l.x, 20, W - 20); }
   rest.length = 0;
-  pileCtx.clearRect(0, 0, W, H);
   for (const l of keep) settle(l, true);
 }
 
@@ -165,7 +180,7 @@ function makeLeaf(x, y) {
     rot: rnd(0, Math.PI * 2), vrot: rnd(-.03, .03),
     sway: rnd(0, Math.PI * 2), swaySp: rnd(.012, .03), swayAmp: rnd(.5, 1.6),
     flip: Math.random() < .5 ? -1 : 1,
-    drift: rnd(-.4, .4),
+    drift: rnd(-.4, .4), land: 0, tx: 0, ty: 0,
   };
 }
 
@@ -186,16 +201,24 @@ function probe(x) {
   return hmap[c];
 }
 
+// 비탈에 걸리면 낮은 쪽으로 흘러내린 자리를 미리 구한다
+function slideSpot(l) {
+  const sx = l.x;
+  const d = Math.max(l.w, l.h) * .42;
+  for (let i = 0; i < 10; i++) {
+    const hl = probe(l.x - d), hr = probe(l.x + d);
+    if (Math.abs(hl - hr) < l.h * .17) break;
+    l.x = clamp(l.x + (hl < hr ? 1 : -1) * d * .7, 18, W - 18);
+  }
+  const tx = l.x, ty = surfaceAt(l) - l.h * .34;
+  l.x = sx;
+  return [tx, ty];
+}
+
 function settle(l, quiet) {
   if (!quiet) {
-    // 비탈에 걸리면 낮은 쪽으로 흘러내린다
-    const d = Math.max(l.w, l.h) * .42;
-    for (let i = 0; i < 16; i++) {
-      const hl = probe(l.x - d), hr = probe(l.x + d);
-      if (Math.abs(hl - hr) < l.h * .17) break;
-      l.x = clamp(l.x + (hl < hr ? 1 : -1) * d * .7, 18, W - 18);
-    }
-    l.y = surfaceAt(l) - l.h * .34;
+    const [tx, ty] = slideSpot(l);
+    l.x = tx; l.y = ty;
   }
   const [a, b] = spanOf(l);
   const mid = (a + b) / 2, half = Math.max(1, (b - a) / 2);
@@ -265,6 +288,7 @@ function peel(g) {
     l.vy = -rnd(.8, 4.2) * g;
     l.vrot = rnd(-.17, .17);
     l.drift = dir * rnd(.45, 1.6);
+    l.land = 0;
     l.swayAmp = rnd(.7, 2);
     l.swaySp = rnd(.014, .036);
     live.push(l);
@@ -273,7 +297,7 @@ function peel(g) {
 }
 
 // ── 루프 ───────────────────────────────────────────────────────────────────
-function tick() {
+function tick(t = 0) {
   if (gust > .02) {
     wind = Math.max(wind, gust);
     if (--peelIn <= 0) { peelIn = 2 + (Math.random() * 4 | 0); peel(gust); }
@@ -283,6 +307,21 @@ function tick() {
 
   for (let i = live.length - 1; i >= 0; i--) {
     const l = live[i];
+
+    // 바닥에 닿은 잎은 제자리로 미끄러져 들어간다
+    if (l.land) {
+      l.x += (l.tx - l.x) * .17;
+      l.y += (l.ty - l.y) * .17;
+      l.rot += l.vrot;
+      l.vrot *= .8;
+      if (Math.abs(l.tx - l.x) < .7 && Math.abs(l.ty - l.y) < .7) {
+        l.x = l.tx; l.y = l.ty; l.land = 0; l.vrot = 0;
+        live.splice(i, 1);
+        settle(l, true);
+      }
+      continue;
+    }
+
     l.sway += l.swaySp;
     const s = Math.sin(l.sway);
 
@@ -310,15 +349,16 @@ function tick() {
         l.vrot += l.vx * .004;
         l.vx *= .9;
       } else {
-        live.splice(i, 1);
-        l.vrot = 0;
-        settle(l);
+        const [tx, ty] = slideSpot(l);
+        l.tx = tx; l.ty = ty; l.land = 1;
+        l.vx = 0; l.vy = 0;
+        l.vrot *= .5;
       }
     }
   }
 
-  ctx.clearRect(0, 0, W, H);
-  ctx.drawImage(bgCv, 0, 0, W, H);
+  paintSky(t);
+  ctx.drawImage(texCv, 0, 0, W, H);
   ctx.drawImage(pileCv, 0, 0, W, H);
   for (const l of live) {
     ctx.save();
@@ -374,8 +414,21 @@ micBtn.addEventListener('click', async () => {
     micLabel.textContent = 'MIC: ON';
     listen();
   } catch (err) {
-    micLabel.textContent = 'MIC: 거부됨';
+    micLabel.textContent = 'MIC: DENIED';
   }
+});
+
+function scatterStart(n) {
+  for (let i = 0; i < n; i++) settle(makeLeaf(rnd(20, W - 20), 0));
+}
+
+document.getElementById('reset').addEventListener('click', () => {
+  live.length = 0;
+  rest.length = 0;
+  pileCtx.clearRect(0, 0, W, H);
+  hmap.fill(ground);
+  wind = 0; gust = 0;
+  scatterStart(26);
 });
 
 function listen() {
@@ -404,10 +457,7 @@ Promise.all(NAMES.map(n => new Promise(res => {
 }))).then(list => {
   imgs = list.filter(Boolean);
   resize();
-  for (let i = 0; i < 26; i++) {
-    const l = makeLeaf(rnd(20, W - 20), 0);
-    settle(l);
-  }
+  scatterStart(26);
   tick();
 });
 </script>
