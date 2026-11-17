@@ -12,6 +12,10 @@
 
 :root {
   --gold: #c6a763;
+  --lamp: rgba(232, 200, 142, .22);
+  --desk1: #241e17;
+  --desk2: #17130f;
+  --desk3: #0d0b09;
 }
 
 html, body { height: 100%; overflow: hidden; }
@@ -28,8 +32,9 @@ body {
 .desk {
   position: fixed; inset: 0;
   background:
-    radial-gradient(104% 76% at 50% 36%, rgba(232,200,142,.22) 0%, rgba(0,0,0,0) 62%),
-    radial-gradient(140% 100% at 50% 50%, #241e17 0%, #17130f 58%, #0d0b09 100%);
+    radial-gradient(104% 76% at 50% 36%, var(--lamp) 0%, rgba(0, 0, 0, 0) 62%),
+    radial-gradient(140% 100% at 50% 50%, var(--desk1) 0%, var(--desk2) 58%, var(--desk3) 100%);
+  transition: background 1.1s ease;
 }
 .desk::after {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 120;
@@ -43,7 +48,7 @@ page-turn-book {
   transition: opacity .55s ease, transform .9s cubic-bezier(.4, 0, .2, 1);
 }
 page-turn-book.away { opacity: 0; }
-page-turn-book.shut { transform: translateX(-15.2%); }
+page-turn-book.shut { transform: translateX(var(--shutx, -15.2%)); }
 
 /* 하단 바 */
 .bar {
@@ -59,7 +64,7 @@ page-turn-book.shut { transform: translateX(-15.2%); }
   width: 5px; height: 5px; border-radius: 50%;
   background: rgba(214,198,166,.2); transition: background .4s, transform .4s;
 }
-.bar .dot.on { background: rgba(198,167,99,.85); transform: scale(1.3); }
+.bar .dot.on { background: var(--gold); opacity: .85; transform: scale(1.3); }
 .hint { transition: opacity .6s; }
 
 /* 상단 라벨 */
@@ -101,7 +106,7 @@ body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
 <body>
 
 <div class="desk"></div>
-<page-turn-book id="bk" hardcover paper="laid" aspect="1.36"></page-turn-book>
+<page-turn-book id="bk" hardcover></page-turn-book>
 
 <div class="head">번역 불가<b>Lost in Return</b></div>
 <a href="../index.html" class="home-btn">←</a>
@@ -115,131 +120,71 @@ body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
 <script type="module">
 import 'https://cdn.jsdelivr.net/gh/cijjas/page-turn-book@405dd0e065f8aa720aebee4c8b199a1971496b3c/src/page-turn-book.js';
 
+// 두 권은 판형·종이·조명·먹 색이 모두 다르다
+const T0 = {
+ paper: 'laid', aspect: 1.36, fit: .64,
+ page: '#e9e2d2', end: '#d8cdb5', ink: '#2b2621',
+ dim: '141,131,114', endInk: '#3a322a', endDim: '96,84,66',
+ accent: '198,167,99', titleInk: '#f2e8d6', sub: '214,198,166',
+ cover: { texture: 'fine', thickness: .026, overhang: .019, roughness: .58, grain: 1.3, bump: .42 },
+ light: { ambient: 1.35, sky: '#fff6e6', ground: '#3b3226', sun: 2.6, sunColor: '#ffeed4', sunX: -2.4, sunY: 2.1, sunZ: 4.2, shadow: .22 },
+ lap: ['', '#9b8260', '#a8713f', '#a8402a'],
+ face: 'frame', shutX: '-15.2%',
+ gold: '#c6a763', lamp: 'rgba(232,200,142,.22)', desk: ['#241e17', '#17130f', '#0d0b09'],
+};
+const T1 = {
+ paper: 'cotton', aspect: 1.2, fit: .62,
+ page: '#f1ede3', end: '#dbdcd4', ink: '#262b32',
+ dim: '126,133,142', endInk: '#2b313a', endDim: '92,100,110',
+ accent: '172,183,196', titleInk: '#eef1f5', sub: '190,201,213',
+ cover: { texture: 'cotton', thickness: .016, overhang: .011, roughness: .74, grain: .7, bump: .55 },
+ light: { ambient: 1.6, sky: '#edf3ff', ground: '#262b33', sun: 2.15, sunColor: '#f4f7ff', sunX: 2.6, sunY: 1.8, sunZ: 4.0, shadow: .18 },
+ lap: ['', '#8b929b', '#5d7691', '#1d4f8c'],
+ face: 'rule', shutX: '-16%',
+ gold: '#9fb3c9', lamp: 'rgba(150,178,216,.17)', desk: ['#1b2029', '#12161c', '#08090c'],
+};
+
 const BOOKS = [
  {
-  title: '손이 큰 사람', c1: '#5a4231', c2: '#33241a',
+  title: '그 그릇', c1: '#5a4231', c2: '#33241a', theme: T0,
   steps: [
-   ['KO', 'Korean', '어머니는 손이 커서 무얼 하든 두 배로 만들었다. 남은 것은 그릇째 이웃집에 돌렸고, 그 그릇은 비어서 돌아오는 법이 없었다. 김치를 담그는 날이면 온 동네가 들썩였다. 나는 그게 인사인 줄도 모르고 자랐다.'],
-   ['EN', 'English', 'My mother was so generous that whatever she made, she made twice as much. She would send the leftovers to the neighbors in bowls, and those bowls never returned empty. On days she made kimchi, the whole neighborhood was abuzz. I grew up without even knowing that was her way of greeting people.'],
-   ['JA', '日本語', '母はとても気前がよく、何を作るにしても2倍の量を作っていた。余ったものを器に入れて近所に届けると、その器が空のまま戻ってくることは一度もなかった。キムチを漬ける日には、近所中が大賑わいになった。それが母なりの挨拶の仕方だとは気づきもしないまま、私は育った。'],
-   ['ZH', '中文', '母亲非常大方，无论做什么食物都会做上双倍的量。把多余的食物装进碗里送给邻居，那个碗就从来没有空着还回来过。每到腌泡菜的日子，左邻右舍都会热闹非凡。我竟完全没有意识到那是属于母亲独特的问候方式，就这么长大了。'],
-   ['TH', 'ไทย', 'คุณแม่เป็นคนใจดีและเอื้อเฟื้อเผื่อแผ่มาก ไม่ว่าจะทำอาหารอะไรก็มักจะทำในปริมาณเป็นสองเท่าเสมอ เมื่อนำอาหารส่วนเกินใส่ชามไปแบ่งปันให้เพื่อนบ้าน ชามใบนั้นก็ไม่เคยถูกส่งคืนกลับมาแบบว่างเปล่าเลยสักครั้ง ทุกครั้งที่ถึงวันทำกิมจิ ละแวกบ้านก็จะคึกคักเป็นพิเศษ ฉันเติบโตขึ้นมาโดยไม่เคยตระหนักเลยว่า นั่นคือวิธีทักทายอันเป็นเอกลักษณ์ของคุณแม่'],
-   ['KO', 'Korean', '어머니는 매우 친절하고 베풀기를 좋아하시는 분이라 무슨 음식을 만들든 항상 두 배의 양을 만드시곤 했다. 남은 음식을 그릇에 담아 이웃에게 나누어 주면 그 그릇이 빈 채로 돌아오는 법이 단 한 번도 없었다. 김장하는 날이 되면 동네가 특히나 북적거리곤 했다. 나는 그것이 어머니만의 특별한 인사 방식이었다는 것을 깨닫지 못한 채 자랐다.'],
-   ['EN', 'English', 'My mother was such a kind and generous person that no matter what food she cooked, she would always make twice as much. Whenever she packed the extra food into bowls to share with the neighbors, those dishes were never returned empty. On kimchi-making days, the neighborhood was especially bustling. I grew up without realizing that this was her own special way of greeting people.'],
-   ['AR', 'العربية', 'كانت أمي إنسانة طيبة وكريمة للغاية، لدرجة أنها مهما كان الطعام الذي تطهوه، كانت دائمًا تعدّ منه ضعف الكمية. وكلما وضعت الطعام الإضافي في أطباق لمشاركته مع الجيران، لم تكن تلك الأطباق تعود فارغة أبدًا. وفي أيام إعداد الكيمتشي، كان الحي يعج بالحيوية بشكل خاص. لقد نشأت دون أن أدرك أن هذه كانت طريقتها الخاصة والمميزة في الترحيب بالناس.'],
-   ['FI', 'Suomi', 'Äitini oli erittäin sydämellinen ja antelias ihminen, niin että mitä tahansa ruokaa hän laittoi, hän valmisti sitä aina kaksinkertaisen määrän. Aina kun hän pani ylimääräistä ruokaa lautasille jaettavaksi naapureille, ne lautaset eivät koskaan palanneet tyhjinä. Kimchin valmistuspäivinä naapurusto oli erityisen eloisa. Kasvoin tajuamatta, että tämä oli hänen oma erityinen tapansa toivottaa ihmiset tervetulleiksi.'],
-   ['PT', 'Português', 'Minha mãe era uma pessoa muito calorosa e generosa, de modo que, qualquer comida que fizesse, ela sempre preparava o dobro. Sempre que ela colocava comida extra nos pratos para compartilhar com os vizinhos, esses pratos nunca voltavam vazios. Nos dias de fazer kimchi, a vizinhança ficava especialmente animada. Cresci sem me dar conta de que essa era a sua maneira especial de acolher as pessoas.'],
-   ['KO', 'Korean', '우리 어머니는 매우 따뜻하고 정이 많은 분이셔서 어떤 음식을 만들든 항상 두 배로 준비하셨다. 이웃들과 나누기 위해 접시에 음식을 더 담아 보낼 때마다 그 접시들은 결코 빈 채로 돌아오는 법이 없었다. 김치를 담그는 날이면 온 동네가 특히나 활기를 띠었다. 나는 그것이 사람들을 따뜻하게 품어주는 어머니만의 특별한 방식이었다는 사실을 미처 깨닫지 못한 채 자랐다.'],
-   ['EN', 'English', 'My mother was such a warm and affectionate person that whatever food she made, she always prepared twice as much. Whenever she sent over extra plates of food to share with the neighbors, those plates never returned empty. On days when she made kimchi, the entire neighborhood was especially lively. I grew up without realizing that this was her own special way of warmly embracing people.'],
-   ['HI', 'हिन्दी', 'मेरी माँ इतनी सहृदय और स्नेही थीं कि वे जो भी खाना बनाती थीं, हमेशा दोगुना बनाती थीं। जब भी वे पड़ोसियों के साथ बाँटने के लिए खाने की अतिरिक्त प्लेटें भेजती थीं, तो वे प्लेटें कभी खाली वापस नहीं आती थीं। जिस दिन वे किमची बनाती थीं, उस दिन पूरा मोहल्ला विशेष रूप से जीवंत हो उठता था। मैं यह समझे बिना बड़ा हुआ कि लोगों को गर्मजोशी से अपनाने का यह उनका अपना खास तरीका था।'],
-   ['RU', 'Русский', 'Моя мама была настолько доброй и душевной, что, что бы она ни готовила, всегда делала вдвое больше. Каждый раз, когда она отправляла соседям тарелки с едой, чтобы поделиться, они никогда не возвращались пустыми. В день, когда она готовила кимчи, вся округа становилась особенно оживлённой. Я вырос, не понимая, что это был её особый способ проявлять душевное тепло к людям.'],
-   ['SW', 'Kiswahili', 'Mama yangu alikuwa mkarimu na mwenye moyo mwema sana hivi kwamba, chochote alichopika, daima alitayarisha mara mbili zaidi. Kila mara alipowapelekea majirani sahani za chakula ili kushiriki nao, hazikuwahi kurudi zikiwa tupu. Siku aliyotengeneza kimchi, mtaa mzima ulichangamka kwa namna ya pekee. Nilikua bila kutambua kwamba hiyo ilikuwa njia yake ya pekee ya kuonyesha uchangamfu wa moyo kwa watu.'],
-   ['KO', 'Korean', '우리 어머니는 매우 다정하고 정이 많으셔서 어떤 음식을 만들든 항상 두 배 이상으로 넉넉히 준비하셨다. 이웃들과 나눠 먹으려고 음식을 담아 보낼 때마다 그 접시가 빈 채로 돌아오는 법은 결코 없었다. 김치를 담그시는 날에는 온 동네가 유난히 특별한 활기로 가득 찼다. 나는 그것이 사람들에게 따뜻한 정을 나누는 어머니만의 특별한 방식이었음을 알지 못한 채 자랐다.'],
+   ['KO', 'Korean', '어머니는 손이 커서 무얼 하든 두 배로 만들었다. 남은 건 그릇째 옆집으로 갔고, 그 그릇은 비어서 돌아오는 법이 없었다. 옆집 할머니와는 고운 정만 있던 사이였다. 땅 문제로 틀어지고부터 미운 정이 들었고, 그 말 한마디에 정이 뚝 떨어졌다. 어머니는 손이 매워서 한 번 맞으면 자국이 오래 갔다. 막내는 유난히 손이 많이 가는 아이였는데, 어머니는 끝내 그 애한테서 손을 떼지 못했다. 아버지는 펄펄 끓는 국물을 떠 넣고 시원하다고 했다. 문이 열릴 때마다 바람이 시원하게 들어왔다. 나는 벼르던 말을 꺼냈다. 뱉고 나니 속이 시원했다. 아버지는 시원하게 거절했다. 숟가락을 놓지도 않고. 옆집이 비고 나서야 손이 멈췄다. 든 정은 떼어낼 수가 없었다.'],
+   ['EN', 'English', 'My mother was generous with her portions, always making double of whatever she prepared. Leftovers went next door, bowl and all, and those bowls never returned empty. She and the old woman next door once shared only warm affection. After falling out over a land dispute, a love-hate bond took hold, and with just that single remark, all feeling completely vanished. My mother had a stinging slap, so once hit, the mark lingered for a long time. The youngest was a child who required an unusual amount of care, but Mother could never bring herself to let go of him. Father scooped up piping hot soup and declared it refreshing. Every time the door opened, a cool breeze blew in. I finally said the words I had been waiting to say. Spitting them out brought a sense of relief. Father flatly rejected me without even putting down his spoon. Only after the house next door became empty did her hands finally stop. The attachment that had taken root could never be severed.'],
+   ['JA', '日本語', '母は気前が良く、何を作るにも必ず倍の量を作った。余り物は器ごと隣の家に回され、その器が空のまま戻ってくることはなかった。かつて母と隣のおばあさんの間にあったのは、ただ温かい情愛だけだった。土地の争いで関係がこじれてからは愛憎の絆で結ばれていたが、たった一言の言葉ですべての感情が完全に消え去った。母の平手打ちは強烈で、一度叩かれるとその跡が長く残った。末っ子は人一倍手が掛かる子だったが、母はどうしてもその子を手放すことができなかった。父は熱々のスープをすくって飲み、「ああ、すっとする」と言った。ドアが開くたびに、涼しい風が吹き込んできた。私はついに、ずっと口にしたかった言葉を言った。それを吐き出すと、胸がすっとした。父はスプーンを置くことすらせず、私をあっさりと拒絶した。隣の家が空き家になって初めて、母の手はついに止まった。深く根を下ろした情は、決して断ち切ることができなかった。'],
+   ['ZH', '中文', '母亲为人慷慨，无论做何食物，总会做上双份。余下的连同容器一起端给隔壁，而那容器也从未空着还回来过。曾经，母亲与隔壁的老奶奶之间只有温暖的情谊。自从因土地纠纷而使关系恶化后，两人虽然被爱恨交织的情感羁绊着，但仅仅一句话，所有的感情就彻底烟消云散了。母亲的巴掌很重，被打上一下，印记很久都不会消退。最小的孩子格外让人费心，但母亲无论如何也舍不得放手。父亲舀起滚烫的汤喝了一口，说：“啊，真舒服。”每当门打开，就会有一阵凉风吹进来。我终于说出了那句一直藏在心底的话。说出来后，胸口顿时轻松了许多。父亲甚至连勺子都没放下，就干脆地拒绝了我。直到隔壁变成了空房，母亲的手才终于停了下来。那根深蒂固的情意，终究是斩不断的。'],
+   ['TH', 'ไทย', 'แม่เป็นคนเอื้อเฟื้อเผื่อแผ่ ไม่ว่าจะทำอาหารอะไรก็มักจะทำเป็นสองชุดเสมอ ส่วนที่เหลือจะยกไปให้ข้างบ้านพร้อมกับภาชนะ และภาชนะนั้นก็ไม่เคยถูกส่งคืนกลับมาอย่างว่างเปล่าเลย ครั้งหนึ่ง ระหว่างแม่กับคุณยายข้างบ้านเคยมีความสัมพันธ์อันอบอุ่นต่อกัน นับตั้งแต่ความสัมพันธ์ย่ำแย่ลงเพราะข้อพิพาทเรื่องที่ดิน แม้ทั้งสองจะถูกพันธนาการไว้ด้วยความรักและความเกลียดชังที่ปะปนกัน แต่เพียงแค่คำพูดเดียว อารมณ์ความรู้สึกทั้งหมดก็มลายหายไปจนหมดสิ้น ฝ่ามือของแม่หนักมาก หากถูกตีสักครั้ง รอยแผลก็จะไม่จางหายไปอีกนาน ลูกคนเล็กทำให้ต้องเหนื่อยใจเป็นพิเศษ แต่ไม่ว่าจะอย่างไรแม่ก็ตัดใจปล่อยมือไม่ลง พ่อตักซุปร้อนๆ ขึ้นมาซดคำหนึ่งแล้วพูดว่า "อ่า สบายจัง" ทุกครั้งที่ประตูเปิดออก จะมีสายลมเย็นพัดเข้ามา ในที่สุดฉันก็ได้พูดคำที่ซ่อนไว้ในใจมาตลอดออกไป พอพูดออกไปแล้ว รู้สึกโล่งอกขึ้นมาก พ่อปฏิเสธฉันอย่างเด็ดขาดโดยที่ยังไม่ทันได้วางช้อนลงด้วยซ้ำ จนกระทั่งบ้านข้างๆ กลายเป็นบ้านว่าง มือของแม่ถึงได้หยุดลงในที่สุด ความรู้สึกผูกพันที่หยั่งรากลึกนั้น สุดท้ายแล้วก็ไม่อาจตัดให้ขาดได้'],
+   ['KO', 'Korean', '엄마는 인심이 후하셔서 무슨 요리를 하든 항상 두 몫을 만드셨다. 남은 몫은 그릇째 옆집으로 가져다주셨고, 그 그릇은 결코 빈 채로 돌아오지 않았다. 한때 엄마와 옆집 할머니 사이에는 따뜻한 정이 흐르곤 했다. 토지 분쟁으로 관계가 악화된 이후 두 사람은 애증으로 얽혀 있었지만, 단 한 마디 말에 그 모든 감정이 거짓말처럼 사라져 버렸다. 엄마의 손매는 매우 매워서 한 번 맞으면 그 흔적이 오래도록 지워지지 않았다. 막내는 유난히 속을 썩였지만, 엄마는 어찌 됐든 차마 손을 놓지 못하셨다. 아버지는 뜨거운 국을 한 숟가락 떠 드시고는 "아, 시원하다"라고 말씀하셨다. 문이 열릴 때마다 찬 바람이 불어왔다. 마침내 나는 가슴속에 묻어두었던 말을 밖으로 꺼냈고, 말을 하고 나니 한결 속이 후련해졌다. 아버지는 숟가락을 내려놓기도 전에 나를 단칼에 거절하셨다. 옆집이 빈집이 되고 나서야 비로소 엄마의 손길도 멈추었다. 깊이 뿌리내린 그 정은 결국 끊어낼 수 없는 것이었다.'],
+   ['EN', 'English', 'My mother was generous, so whatever she cooked, she always made enough for two. She would take the extra portion, bowl and all, to the house next door, and that bowl never returned empty. At one time, a warm affection flowed between my mother and the elderly woman next door. After their relationship deteriorated over a land dispute, the two became entangled in a love-hate relationship, but with a single word, all those emotions vanished like a lie. My mother had a heavy, stinging hand, and once struck, the marks would not fade for a long time. The youngest child caused her an exceptional amount of grief, but no matter what, she could never bring herself to let go. My father took a spoonful of hot soup and said, "Ah, so refreshing." Every time the door opened, a cold wind blew in. At last, I spoke the words I had kept buried in my heart, and once I said them, I felt a great sense of relief. Before he even put down his spoon, my father flatly rejected me. Only after the house next door became empty did my mother\'s actions finally cease. In the end, that deeply rooted bond was impossible to sever.'],
+   ['AR', 'العربية', 'كانت أمي كريمة، فمهما طهت، كانت تعد دائماً ما يكفي لشخصين. وكانت تأخذ الحصة الإضافية بالوعاء نفسه إلى البيت المجاور، ولم يكن ذلك الوعاء يعود فارغاً قط. في وقت من الأوقات، كانت هناك مودة دافئة تتدفق بين أمي والعجوز المجاورة. وبعد أن تدهورت علاقتهما بسبب نزاع على أرض، وقعت الاثنتان في علاقة تحمل الحب والكره معاً، ولكن بكلمة واحدة، اختفت كل تلك المشاعر وكأنها كذبة. كانت يد أمي ثقيلة ولاذعة، وحين تضرب، لا تتلاشى الآثار لفترة طويلة. تسبب لها أصغر الأبناء بحزن استثنائي، ولكن مهما حدث، لم تطاوعها نفسها قط على التخلي عنه. أخذ أبي ملعقة من الحساء الساخن وقال آه كم هو منعش. وفي كل مرة كان يفتح فيها الباب، كانت تهب ريح باردة. وأخيراً، نطقت بالكلمات التي دفنتها في قلبي، وما إن قلتها حتى شعرت بارتياح كبير. وقبل أن يضع ملعقته حتى، رفضني أبي قاطعاً. ولم تتوقف أفعال أمي في النهاية إلا بعد أن أصبح البيت المجاور فارغاً. وفي النهاية، كان من المستحيل قطع تلك الرابطة المتجذرة.'],
+   ['FI', 'Suomi', 'Äitini oli antelias, joten mitä tahansa hän kokkasikin, hän valmisti aina riittävästi kahdelle. Hän vei ylimääräisen annoksen samassa kulhossa naapuritaloon, eikä tuo kulho palannut koskaan tyhjänä. Aikoinaan äitini ja naapurin vanhan naisen välillä virtasi lämmin kiintymys. Sen jälkeen kun heidän suhteensa huononi maariidan vuoksi, heidän välilleen syntyi viha-rakkaussuhde, mutta yhdellä sanalla kaikki ne tunteet katosivat kuin valhe. Äitini käsi oli raskas ja kirvelevä, ja kun hän löi, jäljet eivät hävinneet pitkään aikaan. Nuorin lapsi aiheutti hänelle poikkeuksellista surua, mutta tapahtui mitä tahansa, hän ei koskaan pystynyt luopumaan hänestä. Isäni otti lusikallisen kuumaa keittoa ja sanoi, ah kuinka virkistävää. Joka kerta kun ovi avattiin, puhalsi kylmä tuuli. Lopulta lausuin sanat, jotka olin haudannut sydämeeni, ja heti ne sanottuani tunsin suurta huojennusta. Ennen kuin isäni ehti edes laskea lusikkaansa, hän torjui minut jyrkästi. Äitini teot loppuivat lopulta vasta, kun naapuritalo jäi tyhjilleen. Lopulta sitä syvälle juurtunutta sidettä oli mahdotonta katkaista.'],
+   ['PT', 'Português', 'Minha mãe era generosa, então, independentemente do que cozinhasse, ela sempre preparava o suficiente para dois. Ela levava a porção extra na mesma tigela para a casa vizinha, e essa tigela nunca voltava vazia. Antigamente, havia um afeto caloroso entre minha mãe e a idosa vizinha. Depois que a relação delas se deteriorou por causa de uma disputa de terras, surgiu entre elas uma relação de amor e ódio, mas, com uma única palavra, todos aqueles sentimentos desapareceram como uma mentira. A mão da minha mãe era pesada e ardente, e quando ela batia, as marcas não desapareciam por muito tempo. O filho caçula lhe causava uma tristeza excepcional, mas, acontecesse o que acontecesse, ela nunca conseguia abrir mão dele. Meu pai tomou uma colherada de sopa quente e disse: ah, como é revigorante. Toda vez que a porta se abria, soprava um vento frio. Finalmente pronunciei as palavras que havia enterrado em meu coração e, assim que as disse, senti um grande alívio. Antes mesmo de meu pai conseguir pousar a colher, ele me rejeitou categoricamente. As ações da minha mãe só pararam finalmente quando a casa vizinha ficou vazia. No fim das contas, aquele laço profundamente enraizado era impossível de romper.'],
+   ['KO', 'Korean', '우리 어머니는 인심이 후하셔서 무슨 음식을 만드시든 늘 두 사람이 먹을 만큼 준비하셨다. 어머니는 덤으로 만든 몫을 같은 그릇에 담아 이웃집으로 가져가셨고, 그 그릇은 결코 빈 채로 돌아오는 법이 없었다. 예전에는 어머니와 이웃집 할머니 사이에 따뜻한 정이 있었다. 땅 문제로 두 사람의 관계가 악화된 후 애증의 관계가 생겨났지만, 단 한 마디 말에 그 모든 감정들이 거짓말처럼 사라져 버렸다. 어머니의 손은 묵직하고 매서워서 매를 맞으면 자국이 오랫동안 사라지지 않았다. 막내아들은 어머니에게 유독 큰 슬픔을 안겨주었지만, 무슨 일이 있어도 어머니는 그를 결코 포기하지 못하셨다. 아버지는 뜨거운 국 한 숟가락을 드시고는 "아, 시원하다"라고 말씀하셨다. 문이 열릴 때마다 찬 바람이 불어왔다. 나는 마침내 가슴속에 묻어두었던 말을 꺼냈고, 그 말을 하자마자 큰 안도감을 느꼈다. 아버지는 숟가락을 놓기도 전에 내 말을 단호하게 거절하셨다. 어머니의 행동은 이웃집이 비고 나서야 비로소 멈추었다. 결국 그 뿌리 깊은 인연은 끊으려야 끊을 수 없는 것이었다.'],
+   ['EN', 'English', 'My mother was generous, so whatever food she prepared, she always made enough for two. She would carry the extra portion to the neighbor\'s house in the same bowl, and that bowl never returned empty. In the past, there was a warm affection between my mother and the elderly woman next door. After their relationship deteriorated over a land issue, a love-hate relationship formed, but with just a single word, all those emotions vanished as if they had never existed. My mother\'s hands were heavy and harsh, so when she struck us, the marks did not disappear for a long time. Although her youngest son brought her extraordinary grief, no matter what happened, she could never give up on him. My father took a spoonful of hot soup and remarked how refreshing it was. A cold wind blew in every time the door opened. I finally spoke the words I had buried in my heart, and as soon as I said them, I felt a deep sense of relief. Before he even put down his spoon, my father firmly rejected my words. My mother\'s actions finally came to a stop only after the neighbor\'s house became empty. In the end, that deep-rooted bond was something that could not be broken even if one tried to sever it.'],
+   ['HI', 'हिन्दी', 'मेरी माँ उदार थीं, इसलिए वह जो भी खाना बनाती थीं, हमेशा दो लोगों के हिसाब से बनाती थीं। वह अतिरिक्त भोजन उसी कटोरे में लेकर पड़ोसी के घर जाती थीं, और वह कटोरा कभी खाली नहीं लौटता था। अतीत में, मेरी माँ और बगल की बुजुर्ग महिला के बीच गहरा स्नेह था। ज़मीन के एक मुद्दे को लेकर उनके रिश्ते बिगड़ने के बाद, उनके बीच प्यार और नफ़रत का रिश्ता बन गया, लेकिन सिर्फ़ एक शब्द से वे सारी भावनाएँ ऐसे गायब हो गईं मानो कभी थीं ही नहीं। मेरी माँ के हाथ भारी और कठोर थे, इसलिए जब वह हमें मारती थीं, तो उसके निशान काफी समय तक नहीं मिटते थे। हालाँकि उनके सबसे छोटे बेटे ने उन्हें असीम दुख दिया, फिर भी चाहे कुछ भी हो जाए, वह उसे कभी छोड़ नहीं सकीं। मेरे पिता ने गरम सूप की एक चम्मच ली और कहा कि यह कितना सुकून देने वाला था। हर बार जब दरवाज़ा खुलता, ठंडी हवा अंदर आती थी। आखिरकार मैंने वे बातें कह ही दीं जो मैंने अपने दिल में दबा रखी थीं, और उन्हें कहते ही मुझे गहरी राहत महसूस हुई। इससे पहले कि वे अपनी चम्मच नीचे भी रखते, मेरे पिता ने मेरी बातों को सख्ती से खारिज कर दिया। मेरी माँ का यह सिलसिला आखिरकार पड़ोसी का घर खाली होने के बाद ही थमा। अंततः, वह गहरा बंधन ऐसा था जिसे तोड़ने की कोशिश करने पर भी तोड़ा नहीं जा सकता था।'],
+   ['RU', 'Русский', 'Моя мама была щедрой, поэтому, что бы она ни готовила, она всегда готовила с расчетом на двоих. Она относила лишнюю еду в той же миске к соседям, и эта миска никогда не возвращалась пустой. Раньше между моей мамой и пожилой женщиной по соседству была глубокая привязанность. После того как их отношения испортились из-за земельного вопроса, между ними возникли отношения любви и ненависти, но всего от одного слова все эти чувства исчезли, будто их никогда и не было. У моей мамы были тяжелые и суровые руки, поэтому, когда она била нас, следы долго не проходили. Хотя младший сын причинил ей безграничную боль, несмотря ни на что, она так и не смогла его бросить. Мой отец съел ложку горячего супа и сказал, как это согревает. Каждый раз, когда открывалась дверь, внутрь входил холодный воздух. В конце концов я произнес слова, которые держал в глубине души, и, сказав их, почувствовал глубокое облегчение. Прежде чем он успел даже опустить ложку, отец резко отверг мои слова. Эта привычка моей мамы прекратилась только после того, как соседский дом опустел. В конечном счете, эта глубокая связь была такой, что ее невозможно было разорвать, даже попытавшись.'],
+   ['SW', 'Kiswahili', 'Mama yangu alikuwa mkarimu, kwa hiyo, chochote alichopika, mara zote alipika cha watu wawili. Alipeleka chakula cha ziada katika bakuli lile lile kwa majirani, na bakuli hilo halikurudi kamwe likiwa tupu. Hapo awali, kulikuwa na uhusiano wa karibu sana kati ya mama yangu na mwanamke mzee wa jirani. Baada ya uhusiano wao kuharibika kwa sababu ya suala la ardhi, kulizuka uhusiano wa upendo na chuki kati yao, lakini kwa neno moja tu, hisia hizo zote zilipotea kana kwamba hazijawahi kuwepo. Mama yangu alikuwa na mikono mizito na mikali, kwa hiyo alipotupiga, alama hazikutoweka kwa muda mrefu. Ingawa mtoto wake wa mwisho alimletea maumivu yasiyo na kipimo, bado hakuweza kumtelekeza. Baba yangu alikula kijiko cha supu ya moto na kusema jinsi inavyotia joto. Kila mara mlango ulipofunguka, hewa ya baridi iliingia ndani. Mwishowe, nilisema maneno niliyokuwa nimeyaficha moyoni mwangu, na baada ya kuyasema, nilihisi nafuu kubwa. Kabla hata hajashusha kijiko, baba aliyakataa maneno yangu kwa ukali. Tabia hii ya mama yangu ilikoma tu baada ya nyumba ya jirani kubaki tupu. Mwishowe, uhusiano huo wa karibu ulikuwa wa namna ambayo haikuwezekana kukatwa hata ukijaribu.'],
+   ['KO', 'Korean', '우리 어머니는 정이 많으셔서 무엇을 만드시든 늘 2인분을 요리하셨다. 어머니는 늘 같은 그릇에 넉넉히 만든 음식을 담아 이웃에게 보내셨고, 그 그릇은 결코 빈 채로 돌아오는 법이 없었다. 예전에는 어머니와 이웃집 할머니의 사이가 매우 가까웠다. 땅 문제로 두 사람의 관계가 틀어진 후 애증의 관계가 생겨났지만, 단 한 마디 말에 그 모든 감정들이 마치 처음부터 없었던 것처럼 사라져 버렸다. 어머니는 손매가 매서우셔서 우리를 때리실 때면 그 자국이 오랫동안 남아 있었다. 막내 자식이 어머니에게 헤아릴 수 없는 고통을 안겨주었음에도, 어머니는 끝내 그를 저버리지 못하셨다. 아버지는 뜨거운 국을 한 숟가락 드시고는 몸이 훈훈해진다고 말씀하셨다. 문이 열릴 때마다 차가운 공기가 안으로 밀려들어왔다. 마침내 나는 가슴속에 묻어두었던 말을 꺼냈고, 말을 하고 나니 커다란 안도감이 들었다. 아버지는 숟가락을 내려놓기도 전에 내 말을 단호하게 거절하셨다. 어머니의 이러한 습관은 이웃집이 비게 된 후에야 비로소 끝이 났다. 결국 그 깊은 관계는 아무리 끊어내려 해도 끊을 수 없는 것이었다.'],
   ],
  },
  {
-  title: '한 상', c1: '#3e4e49', c2: '#1f2c29',
+  title: '다섯 통', c1: '#2d3a50', c2: '#18202f', theme: T1,
   steps: [
-   ['KO', 'Korean', '언니는 오빠에게 그만하라고 했다. 그런데도 막냇동생은 끝까지 형 편을 들었다. 큰집 식구들까지 와서 말렸지만 소용없었다. 그 뒤로 셋은 명절에도 한 상에 앉지 않았다.'],
-   ['EN', 'English', 'The older sister told the older brother to stop. Still, the youngest sibling took the older brother\'s side to the very end. Even members of the extended family came to intervene, but it was no use. After that, the three of them never sat at the same table, even on holidays.'],
-   ['JA', '日本語', '姉は兄にやめるよう言った。それでも末っ子は最後まで兄の味方をした。親戚までもが仲裁に入ったが、無駄だった。その後、祝日であっても三人が同じ食卓につくことは二度となかった。'],
-   ['ZH', '中文', '姐姐劝哥哥住手，但最小的孩子直到最后都站在哥哥那一边。甚至连亲戚都出面调停，但也无济于事。此后，即便是在过节时，三人也再也没有同桌吃过饭。'],
-   ['TH', 'ไทย', 'พี่สาวพยายามห้ามพี่ชายให้หยุด แต่น้องคนเล็กกลับเข้าข้างพี่ชายจนถึงที่สุด แม้กระทั่งญาติๆ จะเข้ามาช่วยไกล่เกลี่ย แต่ก็ไม่เป็นผล หลังจากนั้น แม้จะเป็นช่วงเทศกาล ทั้งสามคนก็ไม่เคยร่วมโต๊ะกินข้าวด้วยกันอีกเลย'],
-   ['KO', 'Korean', '누나는 오빠를 말리려 애썼지만 막내는 끝까지 오빠 편을 들었다. 친척들까지 나서서 중재하려 했으나 아무런 소용이 없었다. 그 후로는 명절 때조차 세 사람은 다시는 한 식탁에 앉아 밥을 먹지 않았다.'],
-   ['EN', 'English', 'The older sister tried hard to stop her older brother, but the youngest sided with him to the end. Even relatives stepped in to mediate, but it was to no avail. After that, the three of them never sat at the same table for a meal again, even on holidays.'],
-   ['AR', 'العربية', 'حاولت الأخت الكبرى جاهدةً إيقاف أخيها الأكبر، لكن الأصغر انحاز إليه حتى النهاية. وحتى الأقارب تدخلوا للوساطة، لكن دون جدوى. وبعد ذلك، لم يجلس الثلاثة معاً على مائدة طعام واحدة مجدداً، حتى في الأعياد.'],
-   ['FI', 'Suomi', 'Isosisko yritti kaikkensa estääkseen isoveljensä, mutta pikkuveli asettui tämän puolelle loppuun asti. Jopa sukulaiset puuttuivat asiaan sovittelemaan, mutta tuloksetta. Sen jälkeen nämä kolme eivät enää koskaan istuneet yhdessä saman ruokapöydän ääreen, eivät edes juhlapyhinä.'],
-   ['PT', 'Português', 'A irmã mais velha fez de tudo para impedir o irmão mais velho, mas o irmão mais novo ficou do lado dele até o fim. Até mesmo os parentes intervieram para mediar, mas sem sucesso. Depois disso, os três nunca mais se sentaram juntos à mesma mesa de jantar, nem mesmo nos feriados.'],
-   ['KO', 'Korean', '누나는 형을 말리기 위해 온갖 노력을 다했지만, 남동생은 끝까지 형의 편을 들었다. 친척들까지 나서서 중재하려 했지만 소용이 없었다. 그 후로 세 사람은 명절에도 다시는 같은 식탁에 함께 앉지 않았다.'],
-   ['EN', 'English', 'The older sister made every effort to stop the older brother, but the younger brother took the older brother\'s side until the very end. Even relatives stepped in to mediate, but to no avail. Since then, the three of them never sat together at the same table again, even on holidays.'],
-   ['HI', 'हिन्दी', 'बड़ी बहन ने बड़े भाई को रोकने की हर संभव कोशिश की, लेकिन छोटा भाई अंत तक बड़े भाई का ही पक्ष लेता रहा। यहाँ तक कि रिश्तेदारों ने भी मध्यस्थता करने की कोशिश की, लेकिन कोई नतीजा नहीं निकला। तब से, त्योहारों पर भी वे तीनों फिर कभी एक साथ एक ही मेज पर नहीं बैठे।'],
-   ['RU', 'Русский', 'Старшая сестра изо всех сил пыталась остановить старшего брата, но младший брат до самого конца принимал сторону старшего. Даже родственники пытались выступить посредниками, но ничего не вышло. С тех пор даже по праздникам они втроём больше никогда не садились за один стол.'],
-   ['SW', 'Kiswahili', 'Dada mkubwa alijaribu kwa nguvu zake zote kumzuia kaka mkubwa, lakini kaka mdogo alichukua upande wa kaka mkubwa hadi mwisho kabisa. Hata ndugu walijaribu kusuluhisha, lakini haikufanikiwa. Tangu wakati huo, hata siku za sikukuu, wote watatu hawakuwahi tena kukaa kwenye meza moja.'],
-   ['KO', 'Korean', '큰누나는 큰형을 말리기 위해 온 힘을 다했지만, 남동생은 끝까지 큰형의 편을 들었다. 친척들까지 나서서 화해시키려 했으나 소용이 없었다. 그때 이후로 세 사람은 명절 날조차 다시는 한 식탁에 함께 앉지 않았다.'],
-  ],
- },
- {
-  title: '감나무', c1: '#565033', c2: '#2e2a1a',
-  steps: [
-   ['KO', 'Korean', '집을 떠나온 지 십 년이 지났다. 그런데도 마당 귀퉁이에 서 있던 감나무가 자꾸 눈에 밟힌다. 떫어서 아무도 안 먹던 감을 어머니는 꼭 깎아서 말렸다. 가을마다 나는 남의 집 담장을 괜히 올려다본다.'],
-   ['EN', 'English', 'Ten years have passed since I left home. Still, the persimmon tree that stood in the corner of the yard keeps lingering in my mind. My mother always made sure to peel and dry the persimmons that no one ate because they were too astringent. Every autumn, I find myself looking up at the walls of other people\'s houses for no reason.'],
-   ['JA', '日本語', '家を離れてから10年が経った。今でも、庭の隅に立っていた柿の木が心から離れない。渋すぎて誰も食べなかった柿を、母はいつも欠かさず皮をむいて干していた。毎年秋になると、わけもなく他人の家の塀を見上げてしまう。'],
-   ['ZH', '中文', '离开家已经十年了。至今，院子角落里那棵柿子树依然萦绕在心头。那些太涩而没人吃的柿子，母亲总是无一例外地削皮晒干。每年一到秋天，我总会无缘无故地抬头望向别人家的围墙。'],
-   ['TH', 'ไทย', 'ออกจากบ้านมาสิบปีแล้ว จนถึงตอนนี้ ต้นพลับที่มุมลานบ้านยังคงตราตรึงอยู่ในใจ ลูกพลับที่ฝาดเกินจนไม่มีใครกิน แม่มักจะปอกเปลือกแล้วนำไปตากแห้งเสมอโดยไม่มีข้อยกเว้น พอถึงฤดูใบไม้ร่วงของทุกปี ฉันมักจะเงยหน้ามองรั้วบ้านของคนอื่นโดยไม่มีสาเหตุอยู่เสมอ'],
-   ['KO', 'Korean', '집을 떠난 지 10년이 지난 지금까지도 마당 구석에 있던 감나무는 여전히 내 마음속에 깊이 남아 있다. 너무 떫어서 아무도 먹지 않는 감을 어머니는 예외 없이 늘 껍질을 깎아 말리시곤 했다. 매년 가을이 되면 나는 이유 없이 다른 사람 집의 담장을 고개 들어 바라보곤 한다.'],
-   ['EN', 'English', 'Even now, ten years after I left home, the persimmon tree in the corner of the yard still remains deeply in my heart. My mother would always, without exception, peel and dry the persimmons that were too astringent for anyone to eat. Every autumn, I find myself looking up at the walls of other people\'s houses for no reason.'],
-   ['AR', 'العربية', 'حتى الآن، وبعد عشر سنوات من مغادرتي البيت، ما زالت شجرة الكاكي في زاوية الفناء راسخة في أعماق قلبي. كانت أمي دائمًا، ودون استثناء، تقشر وتجفف ثمار الكاكي التي كانت قابضة للغاية بحيث لا يستطيع أحد أكلها. وفي كل خريف، أجد نفسي أتطلع إلى أسوار منازل الآخرين بلا سبب.'],
-   ['FI', 'Suomi', 'Vielä nytkin, kymmenen vuotta kotoa lähtöni jälkeen, pihan kulmassa oleva kakipuu on syvälle juurtunut sydämeeni. Äitini kuori ja kuivasi aina poikkeuksetta kakit, jotka olivat niin karvaita, ettei kukaan voinut syödä niitä. Ja joka syksy huomaan ilman mitään syytä katselevani muiden talojen aitoja.'],
-   ['PT', 'Português', 'Mesmo agora, dez anos depois de ter saído de casa, o caquizeiro no canto do quintal está profundamente enraizado no meu coração. Minha mãe sempre descascava e secava, sem exceção, os caquis, que eram tão amargos que ninguém conseguia comê-los. E, a cada outono, me vejo, sem motivo algum, olhando para as cercas de outras casas.'],
-   ['KO', 'Korean', '집을 떠난 지 10년이 지난 지금도 마당 구석의 감나무는 내 마음속 깊이 뿌리내려 있다. 너무 떫어서 아무도 먹을 수 없던 그 감들을 어머니는 예외 없이 늘 껍질을 깎아 말리시곤 했다. 그리고 가을이 올 때마다 나는 까닭도 없이 다른 집 담장을 바라보곤 한다.'],
-   ['EN', 'English', 'Even now, ten years after leaving home, the persimmon tree in the corner of the yard remains deeply rooted in my heart. My mother would always peel and dry those persimmons without fail, even though they were too astringent for anyone to eat. And whenever autumn comes, I find myself gazing at other people\'s walls for no reason.'],
-   ['HI', 'हिन्दी', 'घर छोड़े दस साल बीत जाने के बाद भी, आँगन के कोने में लगा तेंदू का पेड़ मेरे दिल में गहराई से बसा हुआ है। भले ही वे फल इतने कसैले होते थे कि कोई उन्हें खा नहीं सकता था, फिर भी मेरी माँ बिना चूके हमेशा उन्हें छीलकर सुखाया करती थीं। और जब भी शरद ऋतु आती है, मैं बिना किसी वजह के दूसरों की दीवारों को ताकता रह जाता हूँ।'],
-   ['RU', 'Русский', 'Даже спустя десять лет после того, как я покинул дом, дерево хурмы в углу двора всё так же глубоко запало мне в душу. Хотя те плоды были настолько терпкими, что никто не мог их есть, моя мама всегда неизменно очищала их от кожуры и сушила. И каждый раз, когда наступает осень, я без всякой причины засматриваюсь на чужие заборы.'],
-   ['SW', 'Kiswahili', 'Hata baada ya miaka kumi tangu niondoke nyumbani, mti wa kaki ulioko pembezoni mwa ua bado umebaki kwa undani sana moyoni mwangu. Ingawa matunda yake yalikuwa machungu sana hivi kwamba hakuna aliyeweza kuyala, mama yangu mara zote alikuwa akiyamenya maganda na kuyakausha. Na kila mara msimu wa vuli unapowadia, hutazama uzio wa watu wengine bila sababu yoyote.'],
-   ['KO', 'Korean', '집을 떠난 지 10년이 지난 지금도 담 모퉁이에 있던 감나무는 여전히 내 마음 깊은 곳에 남아 있다. 열매가 너무 떫어서 아무도 먹을 수 없을 정도였지만, 어머니는 항상 껍질을 벗겨 말리시곤 했다. 그리고 가을이 찾아올 때마다 나는 까닭 없이 남의 집 담장을 바라보곤 한다.'],
-  ],
- },
- {
-  title: '흐지부지', c1: '#43434e', c2: '#24242c',
-  steps: [
-   ['KO', 'Korean', '일은 흐지부지 끝났다. 사람들은 하나둘 흩어지면서 슬금슬금 눈치만 봤다. 누가 먼저 말을 꺼내면 그 사람이 책임을 져야 하는 분위기였다. 끝내 아무도 입을 열지 않은 채 회의실 불이 꺼졌다.'],
-   ['EN', 'English', 'Things fizzled out inconclusively. As people dispersed one by one, they cautiously exchanged glances. The atmosphere made it clear that whoever spoke up first would have to take full responsibility. In the end, no one uttered a word, and the lights in the conference room went out.'],
-   ['JA', '日本語', '明確な結論が出ないまま、事態はうやむやに終わった。人々が一人、また一人と立ち去る中、互いに慎重に視線を交わしていた。最初に口を開いた者がすべての責任を負わなければならないことは、その場の空気から明白だった。結局、誰も一言も発することなく、会議室の明かりが消えた。'],
-   ['ZH', '中文', '在未能得出明确结论的情况下，事情不了了之。人们一个接一个地离去，彼此小心翼翼地交换着眼神。从现场的气氛来看，第一个开口的人必须承担全部责任，这是显而易见的。最终，谁也没有说一句话，会议室的灯熄灭了。'],
-   ['TH', 'ไทย', 'เมื่อยังไม่สามารถหาข้อสรุปที่ชัดเจนได้ เรื่องราวก็เป็นอันเงียบหายไปเฉยๆ ผู้คนต่างทยอยกันเดินออกไปทีละคน และส่งสายตากันอย่างระมัดระวัง จากบรรยากาศในห้อง เห็นได้ชัดว่าผู้ที่เอ่ยปากเป็นคนแรกจะต้องแบกรับความรับผิดชอบทั้งหมด ในที่สุดก็ไม่มีใครพูดอะไรแม้แต่คำเดียว และไฟในห้องประชุมก็ดับลง'],
-   ['KO', 'Korean', '명확한 결론을 내리지 못하자 일은 그대로 조용히 묻혀버렸다. 사람들은 조심스럽게 눈빛을 주고받으며 하나둘씩 밖으로 나갔다. 방 안의 분위기로 보아 먼저 입을 여는 사람이 모든 책임을 져야 함이 분명했다. 결국 아무도 단 한 마디도 하지 않았고, 회의실 불이 꺼졌다.'],
-   ['EN', 'English', 'As no clear conclusion was reached, the matter was quietly buried. People cautiously exchanged glances and left one by one. Judging by the atmosphere in the room, it was clear that whoever spoke first would have to bear all the responsibility. In the end, no one uttered a single word, and the lights in the conference room went out.'],
-   ['AR', 'العربية', 'ولعدم التوصل إلى نتيجة واضحة، دُفنت المسألة بهدوء. تبادل الحاضرون النظرات بحذر وغادروا واحداً تلو الآخر. وبالنظر إلى الأجواء السائدة في الغرفة، كان من الواضح أن أول من يتحدث سيتعين عليه تحمل المسؤولية كاملة. وفي النهاية، لم ينطق أحد بكلمة واحدة، وانطفأت أضواء قاعة الاجتماعات.'],
-   ['FI', 'Suomi', 'Koska selkeään tulokseen ei päästy, asia haudattiin vähin äänin. Läsnäolijat vaihtoivat varovaisia katseita ja poistuivat yksi toisensa jälkeen. Huoneessa vallitsevan ilmapiirin perusteella oli selvää, että ensimmäisenä puhuvan olisi kannettava täysi vastuu. Lopulta kukaan ei sanonut sanaakaan, ja kokoushuoneen valot sammuivat.'],
-   ['PT', 'Português', 'Como não se chegou a um resultado claro, o assunto foi enterrado sem alarde. Os presentes trocaram olhares cautelosos e saíram um após o outro. Pela atmosfera que pairava na sala, estava claro que quem falasse primeiro teria de assumir toda a responsabilidade. No fim, ninguém disse uma palavra, e as luzes da sala de reuniões se apagaram.'],
-   ['KO', 'Korean', '명확한 결론이 나오지 않자 그 안건은 조용히 묻혔다. 참석자들은 조심스럽게 눈빛을 주고받고는 하나둘씩 자리를 떴다. 회의실에 감도는 분위기로 보아 먼저 입을 떼는 사람이 모든 책임을 져야 할 것이 분명했다. 결국 아무도 한 마디도 하지 않은 채 회의실 불이 꺼졌다.'],
-   ['EN', 'English', 'As no clear conclusion was reached, the agenda was quietly buried. The attendees cautiously exchanged glances and left one by one. Judging by the atmosphere lingering in the room, it was clear that whoever spoke first would have to bear full responsibility. In the end, the lights in the conference room went out without anyone saying a single word.'],
-   ['HI', 'हिन्दी', 'चूँकि कोई स्पष्ट निष्कर्ष नहीं निकला, इसलिए एजेंडे को चुपचाप दबा दिया गया। उपस्थित लोगों ने सावधानी से एक-दूसरे को देखा और एक-एक करके बाहर चले गए। कमरे में छाए माहौल को देखकर यह साफ़ था कि जो भी पहले बोलेगा, उसे पूरी ज़िम्मेदारी उठानी पड़ेगी। अंततः, किसी के एक शब्द भी बोले बिना सम्मेलन कक्ष की बत्तियाँ बुझ गईं।'],
-   ['RU', 'Русский', 'Поскольку к четкому выводу прийти не удалось, повестку дня тихо замяли. Присутствующие осторожно переглянулись и один за другим вышли. По царившей в комнате атмосфере было очевидно, что тот, кто заговорит первым, возьмет на себя всю ответственность. В конце концов свет в конференц-зале погас без единого промолвленного слова.'],
-   ['SW', 'Kiswahili', 'Kwa kuwa haikuwezekana kufikia hitimisho la wazi, ajenda ilifunikwa kimya kimya. Waliokuwepo walitazamana kwa tahadhari na kutoka mmoja baada ya mwingine. Kutokana na hali iliyotawala chumbani, ilikuwa wazi kwamba yeyote atakayeanza kuzungumza angebeba uwajibikaji wote. Mwishowe, taa za ukumbi wa mikutano zilizimika bila neno hata moja kutamkwa.'],
-   ['KO', 'Korean', '명확한 결론에 도달할 수 없었기에 안건은 조용히 묻혔다. 참석자들은 조심스러운 눈빛으로 서로를 바라보며 하나둘씩 자리를 떠났다. 방 안을 감도는 분위기상, 누구든 먼저 말을 꺼내는 사람이 모든 책임을 지게 될 것이 분명했다. 결국 단 한 마디의 말도 없이 회의장의 불이 꺼졌다.'],
-  ],
- },
- {
-  title: '미운 정 고운 정', c1: '#56343c', c2: '#2f191f',
-  steps: [
-   ['KO', 'Korean', '그 사람과는 미운 정 고운 정이 다 들었다. 이십 년을 같은 가게에서 일하면서 안 싸운 날이 없었다. 이제는 목소리를 높일 기운도 없다. 얼굴을 보면 밥은 먹었냐고 먼저 묻는다.'],
-   ['EN', 'English', 'I have developed a deep love-hate relationship with that person. Working in the same shop for twenty years, not a day went by that we didn\'t fight. Now, we don\'t even have the energy to raise our voices. Whenever we see each other, the first thing we ask is whether the other has eaten.'],
-   ['JA', '日本語', 'あの人とは、すっかり深い愛憎が入り混じった関係になってしまった。同じ店で20年間働いてきて、喧嘩をしなかった日は一日もなかった。今ではもう、声を荒げる気力すら残っていない。顔を合わせれば、まず「ご飯は食べたか」とお互いに聞き合うばかりだ。'],
-   ['ZH', '中文', '我和那个人，彻底变成了爱恨交织的关系。在同一家店共事了20年，没有一天是不吵架的。如今，连提高嗓门的气力都没了。只要一见面，也只是互相问上一句“吃了吗”。'],
-   ['TH', 'ไทย', 'ฉันกับคนคนนั้นกลายเป็นมีความสัมพันธ์แบบทั้งรักทั้งเกลียดกันอย่างสิ้นเชิง ทำงานร่วมกันในร้านเดียวกันมา 20 ปี ไม่มีวันไหนเลยที่ไม่ทะเลาะกัน ตอนนี้ แม้แต่แรงจะขึ้นเสียงก็ไม่มีแล้ว แค่เจอหน้ากัน ก็ทำได้เพียงถามกันว่า "กินข้าวหรือยัง"'],
-   ['KO', 'Korean', '그 사람과 나는 완전히 애증의 관계가 되었다. 같은 가게에서 20년 동안 함께 일하며 싸우지 않은 날이 단 하루도 없었다. 이제는 목소리를 높일 힘조차 없어 그저 얼굴을 마주치면 "밥은 먹었냐"고 물어볼 뿐이다.'],
-   ['EN', 'English', 'That person and I have ended up in a complete love-hate relationship. Having worked together in the same shop for 20 years, not a single day passed without a fight. Now, lacking even the energy to raise our voices, we just ask "Have you eaten?" whenever our eyes meet.'],
-   ['AR', 'العربية', 'انتهى بنا المطاف أنا وذلك الشخص في علاقة حب وكره تامة. عملنا معاً في المتجر نفسه لمدة عشرين عاماً، ولم يمر يوم واحد دون شجار. والآن، ونحن نفتقر حتى إلى الطاقة لرفع أصواتنا، نكتفي بالسؤال "هل أكلت؟" كلما تلاقت أعيننا.'],
-   ['FI', 'Suomi', 'Päädyimme sen henkilön kanssa täydelliseen viha-rakkaussuhteeseen. Työskentelimme yhdessä samassa kaupassa kaksikymmentä vuotta, eikä yksikään päivä kulunut ilman riitaa. Ja nyt, kun meillä ei ole edes voimaa korottaa ääntämme, tyydymme vain kysymään ”Oletko syönyt?” aina kun katseemme kohtaavat.'],
-   ['PT', 'Português', 'Acabamos tendo uma perfeita relação de amor e ódio com aquela pessoa. Trabalhamos juntos na mesma loja durante vinte anos, e nenhum dia se passava sem uma discussão. E agora, quando nem temos mais forças para levantar a voz, nos contentamos apenas em perguntar "Já comeu?" sempre que nossos olhares se cruzam.'],
-   ['KO', 'Korean', '결국 우리는 그 사람과 완벽한 애증의 관계가 되었다. 20년 동안 같은 가게에서 함께 일하면서 단 하루도 다투지 않고 지나가는 날이 없었다. 그리고 이제는 목소리를 높일 힘조차 없어, 눈이 마주칠 때마다 "밥은 먹었어?"라고 묻는 것으로 만족한다.'],
-   ['EN', 'English', 'In the end, we developed a perfect love-hate relationship with that person. Working together in the same shop for twenty years, not a single day passed without us arguing. And now, lacking even the strength to raise our voices, we are content simply asking, "Have you eaten?" whenever our eyes meet.'],
-   ['HI', 'हिन्दी', 'अंततः, उस व्यक्ति के साथ हमारा प्यार और नफ़रत का एक एकदम सही रिश्ता बन गया। बीस साल तक एक ही दुकान में साथ काम करते हुए, एक भी दिन ऐसा नहीं बीता जब हमारी बहस न हुई हो। और अब, आवाज़ ऊँची करने की ताक़त भी न होने पर, जब भी हमारी नज़रें मिलती हैं, हम बस "क्या आपने खाना खा लिया?" पूछकर ही संतुष्ट हो जाते हैं।'],
-   ['RU', 'Русский', 'В конце концов, у нас с этим человеком сложились идеальные отношения любви и ненависти. За двадцать лет совместной работы в одном магазине не прошло ни одного дня, чтобы мы не поспорили. И теперь, когда нет сил даже повысить голос, каждый раз, встречаясь взглядами, мы просто довольствуемся вопросом: «Вы поели?».'],
-   ['SW', 'Kiswahili', 'Hatimaye, mimi na mtu huyu tulikuwa na uhusiano kamili wa upendo na chuki. Kwa miaka ishirini ya kufanya kazi pamoja katika duka moja, haikupita siku hata moja bila sisi kubishana. Na sasa, tunapokosa hata nguvu za kupaza sauti, kila mara macho yetu yanapokutana, tunaridhika tu na kuuliza, "Umekula?"'],
-   ['KO', 'Korean', '결국 나와 이 사람은 완벽한 애증의 관계가 되었다. 한 가게에서 함께 일한 20년 동안 단 하루도 다투지 않고 지나간 날이 없었다. 그리고 이제는 목소리를 높일 힘조차 없어 눈이 마주칠 때마다 그저 "밥은 먹었어?"라고 묻는 것으로 만족할 뿐이다.'],
-  ],
- },
- {
-  title: '알아서', c1: '#4c4838', c2: '#28251b',
-  steps: [
-   ['KO', 'Korean', '간은 대충 알아서 맞추라고 했다. 넘칠 것 같으면 불을 좀 줄이라는 말만 남기고 어머니는 방으로 들어갔다. 나는 소금을 얼마나 넣어야 할지 몰라 국자만 들고 서 있었다. 알아서 하라는 말이 제일 어려웠다.'],
-   ['EN', 'English', 'She told me to just season it to taste on my own. Leaving only a comment to turn down the heat if it looked like it was going to boil over, my mother went into her room. Not knowing how much salt to add, I just stood there holding the ladle. Being told to figure it out on my own was the hardest part.'],
-   ['JA', '日本語', '味付けは自分で適当に調えるようにと言われた。吹きこぼれそうになったら火を弱めるようにとだけ言い残し、母は自分の部屋へ行ってしまった。塩をどれくらい入れればいいのか分からず、私はおたまを持ったまま立ち尽くしていた。自分でなんとかしなさいと言われるのが一番困るのだった。'],
-   ['ZH', '中文', '说是让我自己看着调味。母亲只留下一句快要溢出来时就把火关小，便回了自己的房间。不知道该放多少盐，我手拿着汤勺愣在原地。叫我自己想办法是最让我为难的。'],
-   ['TH', 'ไทย', 'บอกให้ฉันปรุงรสเอาเอง แม่เพียงพูดทิ้งท้ายไว้แค่ว่าพอใกล้จะล้นก็ให้เบาไฟลง แล้วก็กลับเข้าห้องของตัวเองไป ฉันไม่รู้ว่าควรใส่เกลือเท่าไร ได้แต่ถือกระบวยยืนอึ้งอยู่กับที่ การบอกให้ฉันจัดการเอาเองนี่แหละคือสิ่งที่ทำให้ฉันลำบากใจที่สุด'],
-   ['KO', 'Korean', '알아서 간을 맞추라며 엄마는 넘칠 것 같으면 불을 줄이라는 말만 남긴 채 자기 방으로 들어가 버렸다. 나는 소금을 얼마나 넣어야 할지 몰라 국자를 든 채 멍하니 서 있을 뿐이었다. 알아서 하라는 그 말이야말로 나를 가장 난감하게 만드는 것이었다.'],
-   ['EN', 'English', 'Mom went into her room, leaving only the words to season it myself and to turn down the heat if it looked like it was going to boil over. Unsure of how much salt to add, I just stood there blankly, ladle in hand. Telling me to figure it out on my own was the very thing that flustered me the most.'],
-   ['AR', 'العربية', 'دخلت أمي غرفتها تاركةً خلفها فقط كلماتها بأن أُتَبِّل الطعام بنفسي وأن أُخَفِّض النار إذا بدا أنه على وشك أن يفيض. ولأنني لم أكن متأكدًا من كمية الملح التي يجب إضافتها، وقفت هناك شاردًا والمغرفة في يدي. وكان إخباري بأن أتصرف بمفردي هو أكثر ما أربكني على الإطلاق.'],
-   ['FI', 'Suomi', 'Äitini meni huoneeseensa jättäen jälkeensä vain sanansa siitä, että minun pitäisi maustaa ruoka itse ja pienentää lämpöä, jos se vaikutti olevan vähällä kiehua yli. Koska en ollut varma siitä, kuinka paljon suolaa pitäisi lisätä, seisoin siinä ajatuksissani kauha kädessäni. Kaikkein eniten minua hämensi se, että minua käskettiin toimimaan omillani.'],
-   ['PT', 'Português', 'Minha mãe foi para o quarto dela, deixando para trás apenas suas palavras de que eu deveria temperar a comida eu mesmo e baixar o fogo se parecesse prestes a transbordar. Como eu não tinha certeza de quanto sal deveria adicionar, fiquei ali pensativo, com a concha na mão. O que mais me deixou confuso foi me mandarem agir por conta própria.'],
-   ['KO', 'Korean', '어머니는 내가 직접 음식 간을 맞추고 넘칠 것 같으면 불을 줄이라는 말만 남긴 채 방으로 들어가셨다. 소금을 얼마나 넣어야 할지 잘 몰랐기에, 나는 국자를 들고 한참을 생각에 잠겨 서 있었다. 나를 가장 혼란스럽게 만든 것은 알아서 하라는 말이었다.'],
-   ['EN', 'English', 'My mother went into her room, telling me only to season the food myself and turn down the heat if it looked about to boil over. Not knowing how much salt to add, I stood there holding a ladle, lost in thought for a long time. What confused me the most was her telling me to figure it out on my own.'],
-   ['HI', 'हिन्दी', 'मेरी माँ मुझे बस यह कहकर अपने कमरे में चली गईं कि मैं खाने में मसाले खुद ही डाल लूँ और अगर लगे कि वह उबलकर बाहर गिरने वाला है तो आँच धीमी कर दूँ। कितना नमक डालना है यह न समझ पाने के कारण, मैं हाथ में करछी थामे काफी देर तक सोच में डूबा खड़ा रहा। मुझे सबसे ज़्यादा उलझन इस बात से हुई कि उन्होंने मुझसे यह सब खुद ही समझने को कहा था।'],
-   ['RU', 'Русский', 'Моя мама ушла к себе в комнату, лишь сказав мне самому добавить специи в еду и убавить огонь, если покажется, что она закипает и вот-вот убежит. Не понимая, сколько нужно положить соли, я довольно долго стоял в раздумьях с половником в руке. Больше всего меня сбило с толку то, что она велела мне во всём этом разобраться самому.'],
-   ['SW', 'Kiswahili', 'Mama yangu alienda chumbani kwake, akiniambia tu niongeze viungo kwenye chakula mimi mwenyewe na kupunguza moto ikionekana kwamba kinatokota na kinakaribia kufurika. Bila kuelewa ni chumvi kiasi gani cha kuweka, nilisimama nikitafakari kwa muda mrefu nikiwa na upawa mkononi. Kilichonichanganya zaidi ni kwamba aliniambia nishughulikie mambo haya yote mimi mwenyewe.'],
-   ['KO', 'Korean', '어머니는 나에게 직접 음식에 양념을 치고 끓어 넘칠 것 같으면 불을 줄이라고만 말씀하신 뒤 방으로 들어가셨다. 소금을 얼마나 넣어야 할지 몰라 나는 국자를 손에 든 채 한참 동안 서서 고민했다. 나를 더욱 혼란스럽게 만든 것은 이 모든 것을 나 혼자 알아서 처리하라고 하셨다는 사실이었다.'],
+   ['KO', 'Korean', '그 애는 눈이 높아서 서른이 넘도록 혼자였다. 돈 앞에서 눈이 뒤집힌 사람들만 보고 자란 탓이라고 했다. 눈치가 없다는 말도 자주 들었다. 번번이 분위기를 깼다. 인사도 없이 떠난 게 섭섭했다. 마지막까지 내 이름을 부르지 않은 것이 서운했다. 조금만 더 붙잡아볼 걸 그랬다. 그렇게 보내기엔 너무 아까운 애였다. 우리 엄마는 그날도 김치를 다섯 통 담갔다. 혼자 먹을 것도 아니면서. 우리 집은 언덕 끝이라 그걸 이고 오르면 숨이 찼다. 우리 남편은 그런 건 못 먹는다고 했다. 그래도 우리 애는 잘 먹는다고, 엄마는 한 통을 더 쌌다. 그 애가 떠나고, 마당의 감나무가 한참 눈에 밟혔다.'],
+   ['EN', 'English', 'She had high standards, so she remained single well past thirty. She said it was because she grew up seeing only people who lost their minds over money. She was often told she lacked tact, too. She ruined the mood time after time. I felt hurt that she left without even saying goodbye. It pained me that she didn\'t call my name even at the very end. I should have tried to hold onto her just a little longer. She was too precious a person to let go like that. Even on that day, my mother made five containers of kimchi. It wasn\'t as if she were going to eat them all herself. Since our house was at the top of a hill, carrying them up left her out of breath. My husband said he couldn\'t eat stuff like that. Still, saying my child eats it well, my mother packed one more container. After she left, the persimmon tree in the yard lingered in my mind for a long time.'],
+   ['JA', '日本語', '彼女は理想が高く、三十をとうに過ぎても独身のままだった。お金に正気を失った人ばかりを見て育ったからだと言っていた。彼女はデリカシーがないともよく言われていた。幾度となく場の雰囲気を台無しにした。挨拶もなしに去っていったことが、私には悲しかった。最後の最後まで私の名前を呼んでくれなかったことが胸を痛めた。もう少し引き止めようとするべきだった。そんな風に手放してしまうには、あまりに大切な人だった。 その日も、母はキムチを容器5つ分も作った。自分一人で全部食べるわけでもないのに。うちの家は坂のてっぺんにあったので、それを運ぶと母は息を切らしていた。夫はそんなもの食べられないと言った。それでも、私の子がよく食べるからと言って、母はもう一つの容器に詰めた。母が去った後、庭の柿の木が長いあいだ心に残っていた。'],
+   ['ZH', '中文', '她眼光很高，早已年过三十却依然单身。她说这是因为自己从小看着那些为钱失去理智的人长大的。别人也常说她不懂得顾及他人感受。她屡次搞砸现场的气氛。她连一声招呼都没打就离开了，这让我感到悲伤。直到最后一刻她都没有叫我的名字，这让我无比心痛。我本该再多挽留她一下的。要就这样放手，她对我来说实在是太重要的人了。 那一天，母亲也做了足足五盒泡菜。明明她自己一个人又吃不完。我家住在坡顶上，搬运那些东西时母亲喘个不停。丈夫说他吃不下那种东西。即便如此，母亲还是说我的孩子爱吃，又装满了另一盒。母亲离开后，院子里的柿子树在我的心中久久难以忘怀。'],
+   ['TH', 'ไทย', 'เธอเป็นคนตาสูง อายุเลยสามสิบไปแล้วแต่ก็ยังคงเป็นโสด เธอบอกว่านั่นเป็นเพราะเติบโตมากับการเห็นผู้คนที่สูญเสียสติเพราะเรื่องเงิน คนอื่นมักจะพูดเสมอว่าเธอไม่รู้จักคำนึงถึงความรู้สึกของคนอื่น เธอมักจะทำลายบรรยากาศซ้ำแล้วซ้ำเล่า การที่เธอจากไปโดยไม่แม้แต่จะเอ่ยคำบอกลาทำให้ฉันรู้สึกเศร้าใจ จนกระทั่งวินาทีสุดท้ายเธอก็ไม่ได้เอ่ยชื่อฉัน เรื่องนี้ทำให้ฉันเจ็บปวดใจอย่างยิ่ง ฉันน่าจะรั้งเธอเอาไว้ให้มากกว่านี้ หากจะให้ปล่อยเธอไปทั้งอย่างนี้ สำหรับฉันแล้วเธอเป็นคนที่สำคัญมากเกินไป ในวันนั้น แม่เองก็ทำกิมจิไว้มากถึงห้ากล่อง ทั้งๆ ที่ลำพังตัวคนเดียวก็กินไม่หมด บ้านของฉันอยู่บนยอดเนิน ตอนที่ขนของเหล่านั้นแม่หอบเหนื่อยไม่หยุด สามีบอกว่าเขากินของแบบนั้นไม่ได้ ถึงกระนั้น แม่ก็ยังคงบอกว่าลูกของฉันชอบกิน แล้วก็บรรจุใส่อีกกล่องจนเต็ม หลังจากแม่กลับไปแล้ว ต้นพลับในลานบ้านก็ตราตรึงอยู่ในใจของฉันไปอีกนานแสนนาน'],
+   ['KO', 'Korean', '그녀는 눈이 높아 서른이 넘은 나이에도 여전히 독신으로 지내고 있다. 그녀는 돈 문제로 이성을 잃는 사람들을 보며 자랐기 때문이라고 말했다. 남들은 그녀가 타인의 기분을 배려할 줄 모른다고 늘 말하곤 했으며, 그녀는 몇 번이고 분위기를 망치곤 했다. 작별 인사조차 없이 떠난 그녀의 모습에 나는 슬픔을 느꼈고, 마지막 순간까지도 그녀는 내 이름을 부르지 않았다. 이 사실은 내 마음을 너무나 아프게 했다. 내가 그녀를 조금 더 붙잡았어야 했다. 이대로 보내기에 그녀는 나에게 너무나 중요한 사람이었다. 그날 엄마는 혼자서는 다 먹지도 못하면서 김치를 무려 다섯 통이나 담갔다. 우리 집은 언덕 꼭대기에 있어서 그 짐들을 옮기는 동안 엄마는 쉼 없이 숨을 헐떡였다. 남편은 그런 걸 못 먹는다고 했지만, 그럼에도 엄마는 내 아이가 잘 먹는다며 또 한 통을 가득 채워 담았다. 엄마가 돌아간 뒤, 마당에 서 있던 감나무는 오랫동안 내 마음속에 깊이 남아 있었다.'],
+   ['EN', 'English', 'She has high standards, so she remains single even past the age of thirty. She said it was because she grew up watching people lose their minds over money. Others used to say that she didn\'t know how to be considerate of people\'s feelings, and she ruined the mood time and time again. I felt sad when she left without even saying goodbye, and even to the very last moment, she never called my name. This broke my heart deeply. I should have held onto her a little more. She was far too important to me to let go like this. That day, my mother made as many as five full containers of kimchi, even though she couldn\'t possibly eat it all by herself. Because our house was at the top of a hill, Mom gasped for breath continuously while carrying all that weight. My husband said he couldn\'t eat such things, but even so, Mom filled another container to the brim, saying my child eats it well. After Mom left, the persimmon tree standing in the yard lingered deeply in my heart for a long time.'],
+   ['AR', 'العربية', 'تتمتع بمعايير عالية، لذا تظل عزباء حتى بعد تجاوزها سن الثلاثين. قالت إن ذلك يعود إلى كونها نشأت وهي ترى الناس يفقدون عقولهم بسبب المال. وكان الآخرون يقولون إنها لا تعرف كيف تراعي مشاعر الناس، وكانت تفسد الأجواء مرارًا وتكرارًا. شعرت بالحزن عندما غادرت دون أن تودعني حتى، وحتى في اللحظة الأخيرة، لم تنادِ باسمي قط. فطر هذا قلبي بشدة. كان يجدر بي أن أتمسك بها أكثر من ذلك بقليل. لقد كانت مهمة للغاية بالنسبة لي لدرجة لا تسمح لي بالتخلي عنها هكذا. في ذلك اليوم، أعدت أمي ما يصل إلى خمسة أوعية ممتلئة بالكيمتشي، رغم أنه لم يكن بوسعها بأي حال من الأحوال أن تأكله كله بمفردها. ولأن منزلنا كان في أعلى التلة، كانت أمي تلهث باستمرار وهي تحمل كل ذلك الثقل. قال زوجي إنه لا يستطيع أكل مثل هذه الأشياء، ولكن رغم ذلك، ملأت أمي وعاءً آخر حتى الحافة، قائلة إن ابنتي تأكله جيدًا. وبعد أن غادرت أمي، ظلت شجرة الكاكي الواقفة في الفناء عالقة في أعمق نقطة من قلبي لفترة طويلة.'],
+   ['FI', 'Suomi', 'Hänellä on korkeat vaatimukset, joten hän on edelleen naimaton vielä yli kolmikymppisenä. Hän sanoi sen johtuvan siitä, että hän varttui nähdessään ihmisten menettävän järkensä rahan vuoksi. Muut sanoivat, ettei hän osannut ottaa muiden tunteita huomioon, ja hän pilasi ilmapiirin kerta toisensa jälkeen. Tunsin surua, kun hän lähti edes hyvästelemättä minua, eikä hän viimeisellä hetkelläkään kutsunut minua nimeltä. Se särki sydämeni syvästi. Minun olisi pitänyt pitää hänestä kiinni vielä hieman tiukemmin. Hän oli minulle liian tärkeä, jotta olisin voinut päästää hänestä irti näin. Sinä päivänä äitini valmisti jopa viisi täyttä astiallista kimchia, vaikka hän ei mitenkään olisi voinut syödä sitä kaikkea yksin. Koska talomme oli kukkulan huipulla, äiti puuskutti jatkuvasti kantaessaan sitä kaikkea raskasta taakkaa. Mieheni sanoi, ettei hän pysty syömään sellaisia ruokia, mutta siitä huolimatta äiti täytti vielä yhden kulhon piripintaan asti sanoen, että hänen tyttärensä syö sitä mielellään. Äidin lähtemisen jälkeen pihalla seisova persimonpuu jäi pitkäksi aikaa syvälle sydämeeni.'],
+   ['PT', 'Português', 'Ele tem exigências elevadas, por isso continua solteiro mesmo com mais de trinta anos. Ele dizia que isso acontecia porque cresceu vendo as pessoas perderem a cabeça por causa do dinheiro. Os outros diziam que ele não sabia levar os sentimentos alheios em consideração e que estragava o clima vez após vez. Senti uma enorme tristeza quando ele partiu sem nem se despedir de mim, sem sequer chamar meu nome no último momento. Isso partiu meu coração profundamente. Eu deveria tê-lo segurado com um pouco mais de força. Ele era importante demais para mim para que eu o deixasse ir embora assim. Naquele dia, minha mãe preparou cinco recipientes cheios de kimchi, embora jamais pudesse comer tudo sozinha. Como nossa casa ficava no topo de um morro, minha mãe arfava sem parar enquanto carregava todo aquele fardo pesado. Meu marido disse que não conseguia comer esse tipo de comida, mas, apesar disso, minha mãe encheu mais uma tigela até a borda, dizendo que sua filha comia aquilo com gosto. Depois que minha mãe foi embora, o caquizeiro no quintal permaneceu profundamente gravado em meu coração por um longo tempo.'],
+   ['KO', 'Korean', '그는 눈이 높아 서른이 넘어서도 여전히 미혼으로 남아 있다. 그는 돈 때문에 사람들이 이성을 잃는 모습을 보며 자랐기 때문이라고 말하곤 했다. 남들은 그가 타인의 감정을 배려할 줄 모르고 번번이 분위기를 망친다고 말했다. 그가 내게 작별 인사조차 하지 않고, 마지막 순간에 내 이름조차 부르지 않은 채 떠나버렸을 때 나는 깊은 슬픔을 느꼈다. 그 일은 내 마음을 깊이 찢어놓았다. 내가 그를 조금만 더 잡았어야 했다. 그렇게 떠나보내기엔 그는 내게 너무나 소중한 사람이었다. 그날 엄마는 혼자서는 절대로 다 먹지 못할 김치를 다섯 통이나 가득 준비했다. 우리 집이 언덕 꼭대기에 있었기 때문에 엄마는 그 무거운 짐을 나르며 연신 숨을 가쁘게 쉬었다. 남편은 이런 음식을 먹지 못한다고 했지만, 그럼에도 엄마는 딸이 맛있게 먹는다며 한 그릇을 넘치도록 더 채워주었다. 엄마가 떠난 후, 마당의 감나무는 오랫동안 내 마음에 깊이 남아 있었다.'],
+   ['EN', 'English', 'He has high standards, so he remains unmarried even past thirty. He used to say it was because he grew up watching people lose their minds over money. Others said he had no consideration for the feelings of others and repeatedly ruined the mood. When he left without even saying goodbye to me, without calling my name at the very last moment, I felt profound sorrow. It tore my heart apart. I should have held onto him just a little harder. He was far too precious to me to let go like that. That day, Mom prepared five full containers of kimchi, far more than anyone could ever finish alone. Since our house was at the top of a hill, Mom kept breathing heavily as she carried that heavy load. Although my husband said he couldn\'t eat this kind of food, Mom still filled a bowl to overflowing, saying her daughter ate it with such enjoyment. After Mom left, the persimmon tree in the yard lingered deeply in my heart for a long time.'],
+   ['HI', 'हिन्दी', 'उनके मानक बहुत ऊंचे हैं, इसलिए वे तीस के पार होने पर भी अविवाहित हैं। वे कहा करते थे कि ऐसा इसलिए था क्योंकि वे लोगों को पैसों के पीछे पागल होते देखकर बड़े हुए थे। दूसरों का कहना था कि उन्हें दूसरों की भावनाओं का कोई ख़याल नहीं था और वे बार-बार माहौल बिगाड़ देते थे। जब वे मुझे अलविदा कहे बिना, आखिरी पल में मेरा नाम तक लिए बिना चले गए, तो मुझे बहुत गहरा दुख हुआ। इसने मेरा दिल चीर कर रख दिया। मुझे उन्हें थोड़ा और कसकर थामे रखना चाहिए था। वे मेरे लिए इतने अनमोल थे कि उन्हें इस तरह जाने नहीं दिया जा सकता था। उस दिन, माँ ने किमची के पूरे पाँच डिब्बे तैयार किए थे, जो किसी भी अकेले इंसान के खाने के हिसाब से बहुत ज़्यादा थे। चूँकि हमारा घर पहाड़ी की चोटी पर था, उस भारी बोझ को उठाकर लाते समय माँ की साँस फूल रही थी। हालाँकि मेरे पति ने कहा कि वे इस तरह का खाना नहीं खा सकते, फिर भी माँ ने यह कहते हुए कटोरी लबालब भर दी कि उनकी बेटी इसे बहुत चाव से खाती है। माँ के जाने के बाद, आँगन में लगा पर्सिमोन का पेड़ लंबे समय तक मेरे दिल में गहराई से बसा रहा।'],
+   ['RU', 'Русский', 'У него очень высокие стандарты, поэтому он не женат, хотя ему уже за тридцать. Он часто говорил, что это из-за того, что он вырос, видя, как люди сходят с ума из-за денег. Другие же утверждали, что его совершенно не волнуют чужие чувства и он постоянно портит атмосферу. Когда он ушел, не попрощавшись и даже не произнеся моего имени напоследок, мне было неописуемо больно. Это просто разрывало мне сердце. Мне следовало удержать его немного крепче. Он был слишком дорог мне, чтобы вот так просто его отпустить. В тот день мама приготовила целых пять контейнеров кимчи — слишком много для одного человека. Наш дом стоял на самом верху холма, поэтому мама запыхалась, пока несла эту тяжесть. Хотя мой муж сказал, что не ест такую пищу, мама все равно наполнила миску доверху, молвив, что ее дочь обожает это блюдо. После того как мама ушла, дерево хурмы во дворе еще долго оставляло глубокий след в моей душе.'],
+   ['SW', 'Kiswahili', 'Ana vigezo vya juu sana, ndiyo maana hajaoa ingawa tayari ana umri wa zaidi ya miaka thelathini. Mara kwa mara alisema kuwa hii ni kwa sababu alikua akiona watu wakichanganyikiwa kwa ajili ya pesa. Wengine walidai kuwa hajalii kabisa hisia za watu wengine na kila mara anaharibu hali ya amani. Alipoondoka bila kuaga na hata bila kutaja jina langu mwishoni, nilihisi uchungu usioelezeka. Hiyo ilinipasua moyo kabisa. Nilitakiwa kumshikilia kwa nguvu zaidi kidogo. Alikuwa wa thamani sana kwangu kiasi cha kutomwacha aende hivi hivi tu. Siku hiyo, mama aliandaa vyombo vitano vizima vya kimchi — vingi mno kwa mtu mmoja. Nyumba yetu ilikuwa juu kabisa ya kilima, kwa hiyo mama alihema sana wakati akibeba mzigo huo mzito. Ingawa mume wangu alisema hali chakula cha namna hiyo, mama bado alijaza bakuli hadi juu, akisema kwamba binti yake anakipenda sana chakula hicho. Baada ya mama kuondoka, mti wa hurma uliokuwa uwanjani uliacha alama nzito katika nafsi yangu kwa muda mrefu.'],
+   ['KO', 'Korean', '그는 눈이 매우 높아 이미 서른이 넘었는데도 아직 결혼하지 않았다. 그는 어릴 때 돈 때문에 사람들이 괴로워하는 모습을 보며 자랐기 때문이라고 자주 말했다. 어떤 이들은 그가 타인의 감정에는 전혀 신경 쓰지 않으며 늘 평화로운 분위기를 망친다고 주장했다. 그가 작별 인사도 없이, 마지막에 내 이름조차 부르지 않고 떠났을 때 나는 말로 다 할 수 없는 아픔을 느꼈다. 그 일은 내 마음을 완전히 찢어놓았다. 나는 그를 조금 더 세게 붙잡았어야 했다. 그냥 그렇게 보내버리기에는 나에게 너무나 소중한 사람이었다. 그날 어머니는 한 사람이 먹기에는 너무 많은 김치 다섯 통을 준비하셨다. 우리 집은 언덕 꼭대기에 있어서 어머니는 그 무거운 짐을 들고 오시며 가쁜 숨을 내쉬셨다. 남편은 그런 음식을 먹지 않는다고 했지만, 어머니는 딸이 이 음식을 아주 좋아한다며 그릇에 음식을 가득 담아주셨다. 어머니가 떠나신 후, 마당에 있던 감나무는 오래도록 내 마음에 깊은 여운을 남겼다.'],
   ],
  },
 ];
@@ -247,7 +192,6 @@ const BOOKS = [
 const LAPNAME = ['', '첫 번째 바퀴', '두 번째 바퀴', '세 번째 바퀴'];
 const SERIF = '"Nanum Myeongjo","Noto Serif KR",serif';
 const MONO  = '"Space Mono","Courier New",monospace';
-const LAPCOL = ['', '#9b8260', '#a8713f', '#a8402a'];
 const SEG = { ZH: 'zh', JA: 'ja', TH: 'th' };
 const PAGES = 20;          // 표지 2 + 속지 2 + 본문 16
 const LAST = 9;            // 마지막 펼침의 sheet 번호
@@ -288,63 +232,93 @@ function paper(x, w, h, tone) {
 }
 
 function plate(x, w, h, S, b, backSide) {
+  const T = b.theme, A = a => `rgba(${T.accent},${a})`;
   const g = x.createLinearGradient(0, 0, w * .25, h);
   g.addColorStop(0, b.c1); g.addColorStop(1, b.c2);
   x.fillStyle = g; x.fillRect(0, 0, w, h);
-  x.strokeStyle = 'rgba(198,167,99,.42)'; x.lineWidth = 1.6 * S;
-  x.strokeRect(58 * S, 58 * S, w - 116 * S, h - 116 * S);
-  if (backSide) {
-    x.textAlign = 'center'; x.fillStyle = 'rgba(198,167,99,.4)';
-    x.font = `${13 * S}px ${MONO}`;
-    x.fillText('LOST  IN  RETURN', w / 2, h - 110 * S);
+  const no = String(vol + 1).padStart(2, '0');
+
+  if (T.face === 'frame') {
+    x.strokeStyle = A(.42); x.lineWidth = 1.6 * S;
+    x.strokeRect(58 * S, 58 * S, w - 116 * S, h - 116 * S);
+    x.textAlign = 'center';
+    if (backSide) {
+      x.fillStyle = A(.4); x.font = `${13 * S}px ${MONO}`;
+      x.fillText('LOST  IN  RETURN', w / 2, h - 110 * S);
+      return;
+    }
+    x.fillStyle = A(.72); x.font = `${15 * S}px ${MONO}`;
+    x.fillText('L O S T   I N   R E T U R N', w / 2, h * .355);
+    x.fillStyle = T.titleInk; x.font = `800 ${58 * S}px ${SERIF}`;
+    x.fillText(b.title, w / 2, h * .455);
+    x.fillStyle = `rgba(${T.sub},.5)`; x.font = `${19 * S}px ${SERIF}`;
+    x.fillText('번역 불가', w / 2, h * .515);
+    x.fillStyle = A(.66); x.font = `${14 * S}px ${MONO}`;
+    x.fillText(`Vol. ${no}`, w / 2, h * .66);
     return;
   }
-  x.textAlign = 'center';
-  x.fillStyle = 'rgba(198,167,99,.72)'; x.font = `${15 * S}px ${MONO}`;
-  x.fillText('L O S T   I N   R E T U R N', w / 2, h * .355);
-  x.fillStyle = '#f2e8d6'; x.font = `800 ${58 * S}px ${SERIF}`;
-  x.fillText(b.title, w / 2, h * .455);
-  x.fillStyle = 'rgba(214,198,166,.5)'; x.font = `${19 * S}px ${SERIF}`;
-  x.fillText('번역 불가', w / 2, h * .515);
-  x.fillStyle = 'rgba(198,167,99,.66)'; x.font = `${14 * S}px ${MONO}`;
-  x.fillText(`Vol. ${String(vol + 1).padStart(2, '0')}`, w / 2, h * .66);
+
+  // 천 장정 — 액자 없이 가로줄 하나, 글은 왼쪽으로 몬다
+  const pad = 108 * S;
+  x.textAlign = 'left';
+  if (backSide) {
+    x.strokeStyle = A(.28); x.lineWidth = 1.2 * S;
+    x.beginPath(); x.moveTo(pad, h - 150 * S); x.lineTo(pad + 150 * S, h - 150 * S); x.stroke();
+    x.fillStyle = A(.4); x.font = `${13 * S}px ${MONO}`;
+    x.fillText('LOST IN RETURN', pad, h - 112 * S);
+    return;
+  }
+  x.strokeStyle = A(.5); x.lineWidth = 2.6 * S;
+  x.beginPath(); x.moveTo(pad, h * .22); x.lineTo(w - pad, h * .22); x.stroke();
+  x.fillStyle = A(.62); x.font = `${13 * S}px ${MONO}`;
+  x.fillText('LOST IN RETURN', pad, h * .22 + 36 * S);
+  x.fillStyle = T.titleInk; x.font = `800 ${62 * S}px ${SERIF}`;
+  x.fillText(b.title, pad, h * .55);
+  x.fillStyle = `rgba(${T.sub},.45)`; x.font = `${18 * S}px ${SERIF}`;
+  x.fillText('번역 불가', pad, h * .615);
+  x.strokeStyle = A(.3); x.lineWidth = 1 * S;
+  x.beginPath(); x.moveTo(pad, h * .8); x.lineTo(pad + 96 * S, h * .8); x.stroke();
+  x.fillStyle = A(.6); x.font = `${14 * S}px ${MONO}`;
+  x.fillText(`VOL. ${no}`, pad, h * .8 + 34 * S);
 }
 
 function endpaper(x, w, h, S, b, tail) {
-  paper(x, w, h, '#d8cdb5');
+  const T = b.theme, D = a => `rgba(${T.endDim},${a})`;
+  paper(x, w, h, T.end);
   const pad = 128 * S;
   if (!tail) {
     const route = b.steps.slice(1).map(s => s[0]);
     const laps = [route.slice(0, 5), route.slice(5, 10), route.slice(10, 15)];
     x.textAlign = 'left';
-    x.fillStyle = 'rgba(96,84,66,.75)'; x.font = `${13 * S}px ${MONO}`;
+    x.fillStyle = D(.75); x.font = `${13 * S}px ${MONO}`;
     x.fillText(`VOL. ${String(vol + 1).padStart(2, '0')}`, pad, h * .3);
-    x.fillStyle = '#3a322a'; x.font = `700 ${38 * S}px ${SERIF}`;
+    x.fillStyle = T.endInk; x.font = `700 ${38 * S}px ${SERIF}`;
     x.fillText(b.title, pad, h * .36);
-    x.strokeStyle = 'rgba(96,84,66,.3)'; x.lineWidth = 1 * S;
+    x.strokeStyle = D(.3); x.lineWidth = 1 * S;
     x.beginPath(); x.moveTo(pad, h * .4); x.lineTo(w - pad, h * .4); x.stroke();
-    x.fillStyle = 'rgba(80,70,56,.8)'; x.font = `${14 * S}px ${MONO}`;
+    x.fillStyle = D(.85); x.font = `${14 * S}px ${MONO}`;
     laps.forEach((l, k) => x.fillText('KO → ' + l.join(' → '), pad, h * .47 + k * 30 * S));
-    x.fillStyle = 'rgba(80,70,56,.62)'; x.font = `${18 * S}px ${SERIF}`;
+    x.fillStyle = D(.7); x.font = `${18 * S}px ${SERIF}`;
     x.fillText('한 문장이 열두 나라 말을 거쳐', pad, h * .64);
     x.fillText('세 번 한국어로 돌아옵니다', pad, h * .64 + 32 * S);
     return;
   }
   x.textAlign = 'left';
-  x.fillStyle = 'rgba(96,84,66,.75)'; x.font = `${13 * S}px ${MONO}`;
+  x.fillStyle = D(.75); x.font = `${13 * S}px ${MONO}`;
   x.fillText('KO   처음 문장', pad, 128 * S);
-  x.fillStyle = '#332c25'; const fs = 25 * S;
+  x.fillStyle = T.endInk; const fs = 25 * S;
   x.font = `${fs}px ${SERIF}`;
   const lines = layout(x, tokenize(b.steps[0][2], 'KO', null), w - pad * 2);
   const lh = fs * 2.0;
   let y = h * .5 - lines.length * lh / 2;
   for (const ln of lines) { x.fillText(ln.map(t => t.t).join('').trim(), pad, y); y += lh; }
-  x.fillStyle = 'rgba(96,84,66,.6)'; x.font = `${12 * S}px ${MONO}`;
+  x.fillStyle = D(.6); x.font = `${12 * S}px ${MONO}`;
   x.fillText('덮으면 다음 권', pad, h - 118 * S);
 }
 
 function step(x, w, h, S, b, i) {
-  paper(x, w, h, '#e9e2d2');
+  const T = b.theme, D = a => `rgba(${T.dim},${a})`;
+  paper(x, w, h, T.page);
   const [code, name, text] = b.steps[i];
   const ko = code === 'KO';
   const src = b.steps[0][2];
@@ -355,13 +329,13 @@ function step(x, w, h, S, b, i) {
   const toks = tokenize(text, code, ko && i > 0 ? src : null);
 
   x.direction = 'ltr'; x.textAlign = 'left';
-  x.fillStyle = 'rgba(141,131,114,.95)'; x.font = `${13 * S}px ${MONO}`;
+  x.fillStyle = D(.95); x.font = `${13 * S}px ${MONO}`;
   x.fillText(code, pad, 126 * S);
-  x.fillStyle = 'rgba(141,131,114,.8)'; x.font = `${15 * S}px ${SERIF}`;
+  x.fillStyle = D(.8); x.font = `${15 * S}px ${SERIF}`;
   x.fillText(tag, pad + 48 * S, 126 * S);
   if (i > 0) {
     x.textAlign = 'right';
-    x.fillStyle = 'rgba(141,131,114,.5)'; x.font = `${12 * S}px ${MONO}`;
+    x.fillStyle = D(.5); x.font = `${12 * S}px ${MONO}`;
     x.fillText(LAPNAME[lap], w - pad, 126 * S);
     x.textAlign = 'left';
   }
@@ -377,7 +351,7 @@ function step(x, w, h, S, b, i) {
     fs -= 1 * S;
   }
   let y = h * .5 - lines.length * lh / 2 + lh * .35;
-  const base = '#2b2621', hot = LAPCOL[lap] || '#2b2621';
+  const base = T.ink, hot = T.lap[lap] || T.ink;
   for (const ln of lines) {
     if (rtl) {
       x.direction = 'rtl'; x.textAlign = 'right'; x.fillStyle = base;
@@ -395,7 +369,7 @@ function step(x, w, h, S, b, i) {
   }
 
   x.textAlign = 'center';
-  x.fillStyle = 'rgba(141,131,114,.55)'; x.font = `${12 * S}px ${MONO}`;
+  x.fillStyle = D(.55); x.font = `${12 * S}px ${MONO}`;
   x.fillText(String(i + 1).padStart(2, '0'), w / 2, h - 112 * S);
 }
 // ── 소리 ───────────────────────────────────────────────────────────────────
@@ -492,17 +466,27 @@ const bk = document.getElementById('bk');
 const hintEl = document.getElementById('hint');
 const dotsEl = document.getElementById('dots');
 
-let vol = 0, sheet = 0, closing = false;
+let vol = 0, sheet = 0, closing = false, landing = false;
 
-bk.pageColor = '#e9e2d2';
-bk.config = {
-  book: { fit: .64, perspective: 30, visibleSheets: 5 },
-  material: { metalness: .12, showThrough: .05, inkGloss: .3 },
-  cover: { color: '#ffffff', texture: 'fine', thickness: .026, overhang: .019, roughness: .58, grain: 1.3, bump: .42 },
-  light: { ambient: 1.35, sky: '#fff6e6', ground: '#3b3226', sun: 2.6, sunColor: '#ffeeD4', sunX: -2.4, sunY: 2.1, sunZ: 4.2, shadow: .22 },
-  curl: { curlArc: .92, angleMaxDeg: 42 },
-  flip: { flipTime: .95 },
-};
+function applyTheme() {
+  const T = BOOKS[vol].theme;
+  const r = document.documentElement.style;
+  r.setProperty('--gold', T.gold);
+  r.setProperty('--lamp', T.lamp);
+  T.desk.forEach((c, i) => r.setProperty(`--desk${i + 1}`, c));
+  bk.style.setProperty('--shutx', T.shutX);
+  bk.setAttribute('paper', T.paper);
+  bk.setAttribute('aspect', T.aspect);
+  bk.pageColor = T.page;
+  bk.config = {
+    book: { fit: T.fit, perspective: 30, visibleSheets: 5 },
+    material: { metalness: .12, showThrough: .05, inkGloss: .3 },
+    cover: { color: '#ffffff', ...T.cover },
+    light: T.light,
+    curl: { curlArc: .92, angleMaxDeg: 42 },
+    flip: { flipTime: .95 },
+  };
+}
 
 bk.renderPage = (i, { width, height }) => {
   const c = document.createElement('canvas');
@@ -535,7 +519,7 @@ bk.addEventListener('spread', e => {
   sheet = n;
   bk.classList.toggle('shut', n === 0);
   if (!closing) say();
-  if (closing && n === 0) land();
+  if (closing && !landing && n === 0) land();
 });
 
 // 마지막 장에서 누르면 책을 덮고 다음 권을 올린다
@@ -549,25 +533,31 @@ bk.addEventListener('pointerdown', e => {
 }, true);
 
 function shut() {
+  if (closing) return;
   closing = true;
   hintEl.style.opacity = 0;
   bk.jumpTo(0);
 }
 
 function land() {
+  landing = true;
   setTimeout(() => sound.shut(), 620);
   setTimeout(() => bk.classList.add('away'), 980);
   setTimeout(() => {
     vol = (vol + 1) % BOOKS.length;
-    for (let i = 0; i < PAGES; i++) bk.refreshPage(i);
     dots();
+    bk.addEventListener('ready', reveal, { once: true });
+    applyTheme();
+    setTimeout(reveal, 1600);   // ready 가 안 와도 책은 돌아온다
   }, 1540);
-  setTimeout(() => {
-    bk.classList.remove('away');
-    closing = false;
-    hintEl.style.opacity = 1;
-    say();
-  }, 1760);
+}
+
+function reveal() {
+  if (!landing) return;
+  landing = false; closing = false;
+  bk.classList.remove('away');
+  hintEl.style.opacity = 1;
+  say();
 }
 
 document.addEventListener('keydown', e => {
@@ -600,6 +590,7 @@ await document.fonts.ready;
 dots();
 say();
 bk.classList.add('shut');
+applyTheme();
 bk.pageCount = PAGES;
 </script>
 </body>
