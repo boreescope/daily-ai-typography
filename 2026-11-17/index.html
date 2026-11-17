@@ -6,7 +6,7 @@
 <title>번역 불가 — Lost in Return</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Noto+Sans+KR:wght@400;500&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -109,39 +109,48 @@ body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
   transition: opacity .7s ease;
 }
 .shelf.gone { opacity: 0; pointer-events: none; }
-.rack { display: flex; align-items: flex-end; gap: 5px; perspective: 1200px; }
+.rack { display: flex; align-items: flex-end; gap: 2px; perspective: 1400px; }
 .spine {
   position: relative; cursor: pointer;
   display: flex; flex-direction: column; align-items: center; justify-content: space-between;
-  padding: 26px 0 22px;
+  padding: 44px 0 40px;
+  background-size: 100% 100%;
   transform-origin: 50% 100%;
   transform: rotate(var(--lean, 0deg));
-  box-shadow:
-    0 22px 34px rgba(0,0,0,.55),
-    inset -12px 0 22px rgba(0,0,0,.4),
-    inset 11px 0 14px rgba(0,0,0,.28),
-    inset 2px 0 0 rgba(255,255,255,.07);
-  transition: transform .55s cubic-bezier(.32,.72,.3,1), box-shadow .5s;
+  filter: brightness(.94);
+  box-shadow: 0 18px 30px rgba(0,0,0,.6);
+  transition: transform .55s cubic-bezier(.32,.72,.3,1), filter .45s;
 }
-.spine::before {
-  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 9px;
-  background: linear-gradient(rgba(255,255,255,.14), rgba(0,0,0,.28));
+/* 전구빛이 왼쪽 위에서 떨어지는 결을 한 겹 더 얹는다 */
+.spine::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(104deg, rgba(255,226,170,.16) 0%, rgba(0,0,0,0) 46%, rgba(0,0,0,.34) 100%);
+  pointer-events: none;
 }
-.spine:hover { transform: translateY(-20px) rotate(calc(var(--lean, 0deg) - 1.4deg)); box-shadow: 0 36px 46px rgba(0,0,0,.6), inset -12px 0 22px rgba(0,0,0,.4); }
-.spine.out { transform: translateY(-52px) rotate(0deg) rotateY(-24deg) scale(1.12); }
-.spine .t { writing-mode: vertical-rl; font-size: 25px; font-weight: 800; letter-spacing: .14em; }
-.spine .n { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .2em; }
-.spine .rule { width: 34px; height: 1px; }
+.spine:hover { transform: translateY(-22px) rotate(calc(var(--lean, 0deg) - 1.2deg)); filter: brightness(1.1); }
+.spine.out { transform: translateY(-56px) rotate(0deg) rotateY(-22deg) scale(1.1); filter: brightness(1.14); }
+.spine > * { position: relative; z-index: 1; }
+.spine .t {
+  writing-mode: vertical-rl; font-size: 24px; font-weight: 700; letter-spacing: .16em;
+  text-shadow: 0 1px 1px rgba(0,0,0,.6), 0 -1px 0 rgba(255,255,255,.14);
+}
+.spine .n {
+  font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .2em;
+  text-shadow: 0 1px 1px rgba(0,0,0,.55);
+}
+.spine .rule { width: 34px; height: 1px; box-shadow: 0 1px 0 rgba(0,0,0,.5); }
 .board {
   position: relative;
-  width: 420px; height: 14px;
-  background: linear-gradient(#45372a 0 3px, #33281d 3px 9px, #1d160f 9px);
-  box-shadow: 0 20px 40px rgba(0,0,0,.66);
+  width: 460px; height: 26px;
+  background: url(il/board.jpg) center/cover;
+  box-shadow: 0 22px 44px rgba(0,0,0,.7), inset 0 2px 6px rgba(0,0,0,.45);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0, #000 7%, #000 93%, transparent 100%);
 }
 .board::before {
-  content: ''; position: absolute; left: 50%; top: -14px; transform: translateX(-50%);
-  width: 240px; height: 16px; border-radius: 50%;
-  background: rgba(0,0,0,.55); filter: blur(7px);
+  content: ''; position: absolute; left: 50%; top: -11px; transform: translateX(-50%);
+  width: 300px; height: 15px; border-radius: 50%;
+  background: rgba(0,0,0,.6); filter: blur(7px);
 }
 .shelf .say {
   margin-top: 46px;
@@ -158,48 +167,63 @@ body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
   opacity: 0; pointer-events: none; transition: opacity .55s ease;
 }
 .read.on { opacity: 1; pointer-events: auto; }
-.sbox {
-  width: min(1120px, 92vw); max-height: 86vh; overflow-y: auto;
-  padding: 46px 50px 36px;
-  box-shadow: 0 34px 80px rgba(0,0,0,.62);
+.sheet {
   transform: translateY(20px) scale(.985);
   transition: transform .55s cubic-bezier(.3,.8,.3,1);
 }
-.read.on .sbox { transform: none; }
-.sbox h4 {
-  font-family: 'Space Mono', monospace; font-weight: 400;
-  font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
-  margin-bottom: 15px;
+.read.on .sheet { transform: none; }
+.sbox {
+  display: flex; flex-direction: column;
+  width: min(1060px, 92vw); height: 84vh;
+  padding: 46px 60px 38px;
+  box-shadow: 0 34px 80px rgba(0,0,0,.62);
 }
-.sbox .two { display: grid; grid-template-columns: 1fr 1fr; gap: 42px; }
-.sbox p { font-size: 16px; line-height: 2.05; margin-bottom: 26px; }
+/* 난외 머리글 */
+.sbox .hd {
+  display: flex; justify-content: space-between;
+  font-family: 'Noto Sans KR', sans-serif; font-weight: 400;
+  font-size: 11px; letter-spacing: .06em;
+  padding-bottom: 11px; margin-bottom: 30px;
+  border-bottom: 1px solid;
+}
+.sbox .two {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 54px; align-content: start;
+}
+.sbox .two p { font-size: 15px; line-height: 1.9; text-align: justify; }
 .sbox p i { font-style: normal; }
-.sbox p sup { font-size: 9px; vertical-align: super; opacity: .75; margin-left: 1px; }
-.sbox .cut { height: 1px; margin-bottom: 26px; }
-.sbox .pairs {
-  list-style: none; margin-bottom: 26px;
-  columns: 2; column-gap: 42px;
+.sbox sup {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 9.5px; vertical-align: super; line-height: 0; margin-left: 1px;
 }
-.sbox .pairs li {
-  break-inside: avoid; display: flex; align-items: baseline; gap: 8px;
-  padding: 5px 0; font-size: 14.5px; line-height: 1.6;
-  border-bottom: 1px solid; border-color: inherit;
+/* 각주 — 짧은 각주선 아래 고딕으로, 번호순으로 이어 흐르게 */
+.sbox .fnrule { flex: none; width: 118px; height: 1px; margin: 26px 0 12px; }
+.sbox .fnlab {
+  flex: none;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 11px; letter-spacing: .1em; margin-bottom: 9px;
 }
-.sbox .pairs b { font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 400; min-width: 13px; }
-.sbox .pairs em { font-style: normal; }
-.sbox .end {
-  display: flex; align-items: center; justify-content: space-between; gap: 18px;
-  font-family: 'Space Mono', monospace;
-  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+.sbox .notes {
+  flex: none;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 12px; line-height: 1.95; text-indent: 0;
 }
-.sbox .end button {
-  margin-left: 8px; padding: 9px 17px; border-radius: 18px;
-  background: none; border: 1px solid; cursor: pointer;
-  font-family: 'Space Mono', monospace;
-  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
-  transition: opacity .3s;
+.sbox .notes span { margin-right: 1.9em; white-space: nowrap; }
+.sbox .notes sup { margin-right: 3px; }
+/* 책장 밖 — 조작 단추 */
+.tray {
+  display: flex; justify-content: flex-end; gap: 10px;
+  margin-top: 18px;
 }
-.sbox .end button:hover { opacity: .6; }
+.tray button {
+  padding: 9px 16px;
+  background: none; border: 1px solid rgba(196,180,152,.3); border-radius: 2px;
+  color: rgba(214,200,172,.72); cursor: pointer;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 11.5px; letter-spacing: .04em;
+  transition: color .3s, border-color .3s;
+}
+.tray button:hover { color: rgba(238,228,208,.95); border-color: rgba(214,198,166,.55); }
 </style>
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js" } }
@@ -220,7 +244,15 @@ body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
   <div class="say">두 권 중 하나를 꺼내세요</div>
 </div>
 
-<div class="read" id="read"><div class="sbox" id="sbox"></div></div>
+<div class="read" id="read">
+  <div class="sheet">
+    <div class="sbox" id="sbox"></div>
+    <div class="tray">
+      <button data-a="back">책으로 돌아가기</button>
+      <button data-a="shelf">덮고 책꽂이로</button>
+    </div>
+  </div>
+</div>
 
 <div class="bar">
   <span class="dots" id="dots"></span>
@@ -394,8 +426,33 @@ function layout(x, toks, max) {
   return lines;
 }
 
+let GRAIN = null;
+function grainTile() {
+  if (GRAIN) return GRAIN;
+  const n = 200, c = document.createElement('canvas');
+  c.width = c.height = n;
+  const g = c.getContext('2d'), d = g.createImageData(n, n);
+  for (let i = 0; i < n * n; i++) {
+    const v = Math.random() < .5 ? 0 : 255, j = i * 4;
+    d.data[j] = d.data[j + 1] = d.data[j + 2] = v;
+    d.data[j + 3] = 10 + Math.random() * 16;
+  }
+  g.putImageData(d, 0, 0);
+  return (GRAIN = c);
+}
+
+// 종이 올 — 잉크 위로 한 겹 덮어 지면이 비쳐 보이게 한다
+function grain(x, rx, ry, rw, rh, a) {
+  x.save();
+  x.globalAlpha = a;
+  x.fillStyle = x.createPattern(grainTile(), 'repeat');
+  x.fillRect(rx, ry, rw, rh);
+  x.restore();
+}
+
 function paper(x, w, h, tone) {
   x.fillStyle = tone; x.fillRect(0, 0, w, h);
+  grain(x, 0, 0, w, h, .5);
 }
 
 function plate(x, w, h, S, b, backSide) {
@@ -505,18 +562,21 @@ function illust(x, w, h, S, b, k) {
     const r = Math.min(boxW / im.naturalWidth, boxH / im.naturalHeight);
     const dw = im.naturalWidth * r, dh = im.naturalHeight * r;
     const dx = (w - dw) / 2, dy = top + (boxH - dh) / 2;
+    // 곱하기로 얹으면 그림의 흰 바탕이 사라지고 종이색이 그대로 비친다
+    x.save();
+    x.globalCompositeOperation = 'multiply';
     x.drawImage(im, dx, dy, dw, dh);
-    // 가장자리를 종이색으로 흐려 그림이 지면에 스며들게 한다
-    const f = 30 * S;
-    const edge = (gx0, gy0, gx1, gy1, rx, ry, rw, rh) => {
-      const g = x.createLinearGradient(gx0, gy0, gx1, gy1);
-      g.addColorStop(0, `rgba(${P},1)`); g.addColorStop(1, `rgba(${P},0)`);
-      x.fillStyle = g; x.fillRect(rx, ry, rw, rh);
-    };
-    edge(dx, 0, dx + f, 0, dx, dy, f, dh);
-    edge(dx + dw, 0, dx + dw - f, 0, dx + dw - f, dy, f, dh);
-    edge(0, dy, 0, dy + f, dx, dy, dw, f);
-    edge(0, dy + dh, 0, dy + dh - f, dx, dy + dh - f, dw, f);
+    // 잉크가 번지듯 한 번 더, 아주 옅게 어긋나게
+    x.globalAlpha = .18;
+    x.drawImage(im, dx + 1.2 * S, dy + .9 * S, dw, dh);
+    x.restore();
+    // 오래된 인쇄처럼 색을 한 꺼풀 죽인다
+    x.save();
+    x.globalAlpha = .13;
+    x.fillStyle = `rgb(${P})`;
+    x.fillRect(dx, dy, dw, dh);
+    x.restore();
+    grain(x, dx, dy, dw, dh, .75);
   }
 
   const cy = top + boxH + 52 * S;
@@ -786,18 +846,20 @@ function land() {
 const shelf = document.getElementById('shelf');
 const rack = document.getElementById('rack');
 const done = new Set();
-const SIZE = [[88, 408], [106, 364]];   // 두 권의 판형이 다르다
+// 책등은 실제 사진을 쓴다 — 사진 비율 그대로 폭을 잡는다
+const SIZE = [[118, 418], [100, 370]];
+// 천 위에 금박으로 찍은 글자 — 사진이 어두워서 테마색으로는 안 읽힌다
+const FOIL = ['236,214,166', '226,232,240'];
 
 function buildShelf() {
   rack.innerHTML = BOOKS.map((b, i) => {
     const T = b.theme, [w, h] = SIZE[i];
     return `<div class="spine" data-v="${i}" style="
-      width:${w}px; height:${h}px; --lean:${i ? '1.7deg' : '0deg'};
-      border-radius:${i ? '1px 7px 7px 1px' : '2px 5px 5px 2px'};
-      background:linear-gradient(100deg,${b.c1},${b.c2}); color:${T.titleInk};">
-      <span class="n" style="color:rgba(${T.accent},.72)">VOL. 0${i + 1}</span>
+      width:${w}px; height:${h}px; --lean:${i ? '1.6deg' : '0deg'};
+      background-image:url(il/sp${i + 1}.jpg); color:rgba(${FOIL[i]},.95);">
+      <span class="n" style="color:rgba(${FOIL[i]},.85)">VOL. 0${i + 1}</span>
       <span class="t">${b.title}</span>
-      <span class="rule" style="background:rgba(${T.accent},${done.has(i) ? .85 : .4});
+      <span class="rule" style="background:rgba(${FOIL[i]},${done.has(i) ? .9 : .62});
         width:${done.has(i) ? 54 : 30}px"></span>
     </div>`;
   }).join('');
@@ -845,31 +907,20 @@ function openRead() {
   sbox.style.background = T.page;
   sbox.style.color = T.ink;
   sbox.innerHTML = `
-    <div class="two">
-      <div>
-        <h4 style="color:rgba(${T.dim},.9)">KO &nbsp;&middot;&nbsp; 처음 문장</h4>
-        <p>${mark(b.steps[0][2], 0)}</p>
-      </div>
-      <div>
-        <h4 style="color:rgba(${T.dim},.9)">KO &nbsp;&middot;&nbsp; 열두 나라를 거쳐 돌아온 문장</h4>
-        <p>${mark(b.steps[15][2], 1)}</p>
-      </div>
+    <div class="hd" style="color:rgba(${T.dim},.75); border-color:rgba(${T.dim},.22)">
+      <span>처음 문장</span><span>열두 나라를 거쳐 돌아온 문장</span>
     </div>
-    <div class="cut" style="background:rgba(${T.dim},.26)"></div>
-    <h4 style="color:rgba(${T.dim},.9)">돌아오지 못한 말 ${pairs.length}</h4>
-    <ol class="pairs" style="border-color:rgba(${T.dim},.18)">
-      ${pairs.map((ph, n) => `<li><b style="color:rgba(${T.dim},.6)">${n + 1}</b>
-        <span>${esc(ph[0])}</span>
-        <em style="color:rgba(${T.dim},.5)">→</em>
-        <span style="color:${hot}">${esc(ph[1])}</span></li>`).join('')}
-    </ol>
-    <div class="end" style="color:rgba(${T.dim},.72)">
-      <span>한국어에만 있던 말이 모두 풀어 쓴 말로 돌아왔다</span>
-      <span>
-        <button data-a="back" style="border-color:rgba(${T.dim},.35);color:rgba(${T.dim},.9)">책으로</button>
-        <button data-a="shelf" style="border-color:${hot};color:${hot}">덮고 책꽂이로</button>
-      </span>
-    </div>`;
+    <div class="two">
+      <p>${mark(b.steps[0][2], 0)}</p>
+      <p>${mark(b.steps[15][2], 1)}</p>
+    </div>
+    <div class="fnrule" style="background:rgba(${T.dim},.4)"></div>
+    <div class="fnlab" style="color:rgba(${T.dim},.6)">역주</div>
+    <p class="notes" style="color:rgba(${T.dim},.9)">
+      ${pairs.map((ph, n) => `<span><sup>${n + 1}</sup>${esc(ph[0])}
+        <em style="font-style:normal;color:rgba(${T.dim},.45)">→</em>
+        <i style="font-style:normal;color:${hot}">${esc(ph[1])}</i></span>`).join('')}
+    </p>`;
   read.classList.add('on');
 }
 
