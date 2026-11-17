@@ -131,7 +131,8 @@ body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
 .spine.out { transform: translateY(-56px) rotate(0deg) rotateY(-22deg) scale(1.1); filter: brightness(1.14); }
 .spine > * { position: relative; z-index: 1; }
 .spine .t {
-  writing-mode: vertical-rl; font-size: 24px; font-weight: 700; letter-spacing: .16em;
+  writing-mode: vertical-rl; white-space: nowrap;
+  font-size: 21px; font-weight: 700; letter-spacing: .14em;
   text-shadow: 0 1px 1px rgba(0,0,0,.6), 0 -1px 0 rgba(255,255,255,.14);
 }
 .spine .n {
@@ -265,7 +266,7 @@ import 'https://cdn.jsdelivr.net/gh/cijjas/page-turn-book@405dd0e065f8aa720aebee
 // 두 권은 판형·종이·조명·먹 색이 모두 다르다
 const T0 = {
  paper: 'laid', aspect: 1.36, fit: .64,
- page: '#e9e2d2', end: '#d8cdb5', ink: '#2b2621',
+ page: '#f3eee1', end: '#ded4bd', ink: '#2b2621',
  dim: '141,131,114', endInk: '#3a322a', endDim: '96,84,66',
  accent: '198,167,99', titleInk: '#f2e8d6', sub: '214,198,166',
  cover: { texture: 'fine', thickness: .026, overhang: .019, roughness: .58, grain: 1.3, bump: .42 },
@@ -276,7 +277,7 @@ const T0 = {
 };
 const T1 = {
  paper: 'cotton', aspect: 1.2, fit: .62,
- page: '#f1ede3', end: '#dbdcd4', ink: '#262b32',
+ page: '#f8f5ee', end: '#e0e1da', ink: '#262b32',
  dim: '126,133,142', endInk: '#2b313a', endDim: '92,100,110',
  accent: '172,183,196', titleInk: '#eef1f5', sub: '190,201,213',
  cover: { texture: 'cotton', thickness: .016, overhang: .011, roughness: .74, grain: .7, bump: .55 },
@@ -288,7 +289,7 @@ const T1 = {
 
 const BOOKS = [
  {
-  title: '그 그릇', c1: '#5a4231', c2: '#33241a', theme: T0,
+  title: '정이 든 그릇', c1: '#5a4231', c2: '#33241a', theme: T0,
   steps: [
    ['KO', 'Korean', '어머니는 손이 커서 무얼 하든 두 배로 만들었다. 남은 건 그릇째 옆집으로 갔고, 그 그릇은 비어서 돌아오는 법이 없었다. 옆집 할머니와는 고운 정만 있던 사이였다. 땅 문제로 틀어지고부터 미운 정이 들었고, 그 말 한마디에 정이 뚝 떨어졌다. 어머니는 손이 매워서 한 번 맞으면 자국이 오래 갔다. 막내는 유난히 손이 많이 가는 아이였는데, 어머니는 끝내 그 애한테서 손을 떼지 못했다. 아버지는 펄펄 끓는 국물을 떠 넣고 시원하다고 했다. 문이 열릴 때마다 바람이 시원하게 들어왔다. 나는 벼르던 말을 꺼냈다. 뱉고 나니 속이 시원했다. 아버지는 시원하게 거절했다. 숟가락을 놓지도 않고. 옆집이 비고 나서야 손이 멈췄다. 든 정은 떼어낼 수가 없었다.'],
    ['EN', 'English', 'My mother was generous with her portions, always making double of whatever she prepared. Leftovers went next door, bowl and all, and those bowls never returned empty. She and the old woman next door once shared only warm affection. After falling out over a land dispute, a love-hate bond took hold, and with just that single remark, all feeling completely vanished. My mother had a stinging slap, so once hit, the mark lingered for a long time. The youngest was a child who required an unusual amount of care, but Mother could never bring herself to let go of him. Father scooped up piping hot soup and declared it refreshing. Every time the door opened, a cool breeze blew in. I finally said the words I had been waiting to say. Spitting them out brought a sense of relief. Father flatly rejected me without even putting down his spoon. Only after the house next door became empty did her hands finally stop. The attachment that had taken root could never be severed.'],
@@ -309,7 +310,7 @@ const BOOKS = [
   ],
  },
  {
-  title: '다섯 통', c1: '#2d3a50', c2: '#18202f', theme: T1,
+  title: '눈에 밟힌 아이', c1: '#2d3a50', c2: '#18202f', theme: T1,
   steps: [
    ['KO', 'Korean', '그 애는 눈이 높아서 서른이 넘도록 혼자였다. 돈 앞에서 눈이 뒤집힌 사람들만 보고 자란 탓이라고 했다. 눈치가 없다는 말도 자주 들었다. 번번이 분위기를 깼다. 인사도 없이 떠난 게 섭섭했다. 마지막까지 내 이름을 부르지 않은 것이 서운했다. 조금만 더 붙잡아볼 걸 그랬다. 그렇게 보내기엔 너무 아까운 애였다. 우리 엄마는 그날도 김치를 다섯 통 담갔다. 혼자 먹을 것도 아니면서. 우리 집은 언덕 끝이라 그걸 이고 오르면 숨이 찼다. 우리 남편은 그런 건 못 먹는다고 했다. 그래도 우리 애는 잘 먹는다고, 엄마는 한 통을 더 쌌다. 그 애가 떠나고, 마당의 감나무가 한참 눈에 밟혔다.'],
    ['EN', 'English', 'She had high standards, so she remained single well past thirty. She said it was because she grew up seeing only people who lost their minds over money. She was often told she lacked tact, too. She ruined the mood time after time. I felt hurt that she left without even saying goodbye. It pained me that she didn\'t call my name even at the very end. I should have tried to hold onto her just a little longer. She was too precious a person to let go like that. Even on that day, my mother made five containers of kimchi. It wasn\'t as if she were going to eat them all herself. Since our house was at the top of a hill, carrying them up left her out of breath. My husband said he couldn\'t eat stuff like that. Still, saying my child eats it well, my mother packed one more container. After she left, the persimmon tree in the yard lingered in my mind for a long time.'],
@@ -342,12 +343,12 @@ const LAST = 11;           // 마지막 펼침의 sheet 번호
 const IL = [
   [['원문', '어머니는 손이 커서 무얼 하든 두 배로 만들었다'],
    ['첫 번째 바퀴', '아버지는 뜨거운 국을 한 숟가락 떠 드시고는 "아, 시원하다"라고 말씀하셨다'],
-   ['두 번째 바퀴', '막내아들은 어머니에게 유독 큰 슬픔을 안겨주었다'],
-   ['세 번째 바퀴', '그 모든 감정들이 마치 처음부터 없었던 것처럼 사라져 버렸다']],
-  [['원문', '우리 집은 언덕 끝이라 그걸 이고 오르면 숨이 찼다'],
-   ['첫 번째 바퀴', '작별 인사조차 없이 떠난 그녀의 모습에 나는 슬픔을 느꼈다'],
-   ['두 번째 바퀴', '엄마는 딸이 맛있게 먹는다며 한 그릇을 넘치도록 더 채워주었다'],
-   ['세 번째 바퀴', '어머니가 떠나신 후, 마당에 있던 감나무는 오래도록 내 마음에 깊은 여운을 남겼다']],
+   ['두 번째 바퀴', '무슨 일이 있어도 어머니는 그를 결코 포기하지 못하셨다'],
+   ['세 번째 바퀴', '그 뿌리 깊은 인연은 끊으려야 끊을 수 없는 것이었다']],
+  [['원문', '그 애는 눈이 높아서 서른이 넘도록 혼자였다'],
+   ['첫 번째 바퀴', '언덕 꼭대기까지 그 짐들을 옮기는 동안 엄마는 쉼 없이 숨을 헐떡였다'],
+   ['두 번째 바퀴', '그가 작별 인사조차 하지 않고 떠나버렸을 때 나는 깊은 슬픔을 느꼈다'],
+   ['세 번째 바퀴', '엄마가 떠난 후, 마당의 감나무는 오랫동안 내 마음에 깊이 남아 있었다']],
 ];
 // 원문에 있던 말 → 열두 나라를 돌아온 뒤의 말
 const LOST = [
@@ -385,8 +386,10 @@ const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',');
 
 function loadPics() {
   const jobs = [];
-  for (let v = 0; v < 2; v++) for (let k = 0; k < 4; k++) {
-    const key = `v${v + 1}-${k}`;
+  const keys = [];
+  for (let v = 0; v < 2; v++) for (let k = 0; k < 4; k++) keys.push(`v${v + 1}-${k}`);
+  keys.push('cl1', 'cl2');
+  for (const key of keys) {
     const im = new Image();
     jobs.push(new Promise(r => { im.onload = im.onerror = r; }));
     im.src = `il/${key}.jpg`;
@@ -460,6 +463,16 @@ function plate(x, w, h, S, b, backSide) {
   const g = x.createLinearGradient(0, 0, w * .25, h);
   g.addColorStop(0, b.c1); g.addColorStop(1, b.c2);
   x.fillStyle = g; x.fillRect(0, 0, w, h);
+  const cloth = PICS[`cl${vol + 1}`];
+  if (cloth && cloth.naturalWidth) {
+    const pt = x.createPattern(cloth, 'repeat');
+    pt.setTransform(new DOMMatrix().scale(.46 * S));
+    x.save();
+    x.globalCompositeOperation = 'luminosity';
+    x.globalAlpha = .5;
+    x.fillStyle = pt; x.fillRect(0, 0, w, h);
+    x.restore();
+  }
   const no = String(vol + 1).padStart(2, '0');
 
   if (T.face === 'frame') {
@@ -551,7 +564,7 @@ function wrapPlain(x, str, max) {
 }
 
 function illust(x, w, h, S, b, k) {
-  const T = b.theme, D = a => `rgba(${T.dim},${a})`, P = rgb(T.page);
+  const T = b.theme, D = a => `rgba(${T.dim},${a})`;
   paper(x, w, h, T.page);
   const [tag, quote] = IL[vol][k];
   const im = PICS[`v${vol + 1}-${k}`];
@@ -570,13 +583,6 @@ function illust(x, w, h, S, b, k) {
     x.globalAlpha = .18;
     x.drawImage(im, dx + 1.2 * S, dy + .9 * S, dw, dh);
     x.restore();
-    // 오래된 인쇄처럼 색을 한 꺼풀 죽인다
-    x.save();
-    x.globalAlpha = .13;
-    x.fillStyle = `rgb(${P})`;
-    x.fillRect(dx, dy, dw, dh);
-    x.restore();
-    grain(x, dx, dy, dw, dh, .75);
   }
 
   const cy = top + boxH + 52 * S;
@@ -847,7 +853,7 @@ const shelf = document.getElementById('shelf');
 const rack = document.getElementById('rack');
 const done = new Set();
 // 책등은 실제 사진을 쓴다 — 사진 비율 그대로 폭을 잡는다
-const SIZE = [[118, 418], [100, 370]];
+const SIZE = [[96, 472], [76, 424]];
 // 천 위에 금박으로 찍은 글자 — 사진이 어두워서 테마색으로는 안 읽힌다
 const FOIL = ['236,214,166', '226,232,240'];
 
