@@ -98,6 +98,108 @@ page-turn-book.shut { transform: translateX(var(--shutx, -15.2%)); }
 #snd:hover { border-color: rgba(198,167,99,.6); color: var(--gold); }
 
 body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
+
+/* 책꽂이 */
+.shelf {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background:
+    radial-gradient(44% 50% at 50% 44%, rgba(232,200,142,.26) 0%, rgba(0,0,0,0) 70%),
+    radial-gradient(140% 100% at 50% 50%, #241e17 0%, #17130f 58%, #0d0b09 100%);
+  transition: opacity .7s ease;
+}
+.shelf.gone { opacity: 0; pointer-events: none; }
+.rack { display: flex; align-items: flex-end; gap: 5px; perspective: 1200px; }
+.spine {
+  position: relative; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 26px 0 22px;
+  transform-origin: 50% 100%;
+  transform: rotate(var(--lean, 0deg));
+  box-shadow:
+    0 22px 34px rgba(0,0,0,.55),
+    inset -12px 0 22px rgba(0,0,0,.4),
+    inset 11px 0 14px rgba(0,0,0,.28),
+    inset 2px 0 0 rgba(255,255,255,.07);
+  transition: transform .55s cubic-bezier(.32,.72,.3,1), box-shadow .5s;
+}
+.spine::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 0; height: 9px;
+  background: linear-gradient(rgba(255,255,255,.14), rgba(0,0,0,.28));
+}
+.spine:hover { transform: translateY(-20px) rotate(calc(var(--lean, 0deg) - 1.4deg)); box-shadow: 0 36px 46px rgba(0,0,0,.6), inset -12px 0 22px rgba(0,0,0,.4); }
+.spine.out { transform: translateY(-52px) rotate(0deg) rotateY(-24deg) scale(1.12); }
+.spine .t { writing-mode: vertical-rl; font-size: 25px; font-weight: 800; letter-spacing: .14em; }
+.spine .n { font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: .2em; }
+.spine .rule { width: 34px; height: 1px; }
+.board {
+  position: relative;
+  width: 420px; height: 14px;
+  background: linear-gradient(#45372a 0 3px, #33281d 3px 9px, #1d160f 9px);
+  box-shadow: 0 20px 40px rgba(0,0,0,.66);
+}
+.board::before {
+  content: ''; position: absolute; left: 50%; top: -14px; transform: translateX(-50%);
+  width: 240px; height: 16px; border-radius: 50%;
+  background: rgba(0,0,0,.55); filter: blur(7px);
+}
+.shelf .say {
+  margin-top: 46px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: rgba(214,198,166,.34);
+}
+
+/* 마지막 펼침을 크게 */
+.read {
+  position: fixed; inset: 0; z-index: 260;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(9,7,5,.74);
+  opacity: 0; pointer-events: none; transition: opacity .55s ease;
+}
+.read.on { opacity: 1; pointer-events: auto; }
+.sbox {
+  width: min(1120px, 92vw); max-height: 86vh; overflow-y: auto;
+  padding: 46px 50px 36px;
+  box-shadow: 0 34px 80px rgba(0,0,0,.62);
+  transform: translateY(20px) scale(.985);
+  transition: transform .55s cubic-bezier(.3,.8,.3,1);
+}
+.read.on .sbox { transform: none; }
+.sbox h4 {
+  font-family: 'Space Mono', monospace; font-weight: 400;
+  font-size: 10px; letter-spacing: .22em; text-transform: uppercase;
+  margin-bottom: 15px;
+}
+.sbox .two { display: grid; grid-template-columns: 1fr 1fr; gap: 42px; }
+.sbox p { font-size: 16px; line-height: 2.05; margin-bottom: 26px; }
+.sbox p i { font-style: normal; }
+.sbox p sup { font-size: 9px; vertical-align: super; opacity: .75; margin-left: 1px; }
+.sbox .cut { height: 1px; margin-bottom: 26px; }
+.sbox .pairs {
+  list-style: none; margin-bottom: 26px;
+  columns: 2; column-gap: 42px;
+}
+.sbox .pairs li {
+  break-inside: avoid; display: flex; align-items: baseline; gap: 8px;
+  padding: 5px 0; font-size: 14.5px; line-height: 1.6;
+  border-bottom: 1px solid; border-color: inherit;
+}
+.sbox .pairs b { font-family: 'Space Mono', monospace; font-size: 9px; font-weight: 400; min-width: 13px; }
+.sbox .pairs em { font-style: normal; }
+.sbox .end {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+}
+.sbox .end button {
+  margin-left: 8px; padding: 9px 17px; border-radius: 18px;
+  background: none; border: 1px solid; cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  transition: opacity .3s;
+}
+.sbox .end button:hover { opacity: .6; }
 </style>
 <script type="importmap">
 { "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js" } }
@@ -111,6 +213,14 @@ body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
 <div class="head">번역 불가<b>Lost in Return</b></div>
 <a href="../index.html" class="home-btn">←</a>
 <button id="snd">♪</button>
+
+<div class="shelf" id="shelf">
+  <div class="rack" id="rack"></div>
+  <div class="board"></div>
+  <div class="say">두 권 중 하나를 꺼내세요</div>
+</div>
+
+<div class="read" id="read"><div class="sbox" id="sbox"></div></div>
 
 <div class="bar">
   <span class="dots" id="dots"></span>
@@ -193,8 +303,65 @@ const LAPNAME = ['', '첫 번째 바퀴', '두 번째 바퀴', '세 번째 바�
 const SERIF = '"Nanum Myeongjo","Noto Serif KR",serif';
 const MONO  = '"Space Mono","Courier New",monospace';
 const SEG = { ZH: 'zh', JA: 'ja', TH: 'th' };
-const PAGES = 20;          // 표지 2 + 속지 2 + 본문 16
-const LAST = 9;            // 마지막 펼침의 sheet 번호
+const PAGES = 24;          // 표지 2 + 속지 2 + 본문 16 + 그림 4
+const LAST = 11;           // 마지막 펼침의 sheet 번호
+
+// 그림은 그 시점의 한국어를 보고 그렸다
+const IL = [
+  [['원문', '어머니는 손이 커서 무얼 하든 두 배로 만들었다'],
+   ['첫 번째 바퀴', '아버지는 뜨거운 국을 한 숟가락 떠 드시고는 "아, 시원하다"라고 말씀하셨다'],
+   ['두 번째 바퀴', '막내아들은 어머니에게 유독 큰 슬픔을 안겨주었다'],
+   ['세 번째 바퀴', '그 모든 감정들이 마치 처음부터 없었던 것처럼 사라져 버렸다']],
+  [['원문', '우리 집은 언덕 끝이라 그걸 이고 오르면 숨이 찼다'],
+   ['첫 번째 바퀴', '작별 인사조차 없이 떠난 그녀의 모습에 나는 슬픔을 느꼈다'],
+   ['두 번째 바퀴', '엄마는 딸이 맛있게 먹는다며 한 그릇을 넘치도록 더 채워주었다'],
+   ['세 번째 바퀴', '어머니가 떠나신 후, 마당에 있던 감나무는 오래도록 내 마음에 깊은 여운을 남겼다']],
+];
+// 원문에 있던 말 → 열두 나라를 돌아온 뒤의 말
+const LOST = [
+  [['손이 커서', '정이 많으셔서'],
+   ['고운 정만 있던 사이였다', '사이가 매우 가까웠다'],
+   ['미운 정이 들었고', '애증의 관계가 생겨났지만'],
+   ['정이 뚝 떨어졌다', '마치 처음부터 없었던 것처럼 사라져 버렸다'],
+   ['손이 매워서', '손매가 매서우셔서'],
+   ['손이 많이 가는 아이', '헤아릴 수 없는 고통을 안겨주었'],
+   ['손을 떼지 못했다', '저버리지 못하셨다'],
+   ['펄펄 끓는 국물', '뜨거운 국'],
+   ['시원하다고 했다', '몸이 훈훈해진다고 말씀하셨다'],
+   ['바람이 시원하게 들어왔다', '차가운 공기가 안으로 밀려들어왔다'],
+   ['속이 시원했다', '커다란 안도감이 들었다'],
+   ['시원하게 거절했다', '단호하게 거절하셨다'],
+   ['손이 멈췄다', '비로소 끝이 났다'],
+   ['든 정은 떼어낼 수가 없었다', '깊은 관계는 아무리 끊어내려 해도 끊을 수 없는']],
+  [['그 애는', '그는'],
+   ['혼자였다', '아직 결혼하지 않았다'],
+   ['눈이 뒤집힌', '괴로워하는'],
+   ['눈치가 없다는 말도 자주 들었다', '타인의 감정에는 전혀 신경 쓰지 않으며'],
+   ['섭섭했다', '말로 다 할 수 없는 아픔을 느꼈다'],
+   ['서운했다', '내 마음을 완전히 찢어놓았다'],
+   ['너무 아까운 애였다', '너무나 소중한 사람이었다'],
+   ['우리 엄마는', '그날 어머니는'],
+   ['숨이 찼다', '가쁜 숨을 내쉬셨다'],
+   ['우리 남편은', '남편은'],
+   ['우리 애는 잘 먹는다고', '딸이 이 음식을 아주 좋아한다며'],
+   ['한 통을 더 쌌다', '그릇에 음식을 가득 담아주셨다'],
+   ['그 애가 떠나고', '어머니가 떠나신 후'],
+   ['눈에 밟혔다', '깊은 여운을 남겼다']],
+];
+const PICS = {};
+const rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(',');
+
+function loadPics() {
+  const jobs = [];
+  for (let v = 0; v < 2; v++) for (let k = 0; k < 4; k++) {
+    const key = `v${v + 1}-${k}`;
+    const im = new Image();
+    jobs.push(new Promise(r => { im.onload = im.onerror = r; }));
+    im.src = `il/${key}.jpg`;
+    PICS[key] = im;
+  }
+  return Promise.all(jobs);
+}
 
 const bare = s => s.replace(/[.,·…"'’“”!?。，、！？]/g, '');
 const same = (a, b) => a.length > 1 && b.length > 1 && a.slice(0, 2) === b.slice(0, 2);
@@ -314,6 +481,55 @@ function endpaper(x, w, h, S, b, tail) {
   for (const ln of lines) { x.fillText(ln.map(t => t.t).join('').trim(), pad, y); y += lh; }
   x.fillStyle = D(.6); x.font = `${12 * S}px ${MONO}`;
   x.fillText('덮으면 다음 권', pad, h - 118 * S);
+}
+
+function wrapPlain(x, str, max) {
+  const out = []; let line = '';
+  for (const ch of str) {
+    if (line && x.measureText(line + ch).width > max) { out.push(line); line = ch === ' ' ? '' : ch; }
+    else line += ch;
+  }
+  if (line) out.push(line);
+  return out;
+}
+
+function illust(x, w, h, S, b, k) {
+  const T = b.theme, D = a => `rgba(${T.dim},${a})`, P = rgb(T.page);
+  paper(x, w, h, T.page);
+  const [tag, quote] = IL[vol][k];
+  const im = PICS[`v${vol + 1}-${k}`];
+  const pad = 92 * S, top = 96 * S;
+  const boxW = w - pad * 2, boxH = h * .665;
+
+  if (im && im.naturalWidth) {
+    const r = Math.min(boxW / im.naturalWidth, boxH / im.naturalHeight);
+    const dw = im.naturalWidth * r, dh = im.naturalHeight * r;
+    const dx = (w - dw) / 2, dy = top + (boxH - dh) / 2;
+    x.drawImage(im, dx, dy, dw, dh);
+    // 가장자리를 종이색으로 흐려 그림이 지면에 스며들게 한다
+    const f = 30 * S;
+    const edge = (gx0, gy0, gx1, gy1, rx, ry, rw, rh) => {
+      const g = x.createLinearGradient(gx0, gy0, gx1, gy1);
+      g.addColorStop(0, `rgba(${P},1)`); g.addColorStop(1, `rgba(${P},0)`);
+      x.fillStyle = g; x.fillRect(rx, ry, rw, rh);
+    };
+    edge(dx, 0, dx + f, 0, dx, dy, f, dh);
+    edge(dx + dw, 0, dx + dw - f, 0, dx + dw - f, dy, f, dh);
+    edge(0, dy, 0, dy + f, dx, dy, dw, f);
+    edge(0, dy + dh, 0, dy + dh - f, dx, dy + dh - f, dw, f);
+  }
+
+  const cy = top + boxH + 52 * S;
+  x.textAlign = 'center';
+  x.strokeStyle = D(.3); x.lineWidth = 1 * S;
+  x.beginPath(); x.moveTo(w / 2 - 26 * S, cy - 34 * S); x.lineTo(w / 2 + 26 * S, cy - 34 * S); x.stroke();
+  x.fillStyle = D(.7); x.font = `${12 * S}px ${MONO}`;
+  x.fillText(tag, w / 2, cy);
+  const fs = 19 * S;
+  x.font = `${fs}px ${SERIF}`;
+  x.fillStyle = T.ink;
+  wrapPlain(x, quote, w - pad * 2.2).forEach((ln, i) => x.fillText(ln, w / 2, cy + (34 + i * 30) * S));
+  x.textAlign = 'left';
 }
 
 function step(x, w, h, S, b, i) {
@@ -466,7 +682,7 @@ const bk = document.getElementById('bk');
 const hintEl = document.getElementById('hint');
 const dotsEl = document.getElementById('dots');
 
-let vol = 0, sheet = 0, closing = false, landing = false;
+let vol = 0, sheet = 0, closing = false, landing = false, shown = false;
 
 function applyTheme() {
   const T = BOOKS[vol].theme;
@@ -495,16 +711,23 @@ bk.renderPage = (i, { width, height }) => {
   const S = width / 896, b = BOOKS[vol];
   x.textBaseline = 'alphabetic';
   if (i === 0) plate(x, width, height, S, b, false);
+  else if (i === 23) plate(x, width, height, S, b, true);
   else if (i === 1) endpaper(x, width, height, S, b, false);
-  else if (i === 18) endpaper(x, width, height, S, b, true);
-  else if (i === 19) plate(x, width, height, S, b, true);
-  else step(x, width, height, S, b, i - 2);
+  else if (i === 22) endpaper(x, width, height, S, b, true);
+  else if (i === 3) illust(x, width, height, S, b, 0);
+  else if (i === 9) illust(x, width, height, S, b, 1);
+  else if (i === 15) illust(x, width, height, S, b, 2);
+  else if (i === 21) illust(x, width, height, S, b, 3);
+  else if (i === 2) step(x, width, height, S, b, 0);
+  else if (i <= 8) step(x, width, height, S, b, i - 3);
+  else if (i <= 14) step(x, width, height, S, b, i - 4);
+  else step(x, width, height, S, b, i - 5);
   return c;
 };
 
 function say() {
   hintEl.textContent = sheet === 0 ? '표지를 누르면 책이 열려요'
-    : sheet >= LAST ? '누르면 책을 덮고 다음 권'
+    : sheet >= LAST ? '누르면 두 문장을 나란히 크게'
     : '오른쪽을 누르면 다음 장';
 }
 
@@ -520,15 +743,17 @@ bk.addEventListener('spread', e => {
   bk.classList.toggle('shut', n === 0);
   if (!closing) say();
   if (closing && !landing && n === 0) land();
+  if (!closing && n >= LAST && !shown) { shown = true; setTimeout(openRead, 900); }
+  if (n < LAST) shown = false;
 });
 
-// 마지막 장에서 누르면 책을 덮고 다음 권을 올린다
+// 마지막 장에서 누르면 처음 문장과 돌아온 문장을 크게 펼친다
 bk.addEventListener('pointerdown', e => {
   sound.kick();
   if (closing) { e.stopPropagation(); e.preventDefault(); return; }
   if (sheet >= LAST) {
     e.stopPropagation(); e.preventDefault();
-    shut();
+    openRead();
   }
 }, true);
 
@@ -539,35 +764,134 @@ function shut() {
   bk.jumpTo(0);
 }
 
+// 덮으면 책꽂이로 돌아간다
 function land() {
   landing = true;
-  setTimeout(() => sound.shut(), 620);
-  setTimeout(() => bk.classList.add('away'), 980);
+  setTimeout(() => sound.shut(), 600);
+  setTimeout(() => bk.classList.add('away'), 940);
   setTimeout(() => {
-    vol = (vol + 1) % BOOKS.length;
-    dots();
-    bk.addEventListener('ready', reveal, { once: true });
-    applyTheme();
-    setTimeout(reveal, 1600);   // ready 가 안 와도 책은 돌아온다
-  }, 1540);
+    done.add(vol);
+    buildShelf();
+    shelf.style.display = '';
+    shelf.offsetHeight;
+    shelf.classList.remove('gone');
+    landing = false; closing = false; shown = false;
+    bk.classList.remove('away');
+    hintEl.style.opacity = 1;
+    say();
+  }, 1460);
 }
 
-function reveal() {
-  if (!landing) return;
-  landing = false; closing = false;
-  bk.classList.remove('away');
-  hintEl.style.opacity = 1;
-  say();
+// ── 책꽂이 ─────────────────────────────────────────────────────────────────
+const shelf = document.getElementById('shelf');
+const rack = document.getElementById('rack');
+const done = new Set();
+const SIZE = [[88, 408], [106, 364]];   // 두 권의 판형이 다르다
+
+function buildShelf() {
+  rack.innerHTML = BOOKS.map((b, i) => {
+    const T = b.theme, [w, h] = SIZE[i];
+    return `<div class="spine" data-v="${i}" style="
+      width:${w}px; height:${h}px; --lean:${i ? '1.7deg' : '0deg'};
+      border-radius:${i ? '1px 7px 7px 1px' : '2px 5px 5px 2px'};
+      background:linear-gradient(100deg,${b.c1},${b.c2}); color:${T.titleInk};">
+      <span class="n" style="color:rgba(${T.accent},.72)">VOL. 0${i + 1}</span>
+      <span class="t">${b.title}</span>
+      <span class="rule" style="background:rgba(${T.accent},${done.has(i) ? .85 : .4});
+        width:${done.has(i) ? 54 : 30}px"></span>
+    </div>`;
+  }).join('');
 }
+
+rack.addEventListener('click', e => {
+  const sp = e.target.closest('.spine');
+  if (!sp || closing || landing) return;
+  sound.kick(); sound.page(.75);
+  vol = +sp.dataset.v;
+  sp.classList.add('out');
+  dots();
+  applyTheme();
+  sheet = 0;
+  bk.classList.add('shut');
+  say();
+  setTimeout(() => shelf.classList.add('gone'), 420);
+  setTimeout(() => { shelf.style.display = 'none'; }, 1150);
+});
+
+// ── 마지막 펼침을 크게 ─────────────────────────────────────────────────────
+const read = document.getElementById('read');
+const sbox = document.getElementById('sbox');
+const esc = t => t.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+
+function openRead() {
+  const b = BOOKS[vol], T = b.theme, pairs = LOST[vol];
+  const hot = T.lap[3];
+  const mark = (text, side) => {
+    const hits = [];
+    pairs.forEach((ph, n) => {
+      const i = text.indexOf(ph[side]);
+      if (i >= 0 && !hits.some(h => i < h.e && i + ph[side].length > h.s))
+        hits.push({ s: i, e: i + ph[side].length, n });
+    });
+    hits.sort((a, c) => a.s - c.s);
+    let out = '', p = 0;
+    for (const h of hits) {
+      out += esc(text.slice(p, h.s));
+      out += `<i style="color:${hot}">${esc(text.slice(h.s, h.e))}<sup>${h.n + 1}</sup></i>`;
+      p = h.e;
+    }
+    return out + esc(text.slice(p));
+  };
+  sbox.style.background = T.page;
+  sbox.style.color = T.ink;
+  sbox.innerHTML = `
+    <div class="two">
+      <div>
+        <h4 style="color:rgba(${T.dim},.9)">KO &nbsp;&middot;&nbsp; 처음 문장</h4>
+        <p>${mark(b.steps[0][2], 0)}</p>
+      </div>
+      <div>
+        <h4 style="color:rgba(${T.dim},.9)">KO &nbsp;&middot;&nbsp; 열두 나라를 거쳐 돌아온 문장</h4>
+        <p>${mark(b.steps[15][2], 1)}</p>
+      </div>
+    </div>
+    <div class="cut" style="background:rgba(${T.dim},.26)"></div>
+    <h4 style="color:rgba(${T.dim},.9)">돌아오지 못한 말 ${pairs.length}</h4>
+    <ol class="pairs" style="border-color:rgba(${T.dim},.18)">
+      ${pairs.map((ph, n) => `<li><b style="color:rgba(${T.dim},.6)">${n + 1}</b>
+        <span>${esc(ph[0])}</span>
+        <em style="color:rgba(${T.dim},.5)">→</em>
+        <span style="color:${hot}">${esc(ph[1])}</span></li>`).join('')}
+    </ol>
+    <div class="end" style="color:rgba(${T.dim},.72)">
+      <span>한국어에만 있던 말이 모두 풀어 쓴 말로 돌아왔다</span>
+      <span>
+        <button data-a="back" style="border-color:rgba(${T.dim},.35);color:rgba(${T.dim},.9)">책으로</button>
+        <button data-a="shelf" style="border-color:${hot};color:${hot}">덮고 책꽂이로</button>
+      </span>
+    </div>`;
+  read.classList.add('on');
+}
+
+read.addEventListener('click', e => {
+  const btn = e.target.closest('button');
+  e.stopPropagation();
+  if (!btn) { if (e.target === read) read.classList.remove('on'); return; }
+  sound.kick();
+  read.classList.remove('on');
+  if (btn.dataset.a === 'shelf') shut();
+});
 
 document.addEventListener('keydown', e => {
+  if (e.code === 'Escape') { read.classList.remove('on'); return; }
+  if (!shelf.classList.contains('gone')) return;
   if (e.code === 'Space' || e.code === 'ArrowRight') {
     e.preventDefault(); sound.kick();
-    if (closing) return;
-    if (sheet >= LAST) shut(); else bk.next();
+    if (closing || read.classList.contains('on')) return;
+    if (sheet >= LAST) openRead(); else bk.next();
   } else if (e.code === 'ArrowLeft') {
     e.preventDefault();
-    if (!closing && sheet > 0) bk.prev();
+    if (!closing && sheet > 0) { read.classList.remove('on'); bk.prev(); }
   }
 });
 
@@ -587,8 +911,11 @@ await document.fonts.load(`400 26px "Nanum Myeongjo"`);
 await document.fonts.load(`400 14px "Space Mono"`);
 await document.fonts.ready;
 
+await loadPics();
+
 dots();
 say();
+buildShelf();
 bk.classList.add('shut');
 applyTheme();
 bk.pageCount = PAGES;
