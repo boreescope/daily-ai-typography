@@ -6,246 +6,582 @@
 <title>번역 불가 — Lost in Return</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #15171a; }
-  body { cursor: pointer; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-  .home-btn, .snd {
-    position: fixed; top: 20px; z-index: 20;
-    padding: 7px 13px;
-    background: rgba(28,31,35,.6);
-    border: 1px solid rgba(150,146,136,.26);
-    color: #8d8a80;
-    font: 700 10px/1 'Space Mono', monospace;
-    letter-spacing: .14em; text-decoration: none;
-    user-select: none;
-    transition: color .2s, border-color .2s;
-  }
-  .home-btn { left: 20px; }
-  .snd { right: 20px; }
-  .home-btn:hover, .snd:hover { color: #e3dcce; border-color: rgba(227,220,206,.5); }
+:root {
+  --paper:  #e9e2d2;
+  --paper2: #ddd4c0;
+  --ink:    #2b2621;
+  --faint:  #8d8372;
+  --red:    #a8402a;
+  --gold:   #c6a763;
+}
 
-  /* 위에 걸어두는 원문 */
-  .src {
-    position: fixed; left: 0; right: 0; top: 0; z-index: 12;
-    padding: 62px 7vw 18px;
-    background: linear-gradient(to bottom, #15171a 58%, rgba(21,23,26,0));
-    text-align: center;
-  }
-  .src .tag {
-    display: block; margin-bottom: 9px;
-    color: rgba(150,146,136,.55);
-    font: 700 9px/1 'Space Mono', monospace; letter-spacing: .22em;
-  }
-  .src .txt {
-    color: rgba(222,215,200,.62);
-    font: 400 15px/1.75 'Nanum Myeongjo', serif;
-    letter-spacing: .01em;
-  }
+html, body { height: 100%; overflow: hidden; }
 
-  /* 흘러가는 번역 */
-  .stage {
-    position: absolute; inset: 0;
-    -webkit-mask-image: linear-gradient(to bottom, transparent 13%, #000 27%, #000 88%, transparent 98%);
-            mask-image: linear-gradient(to bottom, transparent 13%, #000 27%, #000 88%, transparent 98%);
-  }
-  .flow {
-    position: absolute; left: 50%; top: 52%;
-    transform: translate(-50%, -50%);
-    width: min(780px, 84vw);
-  }
-  .ln {
-    display: flex; align-items: baseline; gap: 16px;
-    max-height: 220px; padding: 9px 0;
-    overflow: hidden;
-    transition: opacity .7s, max-height .7s cubic-bezier(.4,0,.2,1), padding .7s;
-  }
-  .ln.gone { max-height: 0; padding: 0; opacity: 0 !important; }
-  .ln .lg {
-    flex: 0 0 26px; padding-top: 3px;
-    color: rgba(150,146,136,.5);
-    font: 700 9px/1 'Space Mono', monospace; letter-spacing: .12em;
-  }
-  .ln .tx {
-    flex: 1;
-    color: #7d7a72;
-    font: 400 15px/1.7 'Nanum Myeongjo', serif;
-  }
-  .ln.ko .tx {
-    color: #ded7c8;
-    font-size: 20px; line-height: 1.8;
-  }
-  .ln.ko .lg { color: rgba(222,215,200,.7); }
-  .ln .tx em { font-style: normal; color: #cf7042; }
-  .ln.ko .tx em { color: #e3833f; }
-  .cur {
-    display: inline-block; width: 7px; height: 1em;
-    margin-left: 2px; vertical-align: -2px;
-    background: rgba(222,215,200,.55);
-  }
+body {
+  background: #16130f;
+  font-family: 'Nanum Myeongjo', serif;
+  -webkit-font-smoothing: antialiased;
+  cursor: pointer;
+  user-select: none;
+}
 
-  /* 아래 진행 표시 */
-  .bar {
-    position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
-    padding: 20px 0 26px;
-    background: linear-gradient(to top, #15171a 54%, rgba(21,23,26,0));
-    text-align: center;
-  }
-  .route {
-    color: rgba(150,146,136,.62);
-    font: 700 10px/1 'Space Mono', monospace; letter-spacing: .2em;
-  }
-  .route b { color: #e3833f; font-weight: 700; }
-  .route i { font-style: normal; color: rgba(150,146,136,.3); }
-  .hint {
-    margin-top: 11px;
-    color: rgba(190,184,170,.36);
-    font: 400 11px/1 'Nanum Myeongjo', serif; letter-spacing: .2em;
-    transition: opacity .6s;
-  }
-  .hint.off { opacity: 0; }
+/* 책상 */
+.desk {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  perspective: 2600px;
+  perspective-origin: 50% 42%;
+  background:
+    radial-gradient(112% 82% at 50% 38%, rgba(226,192,134,.2) 0%, rgba(0,0,0,0) 64%),
+    radial-gradient(140% 100% at 50% 50%, #221d17 0%, #16130f 58%, #0d0b09 100%);
+}
+.desk::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  opacity: .055; mix-blend-mode: overlay;
+}
 
-  body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
+/* 책 */
+.stage { position: relative; transform-style: preserve-3d; }
+
+.book {
+  position: relative;
+  width: 860px; height: 582px;
+  transform-style: preserve-3d;
+  transform: rotateX(8deg) rotateY(15deg) translateX(-215px) scale(.97);
+  transition: transform 1.05s cubic-bezier(.4,.02,.2,1), opacity .5s;
+}
+.book.open { transform: rotateX(9deg) translateX(0) scale(1); }
+.book.swap { opacity: 0; transform: rotateX(8deg) rotateY(15deg) translateX(-215px) scale(.9); }
+
+/* 바닥 그림자 */
+.shade {
+  position: absolute; left: 50%; top: 100%;
+  width: 940px; height: 126px; margin-left: -446px; margin-top: -30px;
+  background: radial-gradient(50% 50% at 50% 50%, rgba(0,0,0,.72) 0%, rgba(0,0,0,0) 72%);
+  filter: blur(14px); transform: rotateX(78deg) scaleY(.6);
+  transition: width .9s, margin-left .9s;
+  pointer-events: none;
+}
+.book:not(.open) .shade { width: 540px; margin-left: -58px; }
+
+/* 종이 더미 (책의 두께) */
+.stack {
+  position: absolute; top: 6px; bottom: 6px; width: 50%;
+  border-radius: 3px;
+  background:
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.42) 0 1px, rgba(92,72,44,.13) 1px 2px),
+    linear-gradient(#ded5c1, #cdc2a9);
+  box-shadow: 0 10px 26px rgba(0,0,0,.5);
+  opacity: 0; transition: opacity .45s;
+}
+.book.open .stack { opacity: 1; }
+.stack.l { left: 0;  transform: translate(-5px, 4px); border-radius: 3px 0 0 3px; }
+.stack.r { left: 50%; transform: translate(5px, 4px);  border-radius: 0 3px 3px 0; }
+
+/* 책등 — 닫혀 있을 때만 보인다 */
+.spine {
+  position: absolute; left: 50%; top: 1px; bottom: 1px;
+  width: 48px; margin-left: -48px;
+  transform-origin: right center;
+  transform: rotateY(90deg);
+  background: linear-gradient(to right, #0e0a06 0%, var(--c2) 52%, var(--c1) 100%);
+  filter: brightness(.74);
+  border-radius: 3px 0 0 3px;
+  opacity: 1; transition: opacity .35s;
+}
+.book.open .spine { opacity: 0; }
+
+/* 페이지 단면 */
+.fore {
+  position: absolute; left: 100%; top: 6px; bottom: 6px;
+  width: 44px;
+  transform-origin: left center;
+  transform: rotateY(90deg);
+  background:
+    repeating-linear-gradient(to bottom, rgba(255,255,255,.35) 0 1px, rgba(90,70,40,.16) 1px 2px),
+    linear-gradient(to right, #c6bca4 0%, #b3a88d 62%, #9b907a 100%);
+  opacity: 1; transition: opacity .35s;
+}
+.book.open .fore { opacity: 0; }
+
+/* 책등 안쪽 */
+.gutter {
+  position: absolute; left: 50%; top: 0; bottom: 0; width: 86px;
+  margin-left: -43px; z-index: 60; pointer-events: none;
+  background: linear-gradient(to right,
+    rgba(0,0,0,0) 0%, rgba(46,34,18,.34) 34%, rgba(34,24,12,.58) 50%,
+    rgba(46,34,18,.34) 66%, rgba(0,0,0,0) 100%);
+  opacity: 0; transition: opacity .5s;
+}
+.book.open .gutter { opacity: 1; }
+
+/* 책장 한 장 */
+.leaf {
+  position: absolute; left: 50%; top: 0;
+  width: 50%; height: 100%;
+  transform-origin: left center;
+  transform-style: preserve-3d;
+  transition: transform 1.2s cubic-bezier(.38,.02,.16,1);
+}
+.leaf.turned { transform: rotateY(-180deg); animation: fwd 1.2s cubic-bezier(.38,.02,.16,1) both; }
+.leaf.rew { animation: rew 1.2s cubic-bezier(.38,.02,.16,1) both; }
+@keyframes fwd {
+  0%   { transform: rotateY(0) }
+  46%  { transform: rotateY(-86deg) translateZ(24px) rotateZ(-.7deg) }
+  100% { transform: rotateY(-180deg) }
+}
+@keyframes rew {
+  0%   { transform: rotateY(-180deg) }
+  46%  { transform: rotateY(-94deg) translateZ(24px) rotateZ(.7deg) }
+  100% { transform: rotateY(0) }
+}
+
+.pg {
+  position: absolute; inset: 0;
+  backface-visibility: hidden;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 20% 20%, rgba(255,252,243,.9) 0%, rgba(255,252,243,0) 60%),
+    linear-gradient(var(--paper), var(--paper2));
+  box-shadow: inset 0 0 44px rgba(126,104,70,.2), inset 0 0 120px rgba(108,86,52,.12);
+}
+.pg.back { transform: rotateY(180deg); }
+
+/* 넘어가는 동안 종이에 지는 그늘 */
+.gl {
+  position: absolute; inset: 0; z-index: 9; pointer-events: none;
+  opacity: 0; transition: opacity .5s ease-out;
+  background:
+    linear-gradient(to right, rgba(255,250,235,0) 20%, rgba(255,250,235,.4) 42%, rgba(255,250,235,0) 64%),
+    linear-gradient(to right, rgba(40,28,12,.3) 0%, rgba(40,28,12,.08) 22%, rgba(40,28,12,0) 46%, rgba(40,28,12,.24) 74%, rgba(40,28,12,.66) 100%);
+}
+.pg.front .gl { transform: scaleX(-1); }
+
+/* 넘어가는 종이가 아래 장에 드리우는 그늘 */
+.cast {
+  position: absolute; left: 50%; top: 0; bottom: 0; width: 50%;
+  z-index: 55; opacity: 0; pointer-events: none;
+  transition: opacity .55s ease-out;
+  background: linear-gradient(to left, rgba(24,15,5,0) 0%, rgba(24,15,5,.08) 30%, rgba(24,15,5,.4) 66%, rgba(24,15,5,.64) 100%);
+}
+
+/* 종이 결 */
+.pg::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23p)' opacity='.6'/%3E%3C/svg%3E");
+  opacity: .13; mix-blend-mode: multiply;
+}
+/* 책등 쪽 그늘 */
+.pg::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 136px; pointer-events: none;
+  background: linear-gradient(to left, rgba(76,56,30,.44) 0%, rgba(76,56,30,.12) 46%, rgba(76,56,30,0) 100%);
+}
+.pg.front::after { left: 0; transform: scaleX(-1); transform-origin: left; }
+.pg.back::after  { right: 0; }
+
+/* 본문 */
+.sheet {
+  position: absolute; inset: 0;
+  padding: 62px 54px 58px;
+  display: flex; flex-direction: column;
+}
+.pg.front .sheet { padding-left: 64px; padding-right: 46px; }
+.pg.back  .sheet { padding-left: 46px; padding-right: 64px; }
+
+.lang {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 26px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--faint);
+}
+.lang b { font-weight: 700; color: #6d6253; }
+.lang .lap { margin-left: auto; letter-spacing: .12em; }
+
+.body {
+  margin: auto 0;
+  color: var(--ink);
+  font-size: 14.5px; line-height: 2.0;
+  letter-spacing: .005em;
+  word-break: keep-all;
+}
+.body.ko { font-size: 15px; line-height: 2.05; }
+.body.ko em { font-style: normal; color: var(--red); }
+.body.ko.l1 em { color: #9b8260; }
+.body.ko.l2 em { color: #a8713f; }
+.body.ko.l3 em { color: var(--red); }
+.body.big { font-size: 16.5px; line-height: 2.1; }
+.body.src { color: #6d6354; }
+
+.pgn {
+  margin-top: 18px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px; letter-spacing: .16em; color: #a99d89;
+}
+.pg.front .pgn { text-align: right; }
+
+/* 속표지 */
+.title-pg { align-items: center; justify-content: center; text-align: center; }
+.title-pg .vol {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: .3em; color: var(--faint); margin-bottom: 24px;
+}
+.title-pg h2 {
+  font-size: 27px; font-weight: 800; letter-spacing: .02em;
+  color: var(--ink); line-height: 1.5;
+}
+.title-pg .rule { width: 42px; height: 1px; background: #b3a68f; margin: 26px 0; }
+.title-pg .route {
+  font-family: 'Space Mono', monospace;
+  font-size: 9.5px; letter-spacing: .18em; color: #9b8f7b; line-height: 2.2;
+}
+.title-pg .imp {
+  margin-top: 36px; font-size: 11.5px; color: #938871; letter-spacing: .02em;
+}
+
+/* 발문 */
+.after-pg { justify-content: center; }
+.after-pg p {
+  font-size: 13px; line-height: 2.1; color: #6f6557;
+}
+
+/* 표지 */
+.cover {
+  position: absolute; inset: 0;
+  backface-visibility: hidden; overflow: hidden;
+  background: linear-gradient(118deg, var(--c1), var(--c2));
+  box-shadow: inset 0 0 90px rgba(0,0,0,.38), 0 18px 50px rgba(0,0,0,.65);
+  border-radius: 2px 5px 5px 2px;
+}
+.cover.in { transform: rotateY(180deg); border-radius: 5px 2px 2px 5px; }
+.cover::before {
+  content: ''; position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='c'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.7' numOctaves='3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23c)' opacity='.75'/%3E%3C/svg%3E");
+  opacity: .16; mix-blend-mode: overlay;
+}
+.cover .gloss {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    linear-gradient(102deg, rgba(255,240,214,.16) 0%, rgba(255,240,214,.04) 26%,
+                    rgba(0,0,0,.08) 62%, rgba(0,0,0,.3) 100%);
+}
+.cover .plate {
+  position: absolute; inset: 42px 46px;
+  border: 1px solid rgba(198,167,99,.38);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 30px;
+}
+.cover .plate .mk {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; letter-spacing: .34em; color: rgba(198,167,99,.72); margin-bottom: 30px;
+}
+.cover .plate h1 {
+  font-size: 30px; font-weight: 800; color: #e8dcc2; line-height: 1.5; letter-spacing: .02em;
+}
+.cover .plate .sub {
+  margin-top: 26px; font-size: 11px; color: rgba(232,220,194,.5); letter-spacing: .08em;
+}
+.cover .plate .vol {
+  margin-top: 40px; font-family: 'Space Mono', monospace;
+  font-size: 9.5px; letter-spacing: .3em; color: rgba(198,167,99,.6);
+}
+
+/* 하단 바 */
+.bar {
+  position: fixed; left: 0; right: 0; bottom: 26px; z-index: 200;
+  display: flex; align-items: center; justify-content: center; gap: 22px;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: .18em; text-transform: uppercase;
+  color: rgba(214,198,166,.34);
+  pointer-events: none;
+}
+.bar .dots { display: flex; gap: 7px; }
+.bar .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(214,198,166,.2); transition: background .4s, transform .4s;
+}
+.bar .dot.on { background: rgba(198,167,99,.85); transform: scale(1.3); }
+.hint { transition: opacity .6s; }
+
+/* 상단 라벨 */
+.head {
+  position: fixed; left: 32px; top: 28px; z-index: 200;
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+  color: rgba(214,198,166,.3); line-height: 1.9;
+}
+.head b { display: block; font-weight: 400; color: rgba(214,198,166,.5); }
+
+.home-btn {
+  position: fixed; right: 30px; top: 26px; z-index: 200;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid rgba(214,198,166,.22);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(214,198,166,.5); text-decoration: none;
+  font-family: 'Space Mono', monospace; font-size: 13px;
+  transition: border-color .3s, color .3s;
+}
+.home-btn:hover { border-color: rgba(198,167,99,.6); color: var(--gold); }
+
+#snd {
+  position: fixed; right: 30px; top: 72px; z-index: 200;
+  width: 34px; height: 34px; border-radius: 50%;
+  border: 1px solid rgba(214,198,166,.22); background: none;
+  color: rgba(214,198,166,.5);
+  font-family: 'Space Mono', monospace; font-size: 10px;
+  cursor: pointer; transition: border-color .3s, color .3s;
+}
+#snd:hover { border-color: rgba(198,167,99,.6); color: var(--gold); }
+
+body.preview .home-btn, body.preview #snd, body.preview .bar { display: none; }
+
+@media (max-width: 980px) {
+  .stage { transform: scale(.74); }
+}
+@media (max-width: 720px) {
+  .stage { transform: scale(.5); }
+}
 </style>
 </head>
 <body>
 
-<div class="stage"><div class="flow" id="flow"></div></div>
-
-<div class="src">
-  <span class="tag" id="srcTag">원문 · 한국어</span>
-  <div class="txt" id="srcTxt"></div>
+<div class="desk" id="desk">
+  <div class="stage">
+    <div class="book" id="book">
+      <div class="shade"></div>
+      <div class="spine"></div>
+      <div class="fore"></div>
+      <div class="stack l"></div>
+      <div class="stack r"></div>
+      <div class="cast" id="cast"></div>
+      <div id="leaves"></div>
+      <div class="gutter"></div>
+    </div>
+  </div>
 </div>
+
+<div class="head">번역 불가<b>Lost in Return</b></div>
+<a href="../index.html" class="home-btn">←</a>
+<button id="snd">♪</button>
 
 <div class="bar">
-  <div class="route" id="route"></div>
-  <div class="hint" id="hint">클릭하면 다음 문장</div>
+  <span class="dots" id="dots"></span>
+  <span class="hint" id="hint">표지를 누르면 책이 열려요</span>
 </div>
 
-<a class="home-btn" href="../index.html">← INDEX</a>
-<div class="snd" id="snd">SOUND: ON</div>
-
 <script>
-const PREVIEW = new URLSearchParams(location.search).has('preview');
-if (PREVIEW) document.body.classList.add('preview');
-const rnd = (a, b) => a + Math.random() * (b - a);
-
-// 실제로 AI Gateway에 돌린 번역 사슬 — 한국어로 돌아올 때마다 조금씩 달라진다
-const CHAIN = [
- [
-  ['KO', '언니는 오빠에게 그만하라고 했다. 그런데도 막냇동생은 끝까지 형 편을 들었고, 그 뒤로 셋은 한 상에 앉지 않았다.'],
-  ['EN', 'The older sister told her older brother to stop. Even so, the youngest sibling took the brother\'s side to the very end, and ever since, the three of them never sat at the same table.'],
-  ['JA', '姉は兄にやめるよう言った。それでも末っ子は最後まで兄の味方をし、それ以来、3人が同じ食卓を囲むことは二度となかった。'],
-  ['ZH', '姐姐劝哥哥住手。即使如此，最小的孩子直到最后依然站在哥哥这一边，从此三人再也没有围坐在同一张餐桌前。'],
-  ['TH', 'พี่สาวพยายามห้ามพี่ชายให้หยุด ถึงกระนั้น น้องคนสุดท้องก็ยังคงยืนอยู่ข้างพี่ชายจนถึงที่สุด นับแต่นั้นมา ทั้งสามคนก็ไม่เคยนั่งร่วมโต๊ะอาหารเดียวกันอีกเลย'],
-  ['KO', '누나는 형을 말리려 애썼다. 그럼에도 불구하고 막내는 끝까지 형의 곁에 섰다. 그 후로 세 사람은 다시는 한 식탁에 함께 앉지 않았다.'],
-  ['EN', 'The older sister tried hard to stop her older brother. Nevertheless, the youngest stood by his older brother\'s side until the very end. After that, the three of them never sat together at the same table again.'],
-  ['AR', 'حاولت الأخت الكبرى جاهدةً إيقاف أخيها الأكبر. ومع ذلك، وقف الأصغر إلى جانب أخيه الأكبر حتى النهاية. وبعد ذلك، لم يجلس الثلاثة معًا إلى الطاولة نفسها مجددًا.'],
-  ['FI', 'Isosisko yritti kovasti pysäyttää isoveljensä. Siitä huolimatta nuorin seisoi isoveljensä rinnalla loppuun asti. Sen jälkeen he kolme eivät enää koskaan istuneet yhdessä saman pöydän ääreen.'],
-  ['PT', 'A irmã mais velha tentou muito parar o irmão mais velho. Apesar disso, o mais novo ficou ao lado do irmão mais velho até o fim. Depois disso, os três nunca mais se sentaram juntos à mesma mesa.'],
-  ['KO', '큰누나는 큰형을 말리려고 몹시 애를 썼다. 그럼에도 불구하고 막내는 끝까지 큰형 곁을 지켰다. 그 후로 세 사람은 다시는 한 식탁에 함께 앉지 않았다.'],
-  ['EN', 'The eldest sister tried desperately to stop the eldest brother. Nevertheless, the youngest stayed by the eldest brother\'s side until the end. From then on, the three of them never sat together at the same table again.'],
-  ['HI', 'बड़ी बहन ने बड़े भाई को रोकने की जी-तोड़ कोशिश की। फिर भी, सबसे छोटा अंत तक बड़े भाई के साथ रहा। उसके बाद से, वे तीनों फिर कभी एक ही मेज़ पर एक साथ नहीं बैठे।'],
-  ['RU', 'Старшая сестра изо всех сил пыталась остановить старшего брата. И всё же самый младший оставался со старшим братом до самого конца. С тех пор они втроём больше никогда не сидели вместе за одним столом.'],
-  ['SW', 'Dada mkubwa alijaribu kwa nguvu zake zote kumzuia kaka yake mkubwa. Hata hivyo, mdogo kabisa alibaki na kaka yake mkubwa hadi mwisho kabisa. Tangu wakati huo, wote watatu hawakuwahi tena kuketi pamoja kwenye meza moja.'],
-  ['KO', '큰누나는 온 힘을 다해 큰오빠를 막으려 했다. 하지만 막내는 마지막까지 큰오빠 곁에 남았다. 그때 이후로 세 사람은 다시는 한 식탁에 함께 앉지 못했다.'],
- ],
- [
-  ['KO', '어머니는 손이 커서 무얼 하든 두 배로 만들었다. 남은 것은 그릇째 이웃집에 돌렸고, 그 그릇은 비어서 돌아오는 법이 없었다.'],
-  ['EN', 'My mother was so generous that whatever she made, she made twice as much. She passed the leftovers to the neighbors in the bowls, and those bowls never returned empty.'],
-  ['JA', '母はとても気前がよかったので、何を作るにしても倍の量を作っていました。残った料理を器に入れて近所に配ると、その器が空のまま戻ってくることはありませんでした。'],
-  ['ZH', '母亲非常大方，不管做什么菜都会做上两倍的量。把多余的饭菜装在碗里分给邻居，那些碗从来不会空着还回来。'],
-  ['TH', 'แม่เป็นคนเอื้อเฟื้อเผื่อแผ่มาก ไม่ว่าจะทำกับข้าวอะไรก็มักจะทำเป็นสองเท่าเสมอ เมื่อตักอาหารส่วนที่เหลือใส่ชามไปแบ่งให้เพื่อนบ้าน ชามเหล่านั้นก็ไม่เคยถูกส่งคืนกลับมาแบบว่างเปล่าเลย'],
-  ['KO', '어머니는 매우 인심이 넉넉한 분이라 무슨 요리를 하든 항상 두 배로 만드신다. 음식을 그릇에 담아 이웃에게 나누어 주면 그 그릇들은 결코 빈 채로 돌아오는 법이 없다.'],
-  ['EN', 'My mother is such a generous person that no matter what she cooks, she always makes twice as much. When she shares food with the neighbors in bowls, those bowls never come back empty.'],
-  ['AR', 'أمي امرأة كريمة جداً لدرجة أنها مهما طبخت، فإنها تعد دائماً ضعف الكمية. وعندما تشارك الطعام مع الجيران في أطباق، فإن تلك الأطباق لا تعود فارغة أبداً.'],
-  ['FI', 'Äitini on niin antelias nainen, että mitä tahansa hän kokkaakin, hän valmistaa aina kaksinkertaisen määrän. Ja kun hän jakaa ruokaa naapureille astioissa, ne astiat eivät koskaan palaa tyhjinä.'],
-  ['PT', 'Minha mãe é uma mulher tão generosa que, o que quer que ela cozinhe, ela sempre prepara o dobro. E quando ela compartilha comida com os vizinhos em recipientes, esses recipientes nunca voltam vazios.'],
-  ['KO', '우리 어머니는 인심이 매우 후한 분이셔서 무슨 요리를 하든 항상 두 배로 준비하십니다. 그리고 이웃들에게 용기에 음식을 담아 나누어 줄 때면, 그 용기들은 절대로 빈 채로 돌아오지 않습니다.'],
-  ['EN', 'My mother is so generous that whatever she cooks, she always prepares twice as much. And whenever she shares food with the neighbors in containers, those containers never come back empty.'],
-  ['HI', 'मेरी माँ इतनी उदार हैं कि वह जो भी बनाती हैं, हमेशा दोगुना ही बनाती हैं। और जब भी वह पड़ोसियों के साथ डिब्बों में खाना बाँटती हैं, वे डिब्बे कभी खाली वापस नहीं आते।'],
-  ['RU', 'Моя мама настолько щедра, что всё, что бы она ни готовила, она всегда готовит вдвое больше. И каждый раз, когда она делится едой с соседями в контейнерах, эти контейнеры никогда не возвращаются пустыми.'],
-  ['SW', 'Mama yangu ni mkarimu sana hivi kwamba chochote anachopika, huwa anapika mara mbili zaidi. Na kila mara anapowagawia majirani chakula kwenye vyombo, vyombo hivyo havirudi kamwe vikiwa vitupu.'],
-  ['KO', '우리 어머니는 매우 정이 많으셔서 무슨 요리를 하시든 항상 두 배로 만드십니다. 그리고 이웃들에게 그릇에 음식을 담아 나누어 주실 때마다 그 그릇들은 절대로 빈 채로 돌아오지 않습니다.'],
- ],
- [
-  ['KO', '일은 흐지부지 끝났다. 사람들은 하나둘 흩어지면서 슬금슬금 눈치만 봤고, 끝내 아무도 먼저 입을 열지 않았다.'],
-  ['EN', 'The matter fizzled out. As people dispersed one by one, they merely exchanged cautious glances, and in the end, no one spoke up first.'],
-  ['JA', '事態は立ち消えになった。人々が一人また一人と散っていく中、互いに探るような視線を交わすばかりで、結局誰も最初に口を開くことはなかった。'],
-  ['ZH', '事态不了了之。在人们一个接一个散去之际，彼此只是交换着试探的眼神，最终谁也没有率先开口。'],
-  ['TH', 'เรื่องราวเงียบหายไปโดยไร้ข้อสรุป ขณะที่ผู้คนทยอยกันแยกย้ายไป ต่างทำเพียงแลกเปลี่ยนสายตาหยั่งเชิงกัน และสุดท้ายก็ไม่มีใครเป็นฝ่ายเอ่ยปากก่อน'],
-  ['KO', '이야기는 결론 없이 조용히 묻혀 갔고, 사람들은 서로 탐색하는 시선만 주고받으며 하나둘 흩어졌으며, 결국 아무도 먼저 입을 열지 않았다.'],
-  ['EN', 'The story was quietly buried without a conclusion, and people dispersed one by one, exchanging only searching glances, and in the end, no one spoke first.'],
-  ['AR', 'دُفِنت القصة بهدوء دون نهاية، وتفرق الناس واحداً تلو الآخر وهم لا يتبادلون سوى نظرات باحثة، وفي النهاية لم يبدأ أحد بالكلام.'],
-  ['FI', 'Tarina haudattiin hiljaisesti ilman loppua, ja ihmiset hajaantuivat yksi toisensa jälkeen vaihtaen vain etsiviä katseita, eikä lopulta kukaan alkanut puhua.'],
-  ['PT', 'A história foi enterrada silenciosamente sem um fim, e as pessoas se dispersaram uma após a outra, trocando apenas olhares perscrutadores, e no final ninguém começou a falar.'],
-  ['KO', '이야기는 결말도 없이 조용히 묻혔고, 사람들은 그저 탐색하는 듯한 눈빛만 주고받으며 하나둘씩 흩어졌으며, 끝내 아무도 말을 꺼내지 않았다.'],
-  ['EN', 'The story was quietly buried without an ending, and people dispersed one by one, merely exchanging searching glances, and in the end, no one spoke a word.'],
-  ['HI', 'कहानी बिना किसी अंत के चुपचाप दफ़न हो गई, और लोग महज़ एक-दूसरे को खोजी नज़रों से देखते हुए एक-एक करके चले गए, और अंत में किसी ने एक शब्द भी नहीं कहा।'],
-  ['RU', 'История без какого-либо конца была тихо погребена, и люди лишь смотрели друг на друга пытливыми взглядами, расходясь один за другим, и в конце никто не произнёс ни слова.'],
-  ['SW', 'Hadithi isiyo na mwisho wowote ilizikwa kimya kimya, na watu walitazamana tu kwa macho ya udadisi, wakitawanyika mmoja baada ya mwingine, na mwishoni hakuna aliyesema neno hata moja.'],
-  ['KO', '결말 없는 이야기는 조용히 묻혔고, 사람들은 그저 호기심 어린 눈으로 서로를 바라보며 하나둘씩 흩어졌으며, 결국 아무도 단 한 마디도 하지 않았다.'],
- ],
- [
-  ['KO', '그 사람과는 미운 정 고운 정이 다 들었다. 이제는 목소리를 높일 기운도 없어서, 얼굴을 보면 밥은 먹었냐고 먼저 묻는다.'],
-  ['EN', 'I\'ve grown attached to that person through all the ups and downs. Now, I don\'t even have the energy to raise my voice, so whenever I see them, I just ask if they\'ve eaten first.'],
-  ['JA', '山あり谷ありを経て、あの人にすっかり情が湧いてしまった。今となっては声を荒げる気力すらなく、会うたびにまず「ご飯は食べた？」と尋ねるだけだ。'],
-  ['ZH', '经历了风风雨雨，我对那个人彻底生出了感情。事到如今连大声嚷嚷的力气都没有了，每次见面也只是先问一句：“吃饭了吗？”'],
-  ['TH', 'ผ่านร้อนผ่านหนาวมาด้วยกันมากมาย จนฉันเกิดความรู้สึกผูกพันกับคนคนนั้นอย่างแท้จริง มาถึงตอนนี้แม้แต่แรงจะโวยวายก็ไม่มีเหลือแล้ว ทุกครั้งที่เจอกันก็ทำได้เพียงเอ่ยปากถามก่อนว่า "กินข้าวหรือยัง?"'],
-  ['KO', '수많은 산전수전을 함께 겪으며 나는 그 사람에게 진정한 유대감을 느끼게 되었다. 이제는 화를 낼 힘조차 남아 있지 않아 만날 때마다 그저 "밥은 먹었어?" 하고 먼저 물어볼 뿐이다.'],
-  ['EN', 'Having gone through countless hardships together, I came to feel a genuine bond with that person. Now, I don\'t even have the energy left to get angry, so whenever we meet, I just ask "Have you eaten?" first.'],
-  ['AR', 'بعد أن مررنا معًا بصعوبات لا تُحصى، صرت أشعر برابطة حقيقية مع ذلك الشخص. والآن، لم تعد لدي حتى الطاقة للغضب، لذا كلما التقينا، أكتفي بأن أسأله أولًا: "هل أكلت؟".'],
-  ['FI', 'Käytyämme yhdessä läpi lukemattomia vaikeuksia aloin tuntea aitoa sidettä tuohon henkilöön. Nyt minulla ei ole enää edes energiaa suuttua, joten aina kun tapaamme, tyydyn vain kysymään häneltä ensin: ”Oletko syönyt?”'],
-  ['PT', 'Depois de passarmos por inúmeras dificuldades juntos, comecei a sentir uma conexão verdadeira com aquela pessoa. Agora não tenho nem mais energia para ficar com raiva, então, sempre que nos encontramos, apenas pergunto a ela primeiro: “Você já comeu?”'],
-  ['KO', '수많은 어려움을 함께 겪은 후, 나는 그 사람에게 진정한 유대감을 느끼기 시작했다. 이제는 화를 낼 기력조차 없어서 만날 때마다 그저 그 사람에게 먼저 "밥은 먹었어?"라고 물을 뿐이다.'],
-  ['EN', 'After going through countless hardships together, I began to feel a genuine bond with that person. Now, lacking even the energy to get angry, whenever we meet, I simply ask them first, "Have you eaten?"'],
-  ['HI', 'एक साथ अनगिनत कठिनाइयों से गुजरने के बाद, मुझे उस व्यक्ति के साथ एक सच्चा जुड़ाव महसूस होने लगा। अब गुस्सा करने की भी ऊर्जा न होने के कारण, जब भी हम मिलते हैं, मैं बस सबसे पहले उनसे यही पूछता हूँ, "क्या आपने खाना खा लिया?"'],
-  ['RU', 'Пройдя вместе через бесчисленные трудности, я начал ощущать настоящую связь с этим человеком. Теперь, когда не осталось сил даже на то, чтобы злиться, каждый раз при встрече я просто первым делом спрашиваю: «Вы поели?»'],
-  ['SW', 'Baada ya kupitia shida zisizoweza kuhesabika pamoja, nilianza kuhisi uhusiano wa dhati na mtu huyu. Sasa, nikiwa sina hata nguvu za kukasirika, kila mara tunapokutana mimi huuliza tu kwanza: “Umekula?”'],
-  ['KO', '수많은 고난을 함께 겪은 후, 나는 이 사람에게 깊은 유대감을 느끼기 시작했다. 이제는 화낼 힘조차 없어서 만날 때마다 그저 "밥은 먹었어?"라고 먼저 묻곤 한다.'],
- ],
- [
-  ['KO', '집을 떠나온 지 십 년이 지났다. 그런데도 마당 귀퉁이에 서 있던 감나무가 자꾸 눈에 밟혀서, 가을마다 남의 집 담장을 괜히 올려다본다.'],
-  ['EN', 'It has been ten years since I left home. Yet, the persimmon tree that stood in the corner of the yard lingers so vividly in my mind that every autumn, I find myself looking up at other people\'s walls for no reason.'],
-  ['JA', '家を出てから10年が経つ。それでも、庭の隅に立っていた柿の木があまりにも鮮やかに心に残っていて、毎年秋になると、わけもなく他人の家の塀を見上げてしまう。'],
-  ['ZH', '离家已有十年。然而，院子角落里的那棵柿子树依然极其清晰地留在心里，每当秋天来临，我总会无缘无故地抬头仰望别人家的围墙。'],
-  ['TH', 'จากบ้านมาเป็นเวลาสิบปีแล้ว ทว่าต้นพลับตรงมุมลานบ้านต้นนั้นยังคงแจ่มชัดอยู่ในใจอย่างยิ่ง ทุกครั้งที่ฤดูใบไม้ร่วงมาถึง ฉันมักจะเงยหน้ามองกำแพงบ้านของคนอื่นโดยไม่มีสาเหตุ'],
-  ['KO', '집을 떠나온 지 10년이 지났지만 마당 구석의 그 감나무는 여전히 마음속에 선명하다. 가을이 찾아올 때마다 나는 이유 없이 다른 사람 집의 담장을 올려다보곤 한다.'],
-  ['EN', 'Ten years have passed since I left home, but that persimmon tree in the corner of the yard is still vivid in my mind. Whenever autumn comes, I find myself looking up at the walls of other people\'s houses for no reason.'],
-  ['AR', 'مرت عشر سنوات منذ أن غادرت منزلي، ولكن شجرة الكاكي تلك في ركن الفناء ما زالت حاضرة بوضوح في ذاكرتي. وكلما حل الخريف، أجد نفسي أتطلع إلى أسوار منازل الآخرين دون سبب.'],
-  ['FI', 'On kulunut kymmenen vuotta siitä, kun lähdin kotoani, mutta se persimonpuu pihan kulmassa on edelleen elävästi mielessäni. Aina syksyn tullessa huomaan katselevani muiden talojen aitoja ilman syytä.'],
-  ['PT', 'Faz dez anos que saí de casa, mas aquele caquizeiro no canto do quintal ainda está bem vivo na minha memória. Sempre que o outono chega, me vejo olhando para as cercas de outras casas sem motivo.'],
-  ['KO', '집을 떠난 지 10년이 지났지만 마당 구석에 있던 그 감나무는 여전히 내 기억 속에 생생하다. 가을이 올 때마다 나는 이유 없이 다른 집들의 담장을 바라보곤 한다.'],
-  ['EN', 'Ten years have passed since I left home, but the persimmon tree in the corner of the yard remains vivid in my memory. Whenever autumn comes, I find myself looking at the walls of other houses for no particular reason.'],
-  ['HI', 'मुझे घर छोड़े दस साल हो गए हैं, लेकिन आंगन के कोने में लगा तेंदू का पेड़ मेरी यादों में आज भी ताज़ा है। जब भी पतझड़ का मौसम आता है, मैं बिना किसी खास वजह के दूसरे घरों की दीवारों को देखने लगता हूँ।'],
-  ['RU', 'Прошло десять лет с тех пор, как я покинул дом, но дерево тенду в углу двора до сих пор свежо в моей памяти. Каждый раз, когда наступает осень, я без особой причины начинаю смотреть на стены других домов.'],
-  ['SW', 'Imepita miaka kumi tangu nilipoondoka nyumbani, lakini mti wa tendu kwenye kona ya ua bado ni mpya katika kumbukumbu zangu. Kila mara msimu wa vuli unapowadia, bila sababu yoyote maalum, ninaanza kutazama kuta za nyumba nyingine.'],
-  ['KO', '집을 떠난 지 10년이 지났지만 마당 구석의 감나무는 여전히 내 기억 속에 생생하다. 가을이 찾아올 때마다 특별한 이유 없이 다른 집의 담장을 바라보게 된다.'],
- ],
- [
-  ['KO', '간은 대충 알아서 맞추라고 했다. 넘칠 것 같으면 불을 좀 줄이라는 말만 남기고 어머니는 방으로 들어갔다.'],
-  ['EN', 'She told me to just season it roughly as I saw fit. Leaving only a word to turn down the heat a bit if it looked like it was going to boil over, my mother went into her room.'],
-  ['JA', '彼女は私に、自分の判断で適当に味付けをしておくようにと言った。吹きこぼれそうになったら少し火を弱めるようにと一言だけ残し、母は自分の部屋に入っていった。'],
-  ['ZH', '她对我说，让我根据自己的判断适当地调味。只留下一句如果快要沸溢出来就稍微关小一点火，母亲便回到了自己的房间。'],
-  ['TH', 'เธอบอกฉันให้ปรุงรสตามการตัดสินใจของตัวเองอย่างเหมาะสม โดยทิ้งไว้เพียงประโยคเดียวว่าถ้าใกล้จะเดือดล้นออกมาก็ให้เบาไฟลงนิดหน่อย แม่ก็กลับเข้าห้องของตัวเองไป'],
-  ['KO', '엄마는 내 판단대로 적당히 간을 맞추라며, 끓어넘칠 것 같으면 불을 조금 줄이라는 한마디만 남기고 자기 방으로 돌아갔다.'],
-  ['EN', 'Mom went back to her room, leaving only a brief instruction to season it to taste as I saw fit and to turn down the heat a bit if it looked like it was going to boil over.'],
-  ['AR', 'عادت أمي إلى غرفتها، تاركةً فقط تعليمات موجزة بأن أتبّله حسب الذوق كما أراه مناسبًا، وأن أخفّض النار قليلاً إذا بدا أنه على وشك الفوران.'],
-  ['FI', 'Äitini palasi huoneeseensa jättäen vain lyhyet ohjeet maustaa se maun mukaan parhaaksi katsomallani tavalla ja pienentää lämpöä hieman, jos se näytti olevan vähällä kiehua yli.'],
-  ['PT', 'Minha mãe voltou para o seu quarto, deixando apenas breves instruções para temperá-lo a gosto da maneira que eu achasse melhor e reduzir um pouco o fogo se parecesse prestes a transbordar.'],
-  ['KO', '어머니는 내가 좋을 대로 입맛에 맞게 간을 맞추고, 끓어넘칠 것 같으면 불을 좀 줄이라는 간단한 지침만 남긴 채 방으로 돌아가셨다.'],
-  ['EN', 'My mother went back to her room, leaving only simple instructions to season it to my liking and to turn down the heat a bit if it looked about to boil over.'],
-  ['HI', 'मेरी माँ बस इतना साधारण सा निर्देश देकर अपने कमरे में वापस चली गईं कि मैं इसे अपने स्वादानुसार तैयार कर लूँ और अगर यह उबलकर बाहर गिरने लगे तो आँच थोड़ी धीमी कर दूँ।'],
-  ['RU', 'Моя мама вернулась в свою комнату, дав лишь простое указание, чтобы я приготовил это по своему вкусу и немного убавил огонь, если оно начнет переливаться через край.'],
-  ['SW', 'Mama yangu alirudi chumbani kwake, akitoa tu maelekezo rahisi kwamba nitayarishe kulingana na ladha yangu na nipunguze moto kidogo kama ikianza kufurika.'],
-  ['KO', '어머니는 내 입맛에 맞게 준비하고 끓어넘치기 시작하면 불을 좀 줄이라는 간단한 지시만 남기신 채 방으로 돌아가셨다.'],
- ],
+const BOOKS = [
+ {
+  title: '손이 큰 사람', c1: '#5a4231', c2: '#33241a',
+  steps: [
+   ['KO', 'Korean', '어머니는 손이 커서 무얼 하든 두 배로 만들었다. 남은 것은 그릇째 이웃집에 돌렸고, 그 그릇은 비어서 돌아오는 법이 없었다. 김치를 담그는 날이면 온 동네가 들썩였다. 나는 그게 인사인 줄도 모르고 자랐다.'],
+   ['EN', 'English', 'My mother was so generous that whatever she made, she made twice as much. She would send the leftovers to the neighbors in bowls, and those bowls never returned empty. On days she made kimchi, the whole neighborhood was abuzz. I grew up without even knowing that was her way of greeting people.'],
+   ['JA', '日本語', '母はとても気前がよく、何を作るにしても2倍の量を作っていた。余ったものを器に入れて近所に届けると、その器が空のまま戻ってくることは一度もなかった。キムチを漬ける日には、近所中が大賑わいになった。それが母なりの挨拶の仕方だとは気づきもしないまま、私は育った。'],
+   ['ZH', '中文', '母亲非常大方，无论做什么食物都会做上双倍的量。把多余的食物装进碗里送给邻居，那个碗就从来没有空着还回来过。每到腌泡菜的日子，左邻右舍都会热闹非凡。我竟完全没有意识到那是属于母亲独特的问候方式，就这么长大了。'],
+   ['TH', 'ไทย', 'คุณแม่เป็นคนใจดีและเอื้อเฟื้อเผื่อแผ่มาก ไม่ว่าจะทำอาหารอะไรก็มักจะทำในปริมาณเป็นสองเท่าเสมอ เมื่อนำอาหารส่วนเกินใส่ชามไปแบ่งปันให้เพื่อนบ้าน ชามใบนั้นก็ไม่เคยถูกส่งคืนกลับมาแบบว่างเปล่าเลยสักครั้ง ทุกครั้งที่ถึงวันทำกิมจิ ละแวกบ้านก็จะคึกคักเป็นพิเศษ ฉันเติบโตขึ้นมาโดยไม่เคยตระหนักเลยว่า นั่นคือวิธีทักทายอันเป็นเอกลักษณ์ของคุณแม่'],
+   ['KO', 'Korean', '어머니는 매우 친절하고 베풀기를 좋아하시는 분이라 무슨 음식을 만들든 항상 두 배의 양을 만드시곤 했다. 남은 음식을 그릇에 담아 이웃에게 나누어 주면 그 그릇이 빈 채로 돌아오는 법이 단 한 번도 없었다. 김장하는 날이 되면 동네가 특히나 북적거리곤 했다. 나는 그것이 어머니만의 특별한 인사 방식이었다는 것을 깨닫지 못한 채 자랐다.'],
+   ['EN', 'English', 'My mother was such a kind and generous person that no matter what food she cooked, she would always make twice as much. Whenever she packed the extra food into bowls to share with the neighbors, those dishes were never returned empty. On kimchi-making days, the neighborhood was especially bustling. I grew up without realizing that this was her own special way of greeting people.'],
+   ['AR', 'العربية', 'كانت أمي إنسانة طيبة وكريمة للغاية، لدرجة أنها مهما كان الطعام الذي تطهوه، كانت دائمًا تعدّ منه ضعف الكمية. وكلما وضعت الطعام الإضافي في أطباق لمشاركته مع الجيران، لم تكن تلك الأطباق تعود فارغة أبدًا. وفي أيام إعداد الكيمتشي، كان الحي يعج بالحيوية بشكل خاص. لقد نشأت دون أن أدرك أن هذه كانت طريقتها الخاصة والمميزة في الترحيب بالناس.'],
+   ['FI', 'Suomi', 'Äitini oli erittäin sydämellinen ja antelias ihminen, niin että mitä tahansa ruokaa hän laittoi, hän valmisti sitä aina kaksinkertaisen määrän. Aina kun hän pani ylimääräistä ruokaa lautasille jaettavaksi naapureille, ne lautaset eivät koskaan palanneet tyhjinä. Kimchin valmistuspäivinä naapurusto oli erityisen eloisa. Kasvoin tajuamatta, että tämä oli hänen oma erityinen tapansa toivottaa ihmiset tervetulleiksi.'],
+   ['PT', 'Português', 'Minha mãe era uma pessoa muito calorosa e generosa, de modo que, qualquer comida que fizesse, ela sempre preparava o dobro. Sempre que ela colocava comida extra nos pratos para compartilhar com os vizinhos, esses pratos nunca voltavam vazios. Nos dias de fazer kimchi, a vizinhança ficava especialmente animada. Cresci sem me dar conta de que essa era a sua maneira especial de acolher as pessoas.'],
+   ['KO', 'Korean', '우리 어머니는 매우 따뜻하고 정이 많은 분이셔서 어떤 음식을 만들든 항상 두 배로 준비하셨다. 이웃들과 나누기 위해 접시에 음식을 더 담아 보낼 때마다 그 접시들은 결코 빈 채로 돌아오는 법이 없었다. 김치를 담그는 날이면 온 동네가 특히나 활기를 띠었다. 나는 그것이 사람들을 따뜻하게 품어주는 어머니만의 특별한 방식이었다는 사실을 미처 깨닫지 못한 채 자랐다.'],
+   ['EN', 'English', 'My mother was such a warm and affectionate person that whatever food she made, she always prepared twice as much. Whenever she sent over extra plates of food to share with the neighbors, those plates never returned empty. On days when she made kimchi, the entire neighborhood was especially lively. I grew up without realizing that this was her own special way of warmly embracing people.'],
+   ['HI', 'हिन्दी', 'मेरी माँ इतनी सहृदय और स्नेही थीं कि वे जो भी खाना बनाती थीं, हमेशा दोगुना बनाती थीं। जब भी वे पड़ोसियों के साथ बाँटने के लिए खाने की अतिरिक्त प्लेटें भेजती थीं, तो वे प्लेटें कभी खाली वापस नहीं आती थीं। जिस दिन वे किमची बनाती थीं, उस दिन पूरा मोहल्ला विशेष रूप से जीवंत हो उठता था। मैं यह समझे बिना बड़ा हुआ कि लोगों को गर्मजोशी से अपनाने का यह उनका अपना खास तरीका था।'],
+   ['RU', 'Русский', 'Моя мама была настолько доброй и душевной, что, что бы она ни готовила, всегда делала вдвое больше. Каждый раз, когда она отправляла соседям тарелки с едой, чтобы поделиться, они никогда не возвращались пустыми. В день, когда она готовила кимчи, вся округа становилась особенно оживлённой. Я вырос, не понимая, что это был её особый способ проявлять душевное тепло к людям.'],
+   ['SW', 'Kiswahili', 'Mama yangu alikuwa mkarimu na mwenye moyo mwema sana hivi kwamba, chochote alichopika, daima alitayarisha mara mbili zaidi. Kila mara alipowapelekea majirani sahani za chakula ili kushiriki nao, hazikuwahi kurudi zikiwa tupu. Siku aliyotengeneza kimchi, mtaa mzima ulichangamka kwa namna ya pekee. Nilikua bila kutambua kwamba hiyo ilikuwa njia yake ya pekee ya kuonyesha uchangamfu wa moyo kwa watu.'],
+   ['KO', 'Korean', '우리 어머니는 매우 다정하고 정이 많으셔서 어떤 음식을 만들든 항상 두 배 이상으로 넉넉히 준비하셨다. 이웃들과 나눠 먹으려고 음식을 담아 보낼 때마다 그 접시가 빈 채로 돌아오는 법은 결코 없었다. 김치를 담그시는 날에는 온 동네가 유난히 특별한 활기로 가득 찼다. 나는 그것이 사람들에게 따뜻한 정을 나누는 어머니만의 특별한 방식이었음을 알지 못한 채 자랐다.'],
+  ],
+ },
+ {
+  title: '한 상', c1: '#3e4e49', c2: '#1f2c29',
+  steps: [
+   ['KO', 'Korean', '언니는 오빠에게 그만하라고 했다. 그런데도 막냇동생은 끝까지 형 편을 들었다. 큰집 식구들까지 와서 말렸지만 소용없었다. 그 뒤로 셋은 명절에도 한 상에 앉지 않았다.'],
+   ['EN', 'English', 'The older sister told the older brother to stop. Still, the youngest sibling took the older brother\'s side to the very end. Even members of the extended family came to intervene, but it was no use. After that, the three of them never sat at the same table, even on holidays.'],
+   ['JA', '日本語', '姉は兄にやめるよう言った。それでも末っ子は最後まで兄の味方をした。親戚までもが仲裁に入ったが、無駄だった。その後、祝日であっても三人が同じ食卓につくことは二度となかった。'],
+   ['ZH', '中文', '姐姐劝哥哥住手，但最小的孩子直到最后都站在哥哥那一边。甚至连亲戚都出面调停，但也无济于事。此后，即便是在过节时，三人也再也没有同桌吃过饭。'],
+   ['TH', 'ไทย', 'พี่สาวพยายามห้ามพี่ชายให้หยุด แต่น้องคนเล็กกลับเข้าข้างพี่ชายจนถึงที่สุด แม้กระทั่งญาติๆ จะเข้ามาช่วยไกล่เกลี่ย แต่ก็ไม่เป็นผล หลังจากนั้น แม้จะเป็นช่วงเทศกาล ทั้งสามคนก็ไม่เคยร่วมโต๊ะกินข้าวด้วยกันอีกเลย'],
+   ['KO', 'Korean', '누나는 오빠를 말리려 애썼지만 막내는 끝까지 오빠 편을 들었다. 친척들까지 나서서 중재하려 했으나 아무런 소용이 없었다. 그 후로는 명절 때조차 세 사람은 다시는 한 식탁에 앉아 밥을 먹지 않았다.'],
+   ['EN', 'English', 'The older sister tried hard to stop her older brother, but the youngest sided with him to the end. Even relatives stepped in to mediate, but it was to no avail. After that, the three of them never sat at the same table for a meal again, even on holidays.'],
+   ['AR', 'العربية', 'حاولت الأخت الكبرى جاهدةً إيقاف أخيها الأكبر، لكن الأصغر انحاز إليه حتى النهاية. وحتى الأقارب تدخلوا للوساطة، لكن دون جدوى. وبعد ذلك، لم يجلس الثلاثة معاً على مائدة طعام واحدة مجدداً، حتى في الأعياد.'],
+   ['FI', 'Suomi', 'Isosisko yritti kaikkensa estääkseen isoveljensä, mutta pikkuveli asettui tämän puolelle loppuun asti. Jopa sukulaiset puuttuivat asiaan sovittelemaan, mutta tuloksetta. Sen jälkeen nämä kolme eivät enää koskaan istuneet yhdessä saman ruokapöydän ääreen, eivät edes juhlapyhinä.'],
+   ['PT', 'Português', 'A irmã mais velha fez de tudo para impedir o irmão mais velho, mas o irmão mais novo ficou do lado dele até o fim. Até mesmo os parentes intervieram para mediar, mas sem sucesso. Depois disso, os três nunca mais se sentaram juntos à mesma mesa de jantar, nem mesmo nos feriados.'],
+   ['KO', 'Korean', '누나는 형을 말리기 위해 온갖 노력을 다했지만, 남동생은 끝까지 형의 편을 들었다. 친척들까지 나서서 중재하려 했지만 소용이 없었다. 그 후로 세 사람은 명절에도 다시는 같은 식탁에 함께 앉지 않았다.'],
+   ['EN', 'English', 'The older sister made every effort to stop the older brother, but the younger brother took the older brother\'s side until the very end. Even relatives stepped in to mediate, but to no avail. Since then, the three of them never sat together at the same table again, even on holidays.'],
+   ['HI', 'हिन्दी', 'बड़ी बहन ने बड़े भाई को रोकने की हर संभव कोशिश की, लेकिन छोटा भाई अंत तक बड़े भाई का ही पक्ष लेता रहा। यहाँ तक कि रिश्तेदारों ने भी मध्यस्थता करने की कोशिश की, लेकिन कोई नतीजा नहीं निकला। तब से, त्योहारों पर भी वे तीनों फिर कभी एक साथ एक ही मेज पर नहीं बैठे।'],
+   ['RU', 'Русский', 'Старшая сестра изо всех сил пыталась остановить старшего брата, но младший брат до самого конца принимал сторону старшего. Даже родственники пытались выступить посредниками, но ничего не вышло. С тех пор даже по праздникам они втроём больше никогда не садились за один стол.'],
+   ['SW', 'Kiswahili', 'Dada mkubwa alijaribu kwa nguvu zake zote kumzuia kaka mkubwa, lakini kaka mdogo alichukua upande wa kaka mkubwa hadi mwisho kabisa. Hata ndugu walijaribu kusuluhisha, lakini haikufanikiwa. Tangu wakati huo, hata siku za sikukuu, wote watatu hawakuwahi tena kukaa kwenye meza moja.'],
+   ['KO', 'Korean', '큰누나는 큰형을 말리기 위해 온 힘을 다했지만, 남동생은 끝까지 큰형의 편을 들었다. 친척들까지 나서서 화해시키려 했으나 소용이 없었다. 그때 이후로 세 사람은 명절 날조차 다시는 한 식탁에 함께 앉지 않았다.'],
+  ],
+ },
+ {
+  title: '감나무', c1: '#565033', c2: '#2e2a1a',
+  steps: [
+   ['KO', 'Korean', '집을 떠나온 지 십 년이 지났다. 그런데도 마당 귀퉁이에 서 있던 감나무가 자꾸 눈에 밟힌다. 떫어서 아무도 안 먹던 감을 어머니는 꼭 깎아서 말렸다. 가을마다 나는 남의 집 담장을 괜히 올려다본다.'],
+   ['EN', 'English', 'Ten years have passed since I left home. Still, the persimmon tree that stood in the corner of the yard keeps lingering in my mind. My mother always made sure to peel and dry the persimmons that no one ate because they were too astringent. Every autumn, I find myself looking up at the walls of other people\'s houses for no reason.'],
+   ['JA', '日本語', '家を離れてから10年が経った。今でも、庭の隅に立っていた柿の木が心から離れない。渋すぎて誰も食べなかった柿を、母はいつも欠かさず皮をむいて干していた。毎年秋になると、わけもなく他人の家の塀を見上げてしまう。'],
+   ['ZH', '中文', '离开家已经十年了。至今，院子角落里那棵柿子树依然萦绕在心头。那些太涩而没人吃的柿子，母亲总是无一例外地削皮晒干。每年一到秋天，我总会无缘无故地抬头望向别人家的围墙。'],
+   ['TH', 'ไทย', 'ออกจากบ้านมาสิบปีแล้ว จนถึงตอนนี้ ต้นพลับที่มุมลานบ้านยังคงตราตรึงอยู่ในใจ ลูกพลับที่ฝาดเกินจนไม่มีใครกิน แม่มักจะปอกเปลือกแล้วนำไปตากแห้งเสมอโดยไม่มีข้อยกเว้น พอถึงฤดูใบไม้ร่วงของทุกปี ฉันมักจะเงยหน้ามองรั้วบ้านของคนอื่นโดยไม่มีสาเหตุอยู่เสมอ'],
+   ['KO', 'Korean', '집을 떠난 지 10년이 지난 지금까지도 마당 구석에 있던 감나무는 여전히 내 마음속에 깊이 남아 있다. 너무 떫어서 아무도 먹지 않는 감을 어머니는 예외 없이 늘 껍질을 깎아 말리시곤 했다. 매년 가을이 되면 나는 이유 없이 다른 사람 집의 담장을 고개 들어 바라보곤 한다.'],
+   ['EN', 'English', 'Even now, ten years after I left home, the persimmon tree in the corner of the yard still remains deeply in my heart. My mother would always, without exception, peel and dry the persimmons that were too astringent for anyone to eat. Every autumn, I find myself looking up at the walls of other people\'s houses for no reason.'],
+   ['AR', 'العربية', 'حتى الآن، وبعد عشر سنوات من مغادرتي البيت، ما زالت شجرة الكاكي في زاوية الفناء راسخة في أعماق قلبي. كانت أمي دائمًا، ودون استثناء، تقشر وتجفف ثمار الكاكي التي كانت قابضة للغاية بحيث لا يستطيع أحد أكلها. وفي كل خريف، أجد نفسي أتطلع إلى أسوار منازل الآخرين بلا سبب.'],
+   ['FI', 'Suomi', 'Vielä nytkin, kymmenen vuotta kotoa lähtöni jälkeen, pihan kulmassa oleva kakipuu on syvälle juurtunut sydämeeni. Äitini kuori ja kuivasi aina poikkeuksetta kakit, jotka olivat niin karvaita, ettei kukaan voinut syödä niitä. Ja joka syksy huomaan ilman mitään syytä katselevani muiden talojen aitoja.'],
+   ['PT', 'Português', 'Mesmo agora, dez anos depois de ter saído de casa, o caquizeiro no canto do quintal está profundamente enraizado no meu coração. Minha mãe sempre descascava e secava, sem exceção, os caquis, que eram tão amargos que ninguém conseguia comê-los. E, a cada outono, me vejo, sem motivo algum, olhando para as cercas de outras casas.'],
+   ['KO', 'Korean', '집을 떠난 지 10년이 지난 지금도 마당 구석의 감나무는 내 마음속 깊이 뿌리내려 있다. 너무 떫어서 아무도 먹을 수 없던 그 감들을 어머니는 예외 없이 늘 껍질을 깎아 말리시곤 했다. 그리고 가을이 올 때마다 나는 까닭도 없이 다른 집 담장을 바라보곤 한다.'],
+   ['EN', 'English', 'Even now, ten years after leaving home, the persimmon tree in the corner of the yard remains deeply rooted in my heart. My mother would always peel and dry those persimmons without fail, even though they were too astringent for anyone to eat. And whenever autumn comes, I find myself gazing at other people\'s walls for no reason.'],
+   ['HI', 'हिन्दी', 'घर छोड़े दस साल बीत जाने के बाद भी, आँगन के कोने में लगा तेंदू का पेड़ मेरे दिल में गहराई से बसा हुआ है। भले ही वे फल इतने कसैले होते थे कि कोई उन्हें खा नहीं सकता था, फिर भी मेरी माँ बिना चूके हमेशा उन्हें छीलकर सुखाया करती थीं। और जब भी शरद ऋतु आती है, मैं बिना किसी वजह के दूसरों की दीवारों को ताकता रह जाता हूँ।'],
+   ['RU', 'Русский', 'Даже спустя десять лет после того, как я покинул дом, дерево хурмы в углу двора всё так же глубоко запало мне в душу. Хотя те плоды были настолько терпкими, что никто не мог их есть, моя мама всегда неизменно очищала их от кожуры и сушила. И каждый раз, когда наступает осень, я без всякой причины засматриваюсь на чужие заборы.'],
+   ['SW', 'Kiswahili', 'Hata baada ya miaka kumi tangu niondoke nyumbani, mti wa kaki ulioko pembezoni mwa ua bado umebaki kwa undani sana moyoni mwangu. Ingawa matunda yake yalikuwa machungu sana hivi kwamba hakuna aliyeweza kuyala, mama yangu mara zote alikuwa akiyamenya maganda na kuyakausha. Na kila mara msimu wa vuli unapowadia, hutazama uzio wa watu wengine bila sababu yoyote.'],
+   ['KO', 'Korean', '집을 떠난 지 10년이 지난 지금도 담 모퉁이에 있던 감나무는 여전히 내 마음 깊은 곳에 남아 있다. 열매가 너무 떫어서 아무도 먹을 수 없을 정도였지만, 어머니는 항상 껍질을 벗겨 말리시곤 했다. 그리고 가을이 찾아올 때마다 나는 까닭 없이 남의 집 담장을 바라보곤 한다.'],
+  ],
+ },
+ {
+  title: '흐지부지', c1: '#43434e', c2: '#24242c',
+  steps: [
+   ['KO', 'Korean', '일은 흐지부지 끝났다. 사람들은 하나둘 흩어지면서 슬금슬금 눈치만 봤다. 누가 먼저 말을 꺼내면 그 사람이 책임을 져야 하는 분위기였다. 끝내 아무도 입을 열지 않은 채 회의실 불이 꺼졌다.'],
+   ['EN', 'English', 'Things fizzled out inconclusively. As people dispersed one by one, they cautiously exchanged glances. The atmosphere made it clear that whoever spoke up first would have to take full responsibility. In the end, no one uttered a word, and the lights in the conference room went out.'],
+   ['JA', '日本語', '明確な結論が出ないまま、事態はうやむやに終わった。人々が一人、また一人と立ち去る中、互いに慎重に視線を交わしていた。最初に口を開いた者がすべての責任を負わなければならないことは、その場の空気から明白だった。結局、誰も一言も発することなく、会議室の明かりが消えた。'],
+   ['ZH', '中文', '在未能得出明确结论的情况下，事情不了了之。人们一个接一个地离去，彼此小心翼翼地交换着眼神。从现场的气氛来看，第一个开口的人必须承担全部责任，这是显而易见的。最终，谁也没有说一句话，会议室的灯熄灭了。'],
+   ['TH', 'ไทย', 'เมื่อยังไม่สามารถหาข้อสรุปที่ชัดเจนได้ เรื่องราวก็เป็นอันเงียบหายไปเฉยๆ ผู้คนต่างทยอยกันเดินออกไปทีละคน และส่งสายตากันอย่างระมัดระวัง จากบรรยากาศในห้อง เห็นได้ชัดว่าผู้ที่เอ่ยปากเป็นคนแรกจะต้องแบกรับความรับผิดชอบทั้งหมด ในที่สุดก็ไม่มีใครพูดอะไรแม้แต่คำเดียว และไฟในห้องประชุมก็ดับลง'],
+   ['KO', 'Korean', '명확한 결론을 내리지 못하자 일은 그대로 조용히 묻혀버렸다. 사람들은 조심스럽게 눈빛을 주고받으며 하나둘씩 밖으로 나갔다. 방 안의 분위기로 보아 먼저 입을 여는 사람이 모든 책임을 져야 함이 분명했다. 결국 아무도 단 한 마디도 하지 않았고, 회의실 불이 꺼졌다.'],
+   ['EN', 'English', 'As no clear conclusion was reached, the matter was quietly buried. People cautiously exchanged glances and left one by one. Judging by the atmosphere in the room, it was clear that whoever spoke first would have to bear all the responsibility. In the end, no one uttered a single word, and the lights in the conference room went out.'],
+   ['AR', 'العربية', 'ولعدم التوصل إلى نتيجة واضحة، دُفنت المسألة بهدوء. تبادل الحاضرون النظرات بحذر وغادروا واحداً تلو الآخر. وبالنظر إلى الأجواء السائدة في الغرفة، كان من الواضح أن أول من يتحدث سيتعين عليه تحمل المسؤولية كاملة. وفي النهاية، لم ينطق أحد بكلمة واحدة، وانطفأت أضواء قاعة الاجتماعات.'],
+   ['FI', 'Suomi', 'Koska selkeään tulokseen ei päästy, asia haudattiin vähin äänin. Läsnäolijat vaihtoivat varovaisia katseita ja poistuivat yksi toisensa jälkeen. Huoneessa vallitsevan ilmapiirin perusteella oli selvää, että ensimmäisenä puhuvan olisi kannettava täysi vastuu. Lopulta kukaan ei sanonut sanaakaan, ja kokoushuoneen valot sammuivat.'],
+   ['PT', 'Português', 'Como não se chegou a um resultado claro, o assunto foi enterrado sem alarde. Os presentes trocaram olhares cautelosos e saíram um após o outro. Pela atmosfera que pairava na sala, estava claro que quem falasse primeiro teria de assumir toda a responsabilidade. No fim, ninguém disse uma palavra, e as luzes da sala de reuniões se apagaram.'],
+   ['KO', 'Korean', '명확한 결론이 나오지 않자 그 안건은 조용히 묻혔다. 참석자들은 조심스럽게 눈빛을 주고받고는 하나둘씩 자리를 떴다. 회의실에 감도는 분위기로 보아 먼저 입을 떼는 사람이 모든 책임을 져야 할 것이 분명했다. 결국 아무도 한 마디도 하지 않은 채 회의실 불이 꺼졌다.'],
+   ['EN', 'English', 'As no clear conclusion was reached, the agenda was quietly buried. The attendees cautiously exchanged glances and left one by one. Judging by the atmosphere lingering in the room, it was clear that whoever spoke first would have to bear full responsibility. In the end, the lights in the conference room went out without anyone saying a single word.'],
+   ['HI', 'हिन्दी', 'चूँकि कोई स्पष्ट निष्कर्ष नहीं निकला, इसलिए एजेंडे को चुपचाप दबा दिया गया। उपस्थित लोगों ने सावधानी से एक-दूसरे को देखा और एक-एक करके बाहर चले गए। कमरे में छाए माहौल को देखकर यह साफ़ था कि जो भी पहले बोलेगा, उसे पूरी ज़िम्मेदारी उठानी पड़ेगी। अंततः, किसी के एक शब्द भी बोले बिना सम्मेलन कक्ष की बत्तियाँ बुझ गईं।'],
+   ['RU', 'Русский', 'Поскольку к четкому выводу прийти не удалось, повестку дня тихо замяли. Присутствующие осторожно переглянулись и один за другим вышли. По царившей в комнате атмосфере было очевидно, что тот, кто заговорит первым, возьмет на себя всю ответственность. В конце концов свет в конференц-зале погас без единого промолвленного слова.'],
+   ['SW', 'Kiswahili', 'Kwa kuwa haikuwezekana kufikia hitimisho la wazi, ajenda ilifunikwa kimya kimya. Waliokuwepo walitazamana kwa tahadhari na kutoka mmoja baada ya mwingine. Kutokana na hali iliyotawala chumbani, ilikuwa wazi kwamba yeyote atakayeanza kuzungumza angebeba uwajibikaji wote. Mwishowe, taa za ukumbi wa mikutano zilizimika bila neno hata moja kutamkwa.'],
+   ['KO', 'Korean', '명확한 결론에 도달할 수 없었기에 안건은 조용히 묻혔다. 참석자들은 조심스러운 눈빛으로 서로를 바라보며 하나둘씩 자리를 떠났다. 방 안을 감도는 분위기상, 누구든 먼저 말을 꺼내는 사람이 모든 책임을 지게 될 것이 분명했다. 결국 단 한 마디의 말도 없이 회의장의 불이 꺼졌다.'],
+  ],
+ },
+ {
+  title: '미운 정 고운 정', c1: '#56343c', c2: '#2f191f',
+  steps: [
+   ['KO', 'Korean', '그 사람과는 미운 정 고운 정이 다 들었다. 이십 년을 같은 가게에서 일하면서 안 싸운 날이 없었다. 이제는 목소리를 높일 기운도 없다. 얼굴을 보면 밥은 먹었냐고 먼저 묻는다.'],
+   ['EN', 'English', 'I have developed a deep love-hate relationship with that person. Working in the same shop for twenty years, not a day went by that we didn\'t fight. Now, we don\'t even have the energy to raise our voices. Whenever we see each other, the first thing we ask is whether the other has eaten.'],
+   ['JA', '日本語', 'あの人とは、すっかり深い愛憎が入り混じった関係になってしまった。同じ店で20年間働いてきて、喧嘩をしなかった日は一日もなかった。今ではもう、声を荒げる気力すら残っていない。顔を合わせれば、まず「ご飯は食べたか」とお互いに聞き合うばかりだ。'],
+   ['ZH', '中文', '我和那个人，彻底变成了爱恨交织的关系。在同一家店共事了20年，没有一天是不吵架的。如今，连提高嗓门的气力都没了。只要一见面，也只是互相问上一句“吃了吗”。'],
+   ['TH', 'ไทย', 'ฉันกับคนคนนั้นกลายเป็นมีความสัมพันธ์แบบทั้งรักทั้งเกลียดกันอย่างสิ้นเชิง ทำงานร่วมกันในร้านเดียวกันมา 20 ปี ไม่มีวันไหนเลยที่ไม่ทะเลาะกัน ตอนนี้ แม้แต่แรงจะขึ้นเสียงก็ไม่มีแล้ว แค่เจอหน้ากัน ก็ทำได้เพียงถามกันว่า "กินข้าวหรือยัง"'],
+   ['KO', 'Korean', '그 사람과 나는 완전히 애증의 관계가 되었다. 같은 가게에서 20년 동안 함께 일하며 싸우지 않은 날이 단 하루도 없었다. 이제는 목소리를 높일 힘조차 없어 그저 얼굴을 마주치면 "밥은 먹었냐"고 물어볼 뿐이다.'],
+   ['EN', 'English', 'That person and I have ended up in a complete love-hate relationship. Having worked together in the same shop for 20 years, not a single day passed without a fight. Now, lacking even the energy to raise our voices, we just ask "Have you eaten?" whenever our eyes meet.'],
+   ['AR', 'العربية', 'انتهى بنا المطاف أنا وذلك الشخص في علاقة حب وكره تامة. عملنا معاً في المتجر نفسه لمدة عشرين عاماً، ولم يمر يوم واحد دون شجار. والآن، ونحن نفتقر حتى إلى الطاقة لرفع أصواتنا، نكتفي بالسؤال "هل أكلت؟" كلما تلاقت أعيننا.'],
+   ['FI', 'Suomi', 'Päädyimme sen henkilön kanssa täydelliseen viha-rakkaussuhteeseen. Työskentelimme yhdessä samassa kaupassa kaksikymmentä vuotta, eikä yksikään päivä kulunut ilman riitaa. Ja nyt, kun meillä ei ole edes voimaa korottaa ääntämme, tyydymme vain kysymään ”Oletko syönyt?” aina kun katseemme kohtaavat.'],
+   ['PT', 'Português', 'Acabamos tendo uma perfeita relação de amor e ódio com aquela pessoa. Trabalhamos juntos na mesma loja durante vinte anos, e nenhum dia se passava sem uma discussão. E agora, quando nem temos mais forças para levantar a voz, nos contentamos apenas em perguntar "Já comeu?" sempre que nossos olhares se cruzam.'],
+   ['KO', 'Korean', '결국 우리는 그 사람과 완벽한 애증의 관계가 되었다. 20년 동안 같은 가게에서 함께 일하면서 단 하루도 다투지 않고 지나가는 날이 없었다. 그리고 이제는 목소리를 높일 힘조차 없어, 눈이 마주칠 때마다 "밥은 먹었어?"라고 묻는 것으로 만족한다.'],
+   ['EN', 'English', 'In the end, we developed a perfect love-hate relationship with that person. Working together in the same shop for twenty years, not a single day passed without us arguing. And now, lacking even the strength to raise our voices, we are content simply asking, "Have you eaten?" whenever our eyes meet.'],
+   ['HI', 'हिन्दी', 'अंततः, उस व्यक्ति के साथ हमारा प्यार और नफ़रत का एक एकदम सही रिश्ता बन गया। बीस साल तक एक ही दुकान में साथ काम करते हुए, एक भी दिन ऐसा नहीं बीता जब हमारी बहस न हुई हो। और अब, आवाज़ ऊँची करने की ताक़त भी न होने पर, जब भी हमारी नज़रें मिलती हैं, हम बस "क्या आपने खाना खा लिया?" पूछकर ही संतुष्ट हो जाते हैं।'],
+   ['RU', 'Русский', 'В конце концов, у нас с этим человеком сложились идеальные отношения любви и ненависти. За двадцать лет совместной работы в одном магазине не прошло ни одного дня, чтобы мы не поспорили. И теперь, когда нет сил даже повысить голос, каждый раз, встречаясь взглядами, мы просто довольствуемся вопросом: «Вы поели?».'],
+   ['SW', 'Kiswahili', 'Hatimaye, mimi na mtu huyu tulikuwa na uhusiano kamili wa upendo na chuki. Kwa miaka ishirini ya kufanya kazi pamoja katika duka moja, haikupita siku hata moja bila sisi kubishana. Na sasa, tunapokosa hata nguvu za kupaza sauti, kila mara macho yetu yanapokutana, tunaridhika tu na kuuliza, "Umekula?"'],
+   ['KO', 'Korean', '결국 나와 이 사람은 완벽한 애증의 관계가 되었다. 한 가게에서 함께 일한 20년 동안 단 하루도 다투지 않고 지나간 날이 없었다. 그리고 이제는 목소리를 높일 힘조차 없어 눈이 마주칠 때마다 그저 "밥은 먹었어?"라고 묻는 것으로 만족할 뿐이다.'],
+  ],
+ },
+ {
+  title: '알아서', c1: '#4c4838', c2: '#28251b',
+  steps: [
+   ['KO', 'Korean', '간은 대충 알아서 맞추라고 했다. 넘칠 것 같으면 불을 좀 줄이라는 말만 남기고 어머니는 방으로 들어갔다. 나는 소금을 얼마나 넣어야 할지 몰라 국자만 들고 서 있었다. 알아서 하라는 말이 제일 어려웠다.'],
+   ['EN', 'English', 'She told me to just season it to taste on my own. Leaving only a comment to turn down the heat if it looked like it was going to boil over, my mother went into her room. Not knowing how much salt to add, I just stood there holding the ladle. Being told to figure it out on my own was the hardest part.'],
+   ['JA', '日本語', '味付けは自分で適当に調えるようにと言われた。吹きこぼれそうになったら火を弱めるようにとだけ言い残し、母は自分の部屋へ行ってしまった。塩をどれくらい入れればいいのか分からず、私はおたまを持ったまま立ち尽くしていた。自分でなんとかしなさいと言われるのが一番困るのだった。'],
+   ['ZH', '中文', '说是让我自己看着调味。母亲只留下一句快要溢出来时就把火关小，便回了自己的房间。不知道该放多少盐，我手拿着汤勺愣在原地。叫我自己想办法是最让我为难的。'],
+   ['TH', 'ไทย', 'บอกให้ฉันปรุงรสเอาเอง แม่เพียงพูดทิ้งท้ายไว้แค่ว่าพอใกล้จะล้นก็ให้เบาไฟลง แล้วก็กลับเข้าห้องของตัวเองไป ฉันไม่รู้ว่าควรใส่เกลือเท่าไร ได้แต่ถือกระบวยยืนอึ้งอยู่กับที่ การบอกให้ฉันจัดการเอาเองนี่แหละคือสิ่งที่ทำให้ฉันลำบากใจที่สุด'],
+   ['KO', 'Korean', '알아서 간을 맞추라며 엄마는 넘칠 것 같으면 불을 줄이라는 말만 남긴 채 자기 방으로 들어가 버렸다. 나는 소금을 얼마나 넣어야 할지 몰라 국자를 든 채 멍하니 서 있을 뿐이었다. 알아서 하라는 그 말이야말로 나를 가장 난감하게 만드는 것이었다.'],
+   ['EN', 'English', 'Mom went into her room, leaving only the words to season it myself and to turn down the heat if it looked like it was going to boil over. Unsure of how much salt to add, I just stood there blankly, ladle in hand. Telling me to figure it out on my own was the very thing that flustered me the most.'],
+   ['AR', 'العربية', 'دخلت أمي غرفتها تاركةً خلفها فقط كلماتها بأن أُتَبِّل الطعام بنفسي وأن أُخَفِّض النار إذا بدا أنه على وشك أن يفيض. ولأنني لم أكن متأكدًا من كمية الملح التي يجب إضافتها، وقفت هناك شاردًا والمغرفة في يدي. وكان إخباري بأن أتصرف بمفردي هو أكثر ما أربكني على الإطلاق.'],
+   ['FI', 'Suomi', 'Äitini meni huoneeseensa jättäen jälkeensä vain sanansa siitä, että minun pitäisi maustaa ruoka itse ja pienentää lämpöä, jos se vaikutti olevan vähällä kiehua yli. Koska en ollut varma siitä, kuinka paljon suolaa pitäisi lisätä, seisoin siinä ajatuksissani kauha kädessäni. Kaikkein eniten minua hämensi se, että minua käskettiin toimimaan omillani.'],
+   ['PT', 'Português', 'Minha mãe foi para o quarto dela, deixando para trás apenas suas palavras de que eu deveria temperar a comida eu mesmo e baixar o fogo se parecesse prestes a transbordar. Como eu não tinha certeza de quanto sal deveria adicionar, fiquei ali pensativo, com a concha na mão. O que mais me deixou confuso foi me mandarem agir por conta própria.'],
+   ['KO', 'Korean', '어머니는 내가 직접 음식 간을 맞추고 넘칠 것 같으면 불을 줄이라는 말만 남긴 채 방으로 들어가셨다. 소금을 얼마나 넣어야 할지 잘 몰랐기에, 나는 국자를 들고 한참을 생각에 잠겨 서 있었다. 나를 가장 혼란스럽게 만든 것은 알아서 하라는 말이었다.'],
+   ['EN', 'English', 'My mother went into her room, telling me only to season the food myself and turn down the heat if it looked about to boil over. Not knowing how much salt to add, I stood there holding a ladle, lost in thought for a long time. What confused me the most was her telling me to figure it out on my own.'],
+   ['HI', 'हिन्दी', 'मेरी माँ मुझे बस यह कहकर अपने कमरे में चली गईं कि मैं खाने में मसाले खुद ही डाल लूँ और अगर लगे कि वह उबलकर बाहर गिरने वाला है तो आँच धीमी कर दूँ। कितना नमक डालना है यह न समझ पाने के कारण, मैं हाथ में करछी थामे काफी देर तक सोच में डूबा खड़ा रहा। मुझे सबसे ज़्यादा उलझन इस बात से हुई कि उन्होंने मुझसे यह सब खुद ही समझने को कहा था।'],
+   ['RU', 'Русский', 'Моя мама ушла к себе в комнату, лишь сказав мне самому добавить специи в еду и убавить огонь, если покажется, что она закипает и вот-вот убежит. Не понимая, сколько нужно положить соли, я довольно долго стоял в раздумьях с половником в руке. Больше всего меня сбило с толку то, что она велела мне во всём этом разобраться самому.'],
+   ['SW', 'Kiswahili', 'Mama yangu alienda chumbani kwake, akiniambia tu niongeze viungo kwenye chakula mimi mwenyewe na kupunguza moto ikionekana kwamba kinatokota na kinakaribia kufurika. Bila kuelewa ni chumvi kiasi gani cha kuweka, nilisimama nikitafakari kwa muda mrefu nikiwa na upawa mkononi. Kilichonichanganya zaidi ni kwamba aliniambia nishughulikie mambo haya yote mimi mwenyewe.'],
+   ['KO', 'Korean', '어머니는 나에게 직접 음식에 양념을 치고 끓어 넘칠 것 같으면 불을 줄이라고만 말씀하신 뒤 방으로 들어가셨다. 소금을 얼마나 넣어야 할지 몰라 나는 국자를 손에 든 채 한참 동안 서서 고민했다. 나를 더욱 혼란스럽게 만든 것은 이 모든 것을 나 혼자 알아서 처리하라고 하셨다는 사실이었다.'],
+  ],
+ },
 ];
+
+const LAPNAME = ['', '첫 번째 바퀴', '두 번째 바퀴', '세 번째 바퀴'];
+const TURNS = 9;
+
+const book = document.getElementById('book');
+const leavesEl = document.getElementById('leaves');
+const hintEl = document.getElementById('hint');
+const dotsEl = document.getElementById('dots');
+const castEl = document.getElementById('cast');
+
+let vol = 0, cur = 0, busy = false, leaves = [];
+
+const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+const bare = s => s.replace(/[.,·…"'’“”!?]/g, '');
+const same = (a, b) => a.length > 1 && b.length > 1 && a.slice(0, 2) === b.slice(0, 2);
+
+// 원문에 없던 말에만 표시를 남긴다
+function mark(text, src) {
+  const sw = bare(src).split(/\s+/).filter(Boolean);
+  return text.split(/(\s+)/).map(tk => {
+    if (!tk.trim()) return tk;
+    const w = bare(tk);
+    return sw.some(s => same(s, w)) ? esc(tk) : '<em>' + esc(tk) + '</em>';
+  }).join('');
+}
+
+function coverHTML(b, backSide) {
+  const style = `--c1:${b.c1};--c2:${b.c2}`;
+  if (backSide) return `<div class="cover in" style="${style}"></div>`;
+  return `<div class="cover" style="${style}">
+    <div class="gloss"></div>
+    <div class="plate">
+      <div class="mk">Lost in Return</div>
+      <h1>${esc(b.title)}</h1>
+      <div class="sub">번역 불가</div>
+      <div class="vol">Vol. ${String(vol + 1).padStart(2, '0')}</div>
+    </div>
+  </div>`;
+}
+
+function titleHTML(b) {
+  const route = b.steps.slice(1).map(s => s[0]);
+  const laps = [route.slice(0, 5), route.slice(5, 10), route.slice(10, 15)];
+  return `<div class="pg back"><div class="sheet title-pg">
+    <div class="vol">Vol. ${String(vol + 1).padStart(2, '0')}</div>
+    <h2>${esc(b.title)}</h2>
+    <div class="rule"></div>
+    <div class="route">${laps.map(l => 'KO → ' + l.join(' → ')).join('<br>')}</div>
+    <div class="imp">한 문장이 열두 나라 말을 거쳐<br>세 번 한국어로 돌아옵니다</div>
+  </div></div>`;
+}
+
+function stepHTML(b, i, side) {
+  const [code, name, text] = b.steps[i];
+  const ko = code === 'KO';
+  const src = b.steps[0][2];
+  const lap = Math.ceil(i / 5);
+  const tag = i === 0 ? '원문' : ko ? '돌아온 한국어' : name;
+  const sub = i === 0 ? '' : LAPNAME[lap];
+  const body = ko && i > 0 ? mark(text, src) : esc(text);
+  const cls = 'body' + (ko ? ' ko l' + lap : '') + (i === 0 ? ' big' : '');
+  return `<div class="pg ${side}"><div class="sheet">
+    <div class="lang"><b>${code}</b><span>${esc(tag)}</span><span class="lap">${sub}</span></div>
+    <div class="${cls}" dir="auto">${body}</div>
+    <div class="pgn">${String(i + 1).padStart(2, '0')}</div>
+  </div></div>`;
+}
+
+function afterHTML(b) {
+  return `<div class="pg front"><div class="sheet">
+    <div class="lang"><b>KO</b><span>처음 문장</span><span class="lap">다시 싣는다</span></div>
+    <div class="body src" dir="auto">${esc(b.steps[0][2])}</div>
+    <div class="pgn">덮으면 다음 권</div>
+  </div></div>`;
+}
+
 // ── 소리 ───────────────────────────────────────────────────────────────────
 const sound = (() => {
-  let ac = null, master = null, on = true, hum = null, noise = null;
+  let ac = null, master = null, on = true;
 
   function boot() {
     if (ac) return;
@@ -256,27 +592,17 @@ const sound = (() => {
     comp.threshold.value = -16; comp.ratio.value = 7;
     master.connect(comp); comp.connect(ac.destination);
 
-    // 기계가 켜져 있는 소리
-    const o = ac.createOscillator();
-    o.type = 'square'; o.frequency.value = 59;
-    const lp = ac.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 190;
-    const g = ac.createGain(); g.gain.value = 0.022;
-    o.connect(lp); lp.connect(g); g.connect(master); o.start();
-    hum = g;
-
-    // 테이프 잡음
+    // 방의 공기
     const len = ac.sampleRate * 2;
     const buf = ac.createBuffer(1, len, ac.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * 0.4;
     const src = ac.createBufferSource();
     src.buffer = buf; src.loop = true;
-    const hp = ac.createBiquadFilter();
-    hp.type = 'highpass'; hp.frequency.value = 2600;
-    const ng = ac.createGain(); ng.gain.value = 0.012;
-    src.connect(hp); hp.connect(ng); ng.connect(master); src.start();
-    noise = ng;
+    const lp = ac.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 340;
+    const g = ac.createGain(); g.gain.value = 0.035;
+    src.connect(lp); lp.connect(g); g.connect(master); src.start();
   }
 
   const env = (g, a, p, d, v) => {
@@ -285,232 +611,164 @@ const sound = (() => {
     g.gain.exponentialRampToValueAtTime(0.0001, a + p + d);
   };
 
-  function burst(dur, f, q, v, type) {
+  // 종이가 스치는 소리
+  function swish(at, dur, f0, f1, v, q) {
     const n = Math.max(1, Math.floor(ac.sampleRate * dur));
     const buf = ac.createBuffer(1, n, ac.sampleRate);
     const d = buf.getChannelData(0);
     for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1);
-    const src = ac.createBufferSource(); src.buffer = buf;
+    const s = ac.createBufferSource(); s.buffer = buf;
     const bp = ac.createBiquadFilter();
-    bp.type = type || 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    bp.type = 'bandpass'; bp.Q.value = q || 0.7;
+    bp.frequency.setValueAtTime(f0, at);
+    bp.frequency.exponentialRampToValueAtTime(f1, at + dur);
     const g = ac.createGain();
-    src.connect(bp); bp.connect(g); g.connect(master);
-    env(g, ac.currentTime, 0.004, dur, v);
-    src.start();
-    src.stop(ac.currentTime + dur + 0.02);
+    s.connect(bp); bp.connect(g); g.connect(master);
+    env(g, at, 0.035, dur, v);
+    s.start(at); s.stop(at + dur + 0.05);
+  }
+
+  // 책이 책상에 닿는 소리
+  function thud(at, f, v, dur) {
+    const o = ac.createOscillator();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(f, at);
+    o.frequency.exponentialRampToValueAtTime(f * 0.46, at + dur);
+    const g = ac.createGain();
+    o.connect(g); g.connect(master);
+    env(g, at, 0.006, dur, v);
+    o.start(at); o.stop(at + dur + 0.1);
   }
 
   return {
     kick() { boot(); if (ac.state === 'suspended') ac.resume(); },
-    live() { return !!ac && ac.state === 'running'; },
     toggle() { on = !on; if (master) master.gain.value = on ? 0.9 : 0; return on; },
 
-    // 활자 하나
-    key() {
+    page(s) {
       if (!ac) return;
-      burst(0.016, rnd(1900, 3400), 2.2, 0.16, 'bandpass');
+      const t = ac.currentTime, k = s || 1;
+      swish(t, 0.3, 780, 3100, 0.085 * k);
+      swish(t + 0.17, 0.2, 2900, 1150, 0.05 * k, 1.1);
     },
 
-    // 모터가 답을 찾는다
-    motor(ms) {
+    open() {
       if (!ac) return;
-      const n = ac.currentTime, dur = ms / 1000;
-      const o = ac.createOscillator();
-      o.type = 'sawtooth';
-      o.frequency.setValueAtTime(74, n);
-      o.frequency.linearRampToValueAtTime(96, n + dur * 0.6);
-      o.frequency.linearRampToValueAtTime(68, n + dur);
-      const lp = ac.createBiquadFilter();
-      lp.type = 'lowpass'; lp.frequency.value = 430; lp.Q.value = 3;
-      const g = ac.createGain();
-      o.connect(lp); lp.connect(g); g.connect(master);
-      env(g, n, 0.06, dur, 0.1);
-      o.start(); o.stop(n + dur + 0.1);
+      const t = ac.currentTime;
+      thud(t, 108, 0.17, 0.26);
+      swish(t + 0.03, 0.42, 520, 2400, 0.07);
     },
 
-    // 줄을 긋는다
-    strike() {
+    shut() {
       if (!ac) return;
-      const n = ac.currentTime;
-      const o = ac.createOscillator();
-      o.type = 'triangle';
-      o.frequency.setValueAtTime(174, n);
-      o.frequency.exponentialRampToValueAtTime(82, n + 0.17);
-      const g = ac.createGain();
-      o.connect(g); g.connect(master);
-      env(g, n, 0.006, 0.19, 0.2);
-      o.start(); o.stop(n + 0.26);
-      burst(0.09, 1250, 1.1, 0.1, 'bandpass');
-    },
-
-    // 기계가 포기한다
-    give() {
-      if (!ac) return;
-      const n = ac.currentTime;
-      [104, 52].forEach((f, i) => {
-        const o = ac.createOscillator();
-        o.type = i ? 'sine' : 'triangle';
-        o.frequency.value = f;
-        const g = ac.createGain();
-        o.connect(g); g.connect(master);
-        env(g, n + i * 0.04, 0.05, 1.5, i ? 0.17 : 0.1);
-        o.start(); o.stop(n + 1.9);
-      });
-      burst(0.5, 520, 0.8, 0.045, 'lowpass');
+      const t = ac.currentTime;
+      swish(t, 0.2, 2600, 700, 0.07, 1);
+      thud(t + 0.14, 86, 0.26, 0.5);
+      swish(t + 0.14, 0.36, 900, 220, 0.06);
     },
   };
 })();
 
-// ── 화면 ───────────────────────────────────────────────────────────────────
-const flow = document.getElementById('flow');
-const srcTxt = document.getElementById('srcTxt');
-const routeEl = document.getElementById('route');
-const hint = document.getElementById('hint');
-const sndBtn = document.getElementById('snd');
-
-let si = 0;        // 지금 문장
-let step = 1;      // 지금 단계
-let timer = null;
-let running = false;
-let lines = [];
-
-const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
-const bare = s => s.replace(/[.,·…"'’“”「」。、]/g, '');
-
-function same(a, b) {
-  if (a === b) return true;
-  if (a.length < 2 || b.length < 2) return false;
-  return a.slice(0, 2) === b.slice(0, 2);
+function leafEl(front, back) {
+  const d = document.createElement('div');
+  d.className = 'leaf';
+  d.innerHTML = front + back;
+  d.querySelectorAll('.pg').forEach(pg => pg.insertAdjacentHTML('beforeend', '<i class="gl"></i>'));
+  leavesEl.appendChild(d);
+  leaves.push(d);
 }
 
-// 원문에 없던 말에만 불을 켠다
-function mark(text, src) {
-  const sw = bare(src).split(/\s+/).filter(Boolean);
-  return text.split(/(\s+)/).map(tk => {
-    if (!tk.trim()) return tk;
-    const w = bare(tk);
-    return sw.some(s => same(s, w)) ? esc(tk) : '<em>' + esc(tk) + '</em>';
-  }).join('');
+function build() {
+  const b = BOOKS[vol];
+  book.style.setProperty('--c1', b.c1);
+  book.style.setProperty('--c2', b.c2);
+  leavesEl.innerHTML = '';
+  leaves = [];
+  cur = 0;
+  leafEl(coverHTML(b), titleHTML(b));
+  for (let k = 0; k < 8; k++) leafEl(stepHTML(b, k * 2, 'front'), stepHTML(b, k * 2 + 1, 'back'));
+  leafEl(afterHTML(b), coverHTML(b, true));
+  leaves.forEach((lf, i) => lf.style.zIndex = leaves.length - i);
+  dotsEl.innerHTML = BOOKS.map((_, i) => `<span class="dot${i === vol ? ' on' : ''}"></span>`).join('');
+  say();
 }
 
-function fade() {
-  const last = lines[lines.length - 1];
-  lines.forEach(el => {
-    el.style.opacity = el === last ? 1 : el.classList.contains('ko') ? 0.5 : 0.26;
-  });
+function say() {
+  hintEl.textContent = cur === 0 ? '표지를 누르면 책이 열려요'
+    : cur >= TURNS ? '누르면 책을 덮고 다음 권'
+    : '누르면 다음 장';
 }
 
-// 한국어로 돌아오면 그 바퀴에 거쳐 온 말들은 접어서 치운다
-function foldForeign() {
-  lines.forEach(el => {
-    if (!el.classList.contains('ko')) el.classList.add('gone');
-  });
+function turn() {
+  if (busy) return;
+  busy = true;
+  if (cur === 0) { book.classList.add('open'); sound.open(); }
+  else sound.page();
+  const lf = leaves[cur], i = cur;
+  lf.style.zIndex = 70;
+  lf.classList.add('turned');
+  shadeOn(lf);
+  cur++;
+  say();
+  setTimeout(() => { lf.style.zIndex = 10 + i; busy = false; }, 1210);
 }
 
-function addLine(code, isKo) {
-  const el = document.createElement('div');
-  el.className = 'ln' + (isKo ? ' ko' : '');
-  el.innerHTML = '<div class="lg">' + code + '</div><div class="tx" dir="auto"></div>';
-  flow.appendChild(el);
-  lines.push(el);
-  fade();
-  return el.querySelector('.tx');
+function shadeOn(lf) {
+  const gl = lf.querySelectorAll('.gl');
+  gl.forEach(g => g.style.opacity = .85);
+  castEl.style.opacity = .9;
+  setTimeout(() => { gl.forEach(g => g.style.opacity = 0); castEl.style.opacity = 0; }, 540);
 }
 
-function drawRoute() {
-  routeEl.innerHTML = CHAIN[si].map((s, i) =>
-    i < step ? '<span>' + s[0] + '</span>'
-    : i === step ? '<b>' + s[0] + '</b>'
-    : '<i>' + s[0] + '</i>'
-  ).join(' <i>·</i> ');
-}
-
-function type(node, text, isKo, done) {
-  const sp = Math.max(10, Math.min(44, 1600 / text.length)) * (isKo ? 1.6 : 1);
-  const cur = document.createElement('span');
-  cur.className = 'cur';
-  let i = 0;
-  (function tick() {
-    node.textContent = text.slice(0, i);
-    node.appendChild(cur);
-    if (i % 2 === 0) sound.key();
-    i++;
-    if (i <= text.length) timer = setTimeout(tick, sp);
-    else { cur.remove(); done(); }
-  })();
-}
-
-function next() {
-  const ch = CHAIN[si];
-  if (step >= ch.length) { finish(); return; }
-  const [code, text] = ch[step];
-  const isKo = code === 'KO';
-  drawRoute();
-  sound.motor(isKo ? 620 : 300);
-  const node = addLine(code, isKo);
-  type(node, text, isKo, () => {
-    if (isKo) {
-      node.innerHTML = mark(text, ch[0][1]);
-      sound.strike();
-      setTimeout(foldForeign, 520);
-    }
-    step++;
-    drawRoute();
-    timer = setTimeout(next, isKo ? 1250 : 420);
-  });
-}
-
-function finish() {
-  running = false;
-  drawRoute();
-  hint.classList.remove('off');
-  sound.give();
-}
-
-function start(i) {
-  clearTimeout(timer);
-  si = i % CHAIN.length;
-  step = 1;
-  lines = [];
-  flow.innerHTML = '';
-  srcTxt.textContent = CHAIN[si][0][1];
-  hint.classList.add('off');
-  running = true;
-  drawRoute();
-  timer = setTimeout(next, 800);
-}
-
-// 진행 중에 누르면 남은 번역을 한 번에 펼친다
-function skip() {
-  clearTimeout(timer);
-  const ch = CHAIN[si];
-  const half = lines[lines.length - 1];      // 타이핑하다 만 줄은 버린다
-  if (half) { half.remove(); lines.pop(); }
-  for (; step < ch.length; step++) {
-    const [code, text] = ch[step];
-    const isKo = code === 'KO';
-    const node = addLine(code, isKo);
-    if (isKo) { node.innerHTML = mark(text, ch[0][1]); foldForeign(); }
-    else node.textContent = text;
+function shut() {
+  busy = true;
+  hintEl.style.opacity = 0;
+  const n = cur;
+  for (let i = n - 1; i >= 0; i--) {
+    const lf = leaves[i], wait = (n - 1 - i) * 52;
+    setTimeout(() => {
+      lf.style.zIndex = 70;
+      lf.classList.remove('turned');
+      lf.classList.add('rew');
+      setTimeout(() => lf.classList.remove('rew'), 1210);
+      shadeOn(lf);
+      if (i > 0) sound.page(0.6);
+      setTimeout(() => lf.style.zIndex = leaves.length - i, 760);
+    }, wait);
   }
-  fade();
-  finish();
+  const back = n * 52 + 520;
+  setTimeout(() => { book.classList.remove('open'); sound.shut(); }, back);
+  setTimeout(() => book.classList.add('swap'), back + 640);
+  setTimeout(() => {
+    vol = (vol + 1) % BOOKS.length;
+    build();
+    book.classList.remove('swap');
+    hintEl.style.opacity = 1;
+    busy = false;
+  }, back + 1180);
 }
 
-document.body.addEventListener('click', () => {
+function tap() {
   sound.kick();
-  if (running) skip();
-  else start(si + 1);
+  if (busy) return;
+  if (cur >= TURNS) shut(); else turn();
+}
+
+document.getElementById('desk').addEventListener('click', tap);
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'ArrowRight') { e.preventDefault(); tap(); }
 });
 
-sndBtn.addEventListener('click', e => {
+document.getElementById('snd').addEventListener('click', e => {
   e.stopPropagation();
   sound.kick();
-  sndBtn.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+  e.target.textContent = sound.toggle() ? '♪' : '✕';
 });
-document.querySelector('.home-btn').addEventListener('click', e => e.stopPropagation());
 
-start(0);
+if (new URLSearchParams(location.search).get('preview') === '1') {
+  document.body.classList.add('preview');
+}
+
+build();
 </script>
 </body>
 </html>
