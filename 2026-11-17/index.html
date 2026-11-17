@@ -3,47 +3,107 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>번역 불가 — Untranslatable</title>
+<title>번역 불가 — Lost in Return</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #15171a; }
   body { cursor: pointer; }
-  canvas { display: block; }
 
-  .home-btn {
-    position: fixed; top: 20px; left: 20px; z-index: 10;
+  .home-btn, .snd {
+    position: fixed; top: 20px; z-index: 20;
     padding: 7px 13px;
     background: rgba(28,31,35,.6);
     border: 1px solid rgba(150,146,136,.26);
     color: #8d8a80;
     font: 700 10px/1 'Space Mono', monospace;
     letter-spacing: .14em; text-decoration: none;
+    user-select: none;
     transition: color .2s, border-color .2s;
   }
-  .home-btn:hover { color: #e3dcce; border-color: rgba(227,220,206,.5); }
+  .home-btn { left: 20px; }
+  .snd { right: 20px; }
+  .home-btn:hover, .snd:hover { color: #e3dcce; border-color: rgba(227,220,206,.5); }
 
-  .snd {
-    position: fixed; top: 20px; right: 20px; z-index: 10;
-    padding: 7px 13px;
-    background: rgba(28,31,35,.6);
-    border: 1px solid rgba(150,146,136,.26);
-    color: #8d8a80;
-    font: 700 10px/1 'Space Mono', monospace;
-    letter-spacing: .14em;
-    user-select: none;
-  }
-  .snd:hover { color: #e3dcce; border-color: rgba(227,220,206,.5); }
-
-  .hint {
-    position: fixed; left: 0; right: 0; bottom: 26px; z-index: 9;
+  /* 위에 걸어두는 원문 */
+  .src {
+    position: fixed; left: 0; right: 0; top: 0; z-index: 12;
+    padding: 62px 7vw 18px;
+    background: linear-gradient(to bottom, #15171a 58%, rgba(21,23,26,0));
     text-align: center;
-    color: rgba(190,184,170,.4);
-    font: 400 12px/1 'Nanum Myeongjo', serif;
-    letter-spacing: .22em;
-    transition: opacity .8s;
+  }
+  .src .tag {
+    display: block; margin-bottom: 9px;
+    color: rgba(150,146,136,.55);
+    font: 700 9px/1 'Space Mono', monospace; letter-spacing: .22em;
+  }
+  .src .txt {
+    color: rgba(222,215,200,.62);
+    font: 400 15px/1.75 'Nanum Myeongjo', serif;
+    letter-spacing: .01em;
+  }
+
+  /* 흘러가는 번역 */
+  .stage {
+    position: absolute; inset: 0;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 13%, #000 27%, #000 88%, transparent 98%);
+            mask-image: linear-gradient(to bottom, transparent 13%, #000 27%, #000 88%, transparent 98%);
+  }
+  .flow {
+    position: absolute; left: 50%; top: 52%;
+    transform: translate(-50%, -50%);
+    width: min(780px, 84vw);
+  }
+  .ln {
+    display: flex; align-items: baseline; gap: 16px;
+    max-height: 220px; padding: 9px 0;
+    overflow: hidden;
+    transition: opacity .7s, max-height .7s cubic-bezier(.4,0,.2,1), padding .7s;
+  }
+  .ln.gone { max-height: 0; padding: 0; opacity: 0 !important; }
+  .ln .lg {
+    flex: 0 0 26px; padding-top: 3px;
+    color: rgba(150,146,136,.5);
+    font: 700 9px/1 'Space Mono', monospace; letter-spacing: .12em;
+  }
+  .ln .tx {
+    flex: 1;
+    color: #7d7a72;
+    font: 400 15px/1.7 'Nanum Myeongjo', serif;
+  }
+  .ln.ko .tx {
+    color: #ded7c8;
+    font-size: 20px; line-height: 1.8;
+  }
+  .ln.ko .lg { color: rgba(222,215,200,.7); }
+  .ln .tx em { font-style: normal; color: #cf7042; }
+  .ln.ko .tx em { color: #e3833f; }
+  .cur {
+    display: inline-block; width: 7px; height: 1em;
+    margin-left: 2px; vertical-align: -2px;
+    background: rgba(222,215,200,.55);
+  }
+
+  /* 아래 진행 표시 */
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 12;
+    padding: 20px 0 26px;
+    background: linear-gradient(to top, #15171a 54%, rgba(21,23,26,0));
+    text-align: center;
+  }
+  .route {
+    color: rgba(150,146,136,.62);
+    font: 700 10px/1 'Space Mono', monospace; letter-spacing: .2em;
+  }
+  .route b { color: #e3833f; font-weight: 700; }
+  .route i { font-style: normal; color: rgba(150,146,136,.3); }
+  .hint {
+    margin-top: 11px;
+    color: rgba(190,184,170,.36);
+    font: 400 11px/1 'Nanum Myeongjo', serif; letter-spacing: .2em;
+    transition: opacity .6s;
   }
   .hint.off { opacity: 0; }
 
@@ -51,55 +111,120 @@
 </style>
 </head>
 <body>
-<canvas id="cv"></canvas>
+
+<div class="stage"><div class="flow" id="flow"></div></div>
+
+<div class="src">
+  <span class="tag" id="srcTag">원문 · 한국어</span>
+  <div class="txt" id="srcTxt"></div>
+</div>
+
+<div class="bar">
+  <div class="route" id="route"></div>
+  <div class="hint" id="hint">클릭하면 다음 문장</div>
+</div>
+
 <a class="home-btn" href="../index.html">← INDEX</a>
 <div class="snd" id="snd">SOUND: ON</div>
-<div class="hint" id="hint">클릭하면 다음 단어</div>
 
 <script>
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
 const PREVIEW = new URLSearchParams(location.search).has('preview');
 if (PREVIEW) document.body.classList.add('preview');
-
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
-const TAU = Math.PI * 2;
-const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 const rnd = (a, b) => a + Math.random() * (b - a);
 
-let W = 0, H = 0, S = 0;
-
-// 번역기가 끝내 "—"를 내놓는 말들
-const WORDS = [
-  { ko: '한', sub: '恨', cand: ['resentment', 'grudge', 'sorrow', 'bitterness', 'unresolved grief'],
-    gl: '풀지 못한 채 오래 품고 있는 것. 영어 단어들은 하나같이 너무 짧게 끝난다' },
-  { ko: '정', sub: '情', cand: ['affection', 'attachment', 'bond', 'fondness', 'long familiarity'],
-    gl: '오래 같이 있으면 생기는 것. 좋아하는 마음과는 다르다' },
-  { ko: '눈치', sub: 'nun-chi', cand: ['tact', 'social cue', 'reading the room', 'discretion'],
-    gl: '말하지 않은 것을 알아채는 능력. 눈치가 없다는 말이 더 번역되지 않는다' },
-  { ko: '시원하다', sub: 'si-won-ha-da', cand: ['refreshing', 'cool', 'relieving', 'satisfying'],
-    gl: '펄펄 끓는 국물을 마시고도 쓰는 말' },
-  { ko: '억울하다', sub: 'eog-ul-ha-da', cand: ['unfair', 'wronged', 'aggrieved', 'indignant'],
-    gl: '내가 하지 않은 일로 혼났을 때, 그 마음 전체' },
-  { ko: '아쉽다', sub: 'a-swib-da', cand: ['a pity', 'regrettable', 'wanting', 'bittersweet'],
-    gl: '조금만 더 있었으면 했는데 끝나버린 것' },
-  { ko: '답답하다', sub: 'dab-dab-ha-da', cand: ['stuffy', 'frustrated', 'stifled', 'suffocating'],
-    gl: '가슴이 막힌 것 같은데, 숨은 쉬어진다' },
-  { ko: '애틋하다', sub: 'ae-teus-ha-da', cand: ['tender', 'poignant', 'wistful', 'yearning'],
-    gl: '그리운데 아프고, 아픈데 소중하다' },
+// 실제로 AI Gateway에 돌린 번역 사슬 — 한국어로 돌아올 때마다 조금씩 달라진다
+const CHAIN = [
+ [
+  ['KO', '해 질 녘 부엌 창으로 든 빛이 누르스름해서, 식탁에 놓인 찬밥까지 조금 따뜻해 보였다.'],
+  ['EN', 'At dusk, the light coming through the kitchen window was yellowish, so even the cold rice on the dining table looked a little warm.'],
+  ['JA', '夕暮れ時、台所の窓から差し込む光が黄みがかっていて、食卓の上の冷めたご飯さえも少し温かそうに見えた。'],
+  ['ZH', '傍晚时分，从厨房窗户透进来的光线微微泛黄，连餐桌上放凉的米饭看起来也显得有些温暖。'],
+  ['TH', 'ในยามเย็น แสงที่ส่องผ่านหน้าต่างห้องครัวเข้ามาเป็นสีเหลืองนวลอ่อนๆ แม้แต่ข้าวสวยที่เย็นชืดบนโต๊ะอาหารก็ยังดูอบอุ่นขึ้นมาบ้าง'],
+  ['KO', '저녁 무렵 주방 창문을 통해 들어오는 빛은 은은한 연노란빛이었고, 식탁 위에 차갑게 식은 밥조차 조금은 따스해 보였다.'],
+  ['EN', 'Toward evening, the light coming through the kitchen window was a soft pale yellow, and even the cold rice on the dining table looked a little warm.'],
+  ['AR', 'مع اقتراب المساء، كان الضوء النافذ من نافذة المطبخ أصفر باهتًا ناعمًا، وحتى الأرز البارد على مائدة الطعام بدا دافئًا قليلاً.'],
+  ['FI', 'Illan lähestyessä keittiön ikkunasta tuleva valo oli pehmeän vaaleankeltaista, ja jopa ruokapöydällä oleva kylmä riisi näytti hieman lämpimältä.'],
+  ['PT', 'À medida que a noite se aproximava, a luz que vinha da janela da cozinha era de um amarelo-claro suave, e até mesmo o arroz frio na mesa de jantar parecia um pouco quente.'],
+  ['KO', '밤이 다가오자 부엌 창문에서 새어 나오는 빛은 은은한 연노랑 빛이었고, 식탁 위의 식은 밥마저 조금은 따뜻해 보였다.'],
+  ['EN', 'As night fell, the light seeping from the kitchen window was a soft pale yellow, and even the cold rice on the table looked a little warm.'],
+  ['HI', 'रात ढलते ही, रसोई की खिड़की से छनकर आती रोशनी एक कोमल हल्के पीले रंग की थी, और मेज़ पर रखा ठंडा चावल भी थोड़ा गर्म लग रहा था।'],
+  ['RU', 'С наступлением ночи свет, пробивавшийся сквозь окно кухни, был нежного светло-жёлтого цвета, и даже холодный рис на столе казался немного тёплым.'],
+  ['SW', 'Usiku ulipowadia, mwanga uliopenya kupitia dirisha la jikoni ulikuwa wa rangi laini ya manjano mepesi, na hata wali wa baridi mezani ulionekana kuwa na joto kidogo.'],
+  ['KO', '밤이 오자 부엌 창문으로 들어오는 빛은 은은한 연노란색이었고, 식탁 위의 식은 밥마저 조금은 따스해 보였다.'],
+ ],
+ [
+  ['KO', '펄펄 끓는 국물을 한 숟갈 떠 넣고는 시원하다고 했다. 뜨거운데 시원하다는 그 말이 하나도 이상하지 않았다.'],
+  ['EN', 'He took a spoonful of the piping hot soup and said it was refreshing. It didn\'t sound strange at all to call it refreshing despite it being hot.'],
+  ['JA', '彼は熱々のスープをスプーン一杯すくって口にし、さっぱりしていると言った。熱いのにさっぱりしていると言うのは、まったくおかしく聞こえなかった。'],
+  ['ZH', '他舀了一勺热腾腾的汤送入口中，说味道很清爽。明明很烫却说很清爽，听起来一点也不奇怪。'],
+  ['TH', 'เขาตักซุปร้อนๆ หนึ่งช้อนส่งเข้าปาก แล้วบอกว่ารสชาติสดชื่นมาก ทั้งๆ ที่ร้อนมากแต่กลับบอกว่าสดชื่น ฟังดูไม่แปลกเลยสักนิด'],
+  ['KO', '그는 뜨거운 국 한 숟가락을 떠서 입에 넣고는 맛이 아주 시원하다고 말했다. 매우 뜨거운데도 시원하다고 하는 것이 전혀 이상하게 들리지 않았다.'],
+  ['EN', 'He took a spoonful of hot soup, put it in his mouth, and said it was very refreshing. Calling it refreshing even though it was very hot did not sound strange at all.'],
+  ['AR', 'أخذ ملعقة من الحساء الساخن ووضعها في فمه، وقال إنه منعش للغاية. ولم يبدُ وصفه بأنه منعش غريباً على الإطلاق رغم أنه كان ساخناً جداً.'],
+  ['FI', 'Hän otti lusikallisen kuumaa keittoa, laittoi sen suuhunsa ja sanoi sen olevan erittäin virkistävää. Eikä hänen kuvauksensa siitä virkistäväksi vaikuttanut lainkaan kummalta, vaikka se oli todella kuumaa.'],
+  ['PT', 'Ele tomou uma colherada de sopa quente, colocou-a na boca e disse que era muito refrescante. E a sua descrição dela como refrescante não pareceu nada estranha, embora estivesse realmente quente.'],
+  ['KO', '그는 뜨거운 수프를 한 숟가락 떠서 입에 넣고는 매우 시원하다고 말했다. 그리고 실제로 정말 뜨거웠음에도 불구하고 그것을 시원하다고 표현한 그의 말은 전혀 이상하게 느껴지지 않았다.'],
+  ['EN', 'He took a spoonful of hot soup, put it in his mouth, and said it was very refreshing. And even though it was actually really hot, his description of it as refreshing did not feel strange at all.'],
+  ['HI', 'उसने गरम सूप का एक चम्मच लिया, उसे अपने मुँह में डाला और कहा कि यह बहुत ताज़गी देने वाला है। और भले ही वह वास्तव में बहुत गरम था, फिर भी उसका इसे ताज़गी देने वाला बताना बिल्कुल भी अजीब नहीं लगा।'],
+  ['RU', 'Он взял ложку горячего супа, отправил её в рот и сказал, что он очень освежает. И хотя суп на самом деле был очень горячим, то, что он назвал его освежающим, вовсе не показалось странным.'],
+  ['SW', 'Alichukua kijiko cha supu ya moto, akakiweka mdomoni mwake na kusema kwamba inaburudisha sana. Na ingawa supu hiyo kwa kweli ilikuwa ya moto sana, kusema kwake kwamba inaburudisha haikuonekana kuwa ajabu hata kidogo.'],
+  ['KO', '그는 뜨거운 수프 한 숟가락을 떠서 입에 넣고는 아주 시원하다고 말했다. 그리고 그 수프가 실제로 매우 뜨거웠음에도 불구하고, 그가 시원하다고 말한 것은 전혀 이상해 보이지 않았다.'],
+ ],
+ [
+  ['KO', '비 온 뒤 골목은 거무죽죽하고, 담벼락 밑 그늘만 푸르스름하게 남아 있었다.'],
+  ['EN', 'After the rain, the alley was dark and murky, and only the shade beneath the wall remained bluish.'],
+  ['JA', '雨の後、路地は暗く淀んでおり、塀の下の陰だけが青みを帯びて残っていた。'],
+  ['ZH', '雨后，小巷昏暗沉滞，只有墙下的阴影泛着青色残留了下来。'],
+  ['TH', 'หลังฝนตก ตรอกซอยมืดสลัวและอึมครึม มีเพียงเงาใต้กำแพงที่ทาบทับด้วยสีเขียวอมฟ้าหลงเหลืออยู่'],
+  ['KO', '비가 내린 후 골목길은 어둑하고 음산했으며, 담장 아래에는 청록색으로 물든 그림자만이 남아 있었다.'],
+  ['EN', 'After the rain, the alley was dark and dreary, with only shadows tinged with blue-green remaining beneath the wall.'],
+  ['AR', 'بعد المطر، كان الزقاق مظلماً وكئيباً، ولم يتبقَّ تحت الجدار سوى ظلالٍ مشوبةٍ بالأزرق المخضر.'],
+  ['FI', 'Sateen jälkeen kuja oli pimeä ja ankea, ja seinän alla oli jäljellä vain sinivihreänsävyisiä varjoja.'],
+  ['PT', 'Depois da chuva, o beco estava escuro e sombrio, e sob a parede restavam apenas sombras em tons azul-esverdeados.'],
+  ['KO', '비가 온 뒤, 골목은 어둡고 음침했고 벽 아래에는 청록빛 그림자만 남아 있었다.'],
+  ['EN', 'After the rain, the alley was dark and gloomy, and only bluish-green shadows remained beneath the walls.'],
+  ['HI', 'बारिश के बाद, गली अंधेरी और उदास थी, और दीवारों के नीचे केवल नीले-हरे साये ही बचे थे।'],
+  ['RU', 'После дождя улица была тёмной и мрачной, и у стен оставались лишь сине-зелёные тени.'],
+  ['SW', 'Baada ya mvua, barabara ilikuwa yenye giza na yenye huzuni, na kando ya kuta kulibaki tu vivuli vya bluu-kijani.'],
+  ['KO', '비가 내린 뒤 길은 어둡고 음울했으며, 벽을 따라 청록색 그림자만 남아 있었다.'],
+ ],
+ [
+  ['KO', '미워서가 아니라 서운해서 그랬다고, 그 사람은 끝까지 말하지 못했다.'],
+  ['EN', 'He was unable to say until the very end that he acted not out of hatred, but because he felt hurt.'],
+  ['JA', '憎しみからではなく、傷ついたから行動したのだということを、彼は最後の最後まで言えなかった。'],
+  ['ZH', '他直到最后一刻 me都没能说出，自己不是因为憎恨，而是因为受了伤才采取行动的。'],
+  ['TH', 'จนกระทั่งวินาทีสุดท้าย เขาก็ยังไม่สามารถพูดออกมาได้ว่า ตัวเองไม่ได้ทำไปเพราะความเกลียดชัง แต่เป็นเพราะความเจ็บปวดต่างหาก'],
+  ['KO', '마지막 순간까지 그는 자신이 증오 때문이 아니라 아픔 때문에 그렇게 한 것이라고 끝내 말하지 못했다.'],
+  ['EN', 'Until the very last moment, he was unable to say that he had done so not out of hatred, but out of pain.'],
+  ['AR', 'حتى اللحظة الأخيرة، لم يستطع أن يقول إنه فعل ذلك ليس بدافع الكراهية، بل بدافع الألم.'],
+  ['FI', 'Viimeiseen hetkeen asti hän ei pystynyt sanomaan, ettei hän tehnyt sitä vihasta, vaan tuskasta.'],
+  ['PT', 'Até o último momento, ele não conseguiu dizer que não fez aquilo por raiva, mas por dor.'],
+  ['KO', '마지막 순간까지 그는 분노 때문이 아니라 고통 때문에 그 일을 한 것이라고 말하지 못했다.'],
+  ['EN', 'Until the last moment, he could not say that he had done it not out of anger, but out of pain.'],
+  ['HI', 'आखिरी पल तक वह यह नहीं कह सका कि उसने यह गुस्से के कारण नहीं, बल्कि दर्द के कारण किया था।'],
+  ['RU', 'До последнего момента он так и не смог сказать, что сделал это не из-за гнева, а из-за боли.'],
+  ['SW', 'Hata hadi wakati wa mwisho, hakuweza kusema kwamba alifanya hivyo si kwa sababu ya hasira, bali kwa sababu ya maumivu.'],
+  ['KO', '마지막 순간까지도 분노 때문이 아니라 고통 때문에 그렇게 했다고 말하지 못했다.'],
+ ],
+ [
+  ['KO', '뭉근한 불에 오래 끓인 국이 구수하고 걸쭉해서, 숟가락이 천천히 지나갔다.'],
+  ['EN', 'The soup, simmered for a long time over low heat, was so savory and thick that the spoon moved through it slowly.'],
+  ['JA', '弱火で長時間じっくり煮込まれたスープは、旨味が深く濃厚で、スプーンがゆっくりと動くほどだった。'],
+  ['ZH', '用文火长时间慢炖的汤，鲜味深厚浓郁，浓稠得连勺子划过时都显得非常缓慢。'],
+  ['TH', 'น้ำซุปที่เคี่ยวด้วยไฟอ่อนเป็นเวลานาน มีรสชาติกลมกล่อมเข้มข้นลึกล้ำ ข้นเหนียวเสียจนกระทั่งยามช้อนปาดผ่านยังดูเคลื่อนไหวอย่างเชื่องช้าอย่างยิ่ง'],
+  ['KO', '약한 불로 오랫동안 푹 끓여 낸 육수는 깊고 진한 감칠맛이 나며, 숟가락이 지나갈 때조차 지극히 천천히 움직이는 듯 보일 정도로 걸쭉하다.'],
+  ['EN', 'The broth, slowly simmered over low heat for a long time, has a deep, rich umami flavor and is so thick that even a spoon passing through it seems to move extremely slowly.'],
+  ['AR', 'يتميز المرق، الذي طُهي ببطء على نار هادئة لفترة طويلة، بنكهة أومامي عميقة وغنية، وهو كثيف لدرجة أن حتى الملعقة التي تمر عبره تبدو وكأنها تتحرك ببطء شديد.'],
+  ['FI', 'Pitkään hitaasti haudutetulle liemelle on tunnusomaista syvä ja täyteläinen umamin maku, ja se on niin paksua, että jopa sen läpi kulkeva lusikka näyttää liikkuvan erittäin hitaasti.'],
+  ['PT', 'O caldo cozido lentamente em fogo baixo por um longo tempo é caracterizado por um sabor umami profundo e encorpado, e é tão espesso que até mesmo uma colher passando por ele parece se mover muito lentamente.'],
+  ['KO', '약한 불에서 오랜 시간 천천히 끓여낸 육수는 깊고 진한 감칠맛이 특징이며, 숟가락이 지나갈 때조차 매우 천천히 움직이는 것처럼 보일 정도로 걸쭉하다.'],
+  ['EN', 'Slowly simmered over low heat for a long time, the broth features a deep, rich umami flavor and is so thick that even a spoon passing through it appears to move very slowly.'],
+  ['HI', 'धीमी आंच पर लंबे समय तक धीरे-धीरे पकाए गए इस शोरबे में गहरा और समृद्ध उमामी स्वाद होता है, और यह इतना गाढ़ा होता है कि इसमें से होकर गुजरने वाली चम्मच भी बहुत धीरे-धीरे चलती हुई प्रतीत होती है।'],
+  ['RU', 'Этот бульон, долго томившийся на медленном огне, обладает глубоким и насыщенным вкусом умами, и он настолько густой, что даже ложка, проходящая через него, кажется, движется очень медленно.'],
+  ['SW', 'Mchuzi huu, uliotokotwa kwa moto mdogo kwa muda mrefu, una ladha nzito na ya kina ya umami, na ni mzito sana hivi kwamba hata kijiko kinachopita ndani yake kinaonekana kusogea polepole sana.'],
+  ['KO', '약한 불에서 오랫동안 끓여낸 이 소스는 묵직하고 깊은 감칠맛이 나며, 그 속을 지나가는 숟가락조차 매우 천천히 움직이는 것처럼 보일 정도로 매우 걸쭉하다.'],
+ ],
 ];
-
-const FLICKER = ['meaning', 'feeling', 'sense', 'nuance', 'state', 'mood', 'quality', 'condition', 'sentiment', 'notion', 'tone', 'temper'];
-
-let wi = -1;           // 지금 돌리고 있는 단어
-let ph = 'idle';       // type · churn · cand · dash · gloss · done
-let t = 0;             // 현재 단계 안에서의 시간
-let ci = 0;            // 몇 번째 후보인가
-let cs = 0;            // 후보 안에서의 시간
-let done = [];         // 지금까지 그어진 후보들
-let dash = 0, gloss = 0, lamp = 0, churn = 0, flick = 0;
-let tried = 0;
-
 // ── 소리 ───────────────────────────────────────────────────────────────────
 const sound = (() => {
   let ac = null, master = null, on = true, hum = null, noise = null;
@@ -218,305 +343,156 @@ const sound = (() => {
   };
 })();
 
-const sndEl = document.getElementById('snd');
-sndEl.addEventListener('click', e => {
-  e.stopPropagation();
-  sound.kick();
-  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
-});
+// ── 화면 ───────────────────────────────────────────────────────────────────
+const flow = document.getElementById('flow');
+const srcTxt = document.getElementById('srcTxt');
+const routeEl = document.getElementById('route');
+const hint = document.getElementById('hint');
+const sndBtn = document.getElementById('snd');
 
-// ── 기계의 순서 ─────────────────────────────────────────────────────────────
-const CAND_IN = 0.3, CAND_HOLD = 0.5, CAND_CUT = 0.28;
+let si = 0;        // 지금 문장
+let step = 1;      // 지금 단계
+let timer = null;
+let running = false;
+let lines = [];
 
-function begin(i) {
-  wi = i;
-  ph = 'type'; t = 0; ci = 0; cs = 0;
-  done = [];
-  dash = 0; gloss = 0; churn = 0;
-  tried++;
-  sound.key();
-  hintOff();
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
+const bare = s => s.replace(/[.,·…"'’“”「」。、]/g, '');
+
+function same(a, b) {
+  if (a === b) return true;
+  if (a.length < 2 || b.length < 2) return false;
+  return a.slice(0, 2) === b.slice(0, 2);
+}
+
+// 원문에 없던 말에만 불을 켠다
+function mark(text, src) {
+  const sw = bare(src).split(/\s+/).filter(Boolean);
+  return text.split(/(\s+)/).map(tk => {
+    if (!tk.trim()) return tk;
+    const w = bare(tk);
+    return sw.some(s => same(s, w)) ? esc(tk) : '<em>' + esc(tk) + '</em>';
+  }).join('');
+}
+
+function fade() {
+  const last = lines[lines.length - 1];
+  lines.forEach(el => {
+    el.style.opacity = el === last ? 1 : el.classList.contains('ko') ? 0.5 : 0.26;
+  });
+}
+
+// 한국어로 돌아오면 그 바퀴에 거쳐 온 말들은 접어서 치운다
+function foldForeign() {
+  lines.forEach(el => {
+    if (!el.classList.contains('ko')) el.classList.add('gone');
+  });
+}
+
+function addLine(code, isKo) {
+  const el = document.createElement('div');
+  el.className = 'ln' + (isKo ? ' ko' : '');
+  el.innerHTML = '<div class="lg">' + code + '</div><div class="tx" dir="auto"></div>';
+  flow.appendChild(el);
+  lines.push(el);
+  fade();
+  return el.querySelector('.tx');
+}
+
+function drawRoute() {
+  routeEl.innerHTML = CHAIN[si].map((s, i) =>
+    i < step ? '<span>' + s[0] + '</span>'
+    : i === step ? '<b>' + s[0] + '</b>'
+    : '<i>' + s[0] + '</i>'
+  ).join(' <i>·</i> ');
+}
+
+function type(node, text, isKo, done) {
+  const sp = Math.max(10, Math.min(44, 1600 / text.length)) * (isKo ? 1.6 : 1);
+  const cur = document.createElement('span');
+  cur.className = 'cur';
+  let i = 0;
+  (function tick() {
+    node.textContent = text.slice(0, i);
+    node.appendChild(cur);
+    if (i % 2 === 0) sound.key();
+    i++;
+    if (i <= text.length) timer = setTimeout(tick, sp);
+    else { cur.remove(); done(); }
+  })();
 }
 
 function next() {
-  if (ph !== 'idle' && ph !== 'gloss' && ph !== 'done') { finishNow(); return; }
-  if (wi >= WORDS.length - 1) { begin(0); return; }
-  begin(wi + 1);
-}
-
-// 클릭이 급하면 기계는 결론부터 내놓는다
-function finishNow() {
-  const w = WORDS[wi];
-  done = w.cand.map(c => ({ c, in: 1, cut: 1 }));
-  ci = w.cand.length;
-  ph = 'gloss'; t = 0;
-  if (dash < 1) { dash = 1; sound.give(); }
-  gloss = 1;
-}
-
-function step(dt) {
-  t += dt;
-  lamp += dt;
-  flick += dt;
-  const w = WORDS[wi];
-  if (!w) return;
-
-  if (ph === 'type') {
-    if (t > 0.55) { ph = 'churn'; t = 0; churn = 1; sound.motor(820); }
-  } else if (ph === 'churn') {
-    if (t > 0.82) { ph = 'cand'; t = 0; cs = 0; ci = 0; churn = 0; sound.key(); }
-  } else if (ph === 'cand') {
-    cs += dt;
-    const cur = done[ci] || (done[ci] = { c: w.cand[ci], in: 0, cut: 0 });
-    if (cs < CAND_IN) {
-      const n = cur.in;
-      cur.in = cs / CAND_IN;
-      if (Math.floor(cur.in * cur.c.length) > Math.floor(n * cur.c.length)) sound.key();
-    } else if (cs < CAND_IN + CAND_HOLD) {
-      cur.in = 1;
-    } else if (cs < CAND_IN + CAND_HOLD + CAND_CUT) {
-      if (cur.cut === 0) sound.strike();
-      cur.cut = Math.min(1, (cs - CAND_IN - CAND_HOLD) / CAND_CUT);
-    } else {
-      cur.cut = 1;
-      ci++;
-      cs = 0;
-      if (ci >= w.cand.length) { ph = 'dash'; t = 0; sound.motor(460); }
+  const ch = CHAIN[si];
+  if (step >= ch.length) { finish(); return; }
+  const [code, text] = ch[step];
+  const isKo = code === 'KO';
+  drawRoute();
+  sound.motor(isKo ? 620 : 300);
+  const node = addLine(code, isKo);
+  type(node, text, isKo, () => {
+    if (isKo) {
+      node.innerHTML = mark(text, ch[0][1]);
+      sound.strike();
+      setTimeout(foldForeign, 520);
     }
-  } else if (ph === 'dash') {
-    if (t > 0.5 && dash === 0) sound.give();
-    dash = clamp((t - 0.5) / 0.5, 0, 1);
-    if (t > 1.35) { ph = 'gloss'; t = 0; }
-  } else if (ph === 'gloss') {
-    gloss = Math.min(1, gloss + dt / 0.7);
-    if (gloss >= 1 && t > 1.2) ph = 'done';
+    step++;
+    drawRoute();
+    timer = setTimeout(next, isKo ? 1250 : 420);
+  });
+}
+
+function finish() {
+  running = false;
+  drawRoute();
+  hint.classList.remove('off');
+  sound.give();
+}
+
+function start(i) {
+  clearTimeout(timer);
+  si = i % CHAIN.length;
+  step = 1;
+  lines = [];
+  flow.innerHTML = '';
+  srcTxt.textContent = CHAIN[si][0][1];
+  hint.classList.add('off');
+  running = true;
+  drawRoute();
+  timer = setTimeout(next, 800);
+}
+
+// 진행 중에 누르면 남은 번역을 한 번에 펼친다
+function skip() {
+  clearTimeout(timer);
+  const ch = CHAIN[si];
+  const half = lines[lines.length - 1];      // 타이핑하다 만 줄은 버린다
+  if (half) { half.remove(); lines.pop(); }
+  for (; step < ch.length; step++) {
+    const [code, text] = ch[step];
+    const isKo = code === 'KO';
+    const node = addLine(code, isKo);
+    if (isKo) { node.innerHTML = mark(text, ch[0][1]); foldForeign(); }
+    else node.textContent = text;
   }
+  fade();
+  finish();
 }
 
-// ── 그리기 ─────────────────────────────────────────────────────────────────
-function mono(s, x, y, sz, col, al, wt) {
-  ctx.font = `${wt || 400} ${sz}px "Space Mono", monospace`;
-  ctx.textAlign = al || 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = col;
-  ctx.fillText(s, x, y);
-}
-function ko(s, x, y, sz, col, al, wt) {
-  ctx.font = `${wt || 400} ${sz}px "Nanum Myeongjo", serif`;
-  ctx.textAlign = al || 'left';
-  ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = col;
-  ctx.fillText(s, x, y);
-}
-
-function panel() {
-  const g = ctx;
-  const bg = g.createLinearGradient(0, 0, 0, H);
-  bg.addColorStop(0, '#1b1e22');
-  bg.addColorStop(.55, '#15171a');
-  bg.addColorStop(1, '#101215');
-  g.fillStyle = bg;
-  g.fillRect(0, 0, W, H);
-
-  // 주사선
-  g.fillStyle = 'rgba(255,255,255,.012)';
-  for (let y = 0; y < H; y += 3) g.fillRect(0, y, W, 1);
-}
-
-function header() {
-  const g = ctx;
-  const y = H * 0.135, sz = Math.max(9, S * 0.0115);
-  g.strokeStyle = 'rgba(160,154,142,.22)';
-  g.lineWidth = 1;
-  g.beginPath(); g.moveTo(W * 0.09, y); g.lineTo(W * 0.91, y); g.stroke();
-
-  mono('기계 번역 · KO → EN', W * 0.09, y - sz * 0.9, sz, 'rgba(186,180,166,.62)', 'left', 700);
-
-  // 램프
-  const lx = W * 0.09 - sz * 1.5, ly = y - sz * 1.25;
-  const pulse = ph === 'churn' || ph === 'dash' ? 0.5 + 0.5 * Math.sin(lamp * 17) : 0.22;
-  g.fillStyle = `rgba(226,146,52,${0.18 + pulse * 0.8})`;
-  g.beginPath(); g.arc(lx, ly, sz * 0.32, 0, TAU); g.fill();
-
-  const okTxt = `시도 ${String(tried).padStart(2, '0')}  ·  번역 가능 00`;
-  mono(okTxt, W * 0.91, y - sz * 0.9, sz, 'rgba(186,180,166,.42)', 'right');
-}
-
-const KSZ = PREVIEW ? 0.125 : 0.105;
-const CSZ = PREVIEW ? 0.034 : 0.030;
-const GSZ = PREVIEW ? 0.027 : 0.019;
-
-function fitKo(s, sz, maxw) {
-  let v = sz;
-  for (let k = 0; k < 14; k++) {
-    ctx.font = `800 ${v}px "Nanum Myeongjo", serif`;
-    if (ctx.measureText(s).width <= maxw) break;
-    v *= 0.92;
-  }
-  return v;
-}
-
-function wrap(s, sz, maxw) {
-  ctx.font = `400 ${sz}px "Nanum Myeongjo", serif`;
-  const words = s.split(' ');
-  const out = [];
-  let ln = '';
-  for (const w of words) {
-    const tryLn = ln ? ln + ' ' + w : w;
-    if (ctx.measureText(tryLn).width > maxw && ln) { out.push(ln); ln = w; }
-    else ln = tryLn;
-  }
-  if (ln) out.push(ln);
-  return out;
-}
-
-function stage() {
-  const g = ctx;
-  const w = WORDS[wi];
-  const midX = W * 0.5;
-  const topY = H * 0.21, botY = H * 0.845;
-
-  g.strokeStyle = 'rgba(160,154,142,.13)';
-  g.lineWidth = 1;
-  g.beginPath(); g.moveTo(midX, topY); g.lineTo(midX, botY); g.stroke();
-
-  const asz = Math.max(9, S * 0.016);
-  mono('→', midX, H * 0.52 + asz * 0.35, asz, 'rgba(160,154,142,.3)', 'center');
-
-  if (!w) {
-    ko('번역 불가', W * 0.5, H * 0.52, S * 0.05, 'rgba(226,220,206,.22)', 'center', 800);
-    return;
-  }
-
-  // 왼쪽 — 원문
-  const kr = ph === 'type' ? w.ko.slice(0, Math.max(1, Math.ceil(t / 0.55 * w.ko.length))) : w.ko;
-  const ksz = fitKo(w.ko, S * KSZ, W * 0.33);
-  ko(kr, W * 0.29, H * 0.52, ksz, '#e8e2d4', 'center', 800);
-  mono(w.sub, W * 0.29, H * 0.52 + ksz * 0.72, Math.max(8, S * 0.013), 'rgba(170,164,150,.4)', 'center');
-
-  // 오른쪽 — 기계가 꺼내본 말들
-  const x = W * 0.565, csz = S * CSZ, lh = csz * 1.62;
-  let y = H * (PREVIEW ? 0.2 : 0.3);
-
-  if (ph === 'churn') {
-    const f = FLICKER[(flick * 15 | 0) % FLICKER.length];
-    mono(f, x, y, csz, 'rgba(190,184,170,.3)');
-    g.fillStyle = 'rgba(226,146,52,.5)';
-    g.font = `400 ${csz}px "Space Mono", monospace`;
-    g.fillRect(x + g.measureText(f).width + csz * 0.14, y - csz * 0.78, csz * 0.52, csz * 0.9);
-  }
-
-  for (let i = 0; i < done.length; i++) {
-    const c = done[i];
-    const vis = c.c.slice(0, Math.ceil(c.in * c.c.length));
-    const dim = c.cut >= 1 ? 0.3 : 0.72;
-    mono(vis, x, y, csz, `rgba(214,208,192,${dim})`);
-    g.font = `400 ${csz}px "Space Mono", monospace`;
-    const tw = g.measureText(c.c).width;
-    if (c.cut > 0) {
-      g.strokeStyle = `rgba(198,70,48,${0.5 + c.cut * 0.42})`;
-      g.lineWidth = Math.max(1.2, csz * 0.075);
-      g.beginPath();
-      g.moveTo(x - csz * 0.1, y - csz * 0.24);
-      g.lineTo(x - csz * 0.1 + (tw + csz * 0.2) * c.cut, y - csz * 0.24);
-      g.stroke();
-    } else if (ph === 'cand' && i === ci && (flick * 2.6 % 1) < 0.55) {
-      g.fillStyle = 'rgba(226,146,52,.6)';
-      g.fillRect(x + g.measureText(vis).width + csz * 0.14, y - csz * 0.78, csz * 0.52, csz * 0.9);
-    }
-    y += lh;
-  }
-
-  // 기계가 내놓은 답
-  if (dash > 0) {
-    const dw = S * (PREVIEW ? 0.1 : 0.088), dth = Math.max(2, S * 0.0052);
-    const dy = y + S * 0.05;
-    g.save();
-    g.shadowColor = `rgba(240,232,214,${0.55 * dash})`;
-    g.shadowBlur = S * 0.022 * dash;
-    g.fillStyle = '#f0e9db';
-    g.fillRect(x, dy, dw * dash, dth);
-    g.restore();
-    if (!PREVIEW) {
-      const nsz = Math.max(8, S * 0.0115);
-      mono('NO EQUIVALENT', x + dw + S * 0.024, dy + dth * 0.5 + nsz * 0.36, nsz, `rgba(198,70,48,${0.66 * dash})`, 'left', 700);
-    }
-  }
-
-  // 아래 — 잃어버린 뜻
-  if (gloss > 0) {
-    const gsz = S * GSZ;
-    const lines = wrap(w.gl, gsz, W * 0.74);
-    let gy = H * (PREVIEW ? 0.93 : 0.9) - (lines.length - 1) * gsz * 1.5;
-    for (const ln of lines) {
-      ko(ln, W * 0.5, gy, gsz, `rgba(206,199,184,${0.62 * gloss})`, 'center');
-      gy += gsz * 1.5;
-    }
-  }
-}
-
-function draw() {
-  panel();
-  if (!PREVIEW) header();
-  stage();
-  // 가장자리 어둡게
-  const v = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.3, W / 2, H / 2, Math.max(W, H) * 0.78);
-  v.addColorStop(0, 'rgba(0,0,0,0)');
-  v.addColorStop(1, 'rgba(0,0,0,.5)');
-  ctx.fillStyle = v;
-  ctx.fillRect(0, 0, W, H);
-}
-
-function frame(ts) {
-  const dt = Math.min(0.045, (frame.p ? ts - frame.p : 16) / 1000);
-  frame.p = ts;
-  if (!PREVIEW) step(dt);
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  draw();
-  requestAnimationFrame(frame);
-}
-
-// ── wiring ─────────────────────────────────────────────────────────────────
-const hint = document.getElementById('hint');
-let hintGone = false;
-function hintOff() { if (!hintGone) { hintGone = true; hint.classList.add('off'); } }
-
-function resize() {
-  W = innerWidth; H = innerHeight;
-  cv.width = Math.ceil(W * DPR); cv.height = Math.ceil(H * DPR);
-  cv.style.width = W + 'px'; cv.style.height = H + 'px';
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  S = Math.min(W, H * 1.5);
-}
-addEventListener('resize', resize);
-
-addEventListener('pointerdown', e => {
-  if (e.target.closest('.snd') || e.target.closest('.home-btn')) return;
+document.body.addEventListener('click', () => {
   sound.kick();
-  next();
-});
-addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'Enter' || e.code === 'ArrowRight') { e.preventDefault(); sound.kick(); next(); }
+  if (running) skip();
+  else start(si + 1);
 });
 
-(async () => {
-  try {
-    await Promise.all([
-      document.fonts.load('800 80px "Nanum Myeongjo"'),
-      document.fonts.load('400 20px "Nanum Myeongjo"'),
-      document.fonts.load('400 20px "Space Mono"'),
-      document.fonts.load('700 20px "Space Mono"'),
-    ]);
-  } catch (e) { /* 폰트가 늦으면 기본 활자로 간다 */ }
-  resize();
-  if (PREVIEW) {
-    begin(2);
-    for (let i = 0; i < 400; i++) step(0.03);
-  } else {
-    setTimeout(() => begin(0), 700);
-  }
-  requestAnimationFrame(frame);
-})();
+sndBtn.addEventListener('click', e => {
+  e.stopPropagation();
+  sound.kick();
+  sndBtn.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+});
+document.querySelector('.home-btn').addEventListener('click', e => e.stopPropagation());
+
+start(0);
 </script>
 </body>
 </html>
