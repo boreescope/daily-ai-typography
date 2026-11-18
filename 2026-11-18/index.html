@@ -760,11 +760,12 @@ COUNTERS.forEach((c, i) => {
   npcs.push(u);
 });
 
+let capHold = 0;
 function clerkSays(line) {
-  caption(line, false); say(line.replace(/\.$/, ''));
+  capHold = 0; caption(line, false); capHold = time + 3.5; say(line.replace(/\.$/, ''));
 }
 function caption(text, ding = true) {
-  if (mineState === 'served') return;
+  if (mineState === 'served' || time < capHold) return;
   capEl.innerHTML = (ding ? '<span class="dd">딩동</span>' : '') + text;
   capEl.classList.add('on'); capUntil = time + 4.2;
 }
@@ -993,6 +994,8 @@ function roamMe(dt) {
     && Math.hypot(me.g.position.x - KIOSK.stand[0], me.g.position.z - KIOSK.stand[1]) < .45) printTicket();
   if (mineState === 'called' && me.roam && !me.path.length && mineCounter
     && Math.abs(me.g.position.x - mineCounter.x) < .9 && me.g.position.z < -3.4) reachCounter();
+  if (mineState === 'wait' && me.roam && !me.path.length && !asking && me.g.position.z < -2.7
+    && Math.abs(me.g.position.x) < 4 && time > shooUntil) tooEarly();
   if (mineState === 'missed' && me.roam && !me.path.length && me.g.position.z < -2.7 && Math.abs(me.g.position.x) < 4) {
     setPhones(false); toldLate();
   }
@@ -1022,6 +1025,14 @@ function goLate() {
   if (!me.roam) { me.roam = true; me.sitT = 0; me.path = [[ME_SEAT.x, ME_SEAT.z - .8], [0, ME_SEAT.z - .8], ...dest]; }
   else me.path = route(dest);
   me.onArrive = () => { me.headingT = Math.PI; toldLate(); };
+}
+let shooUntil = 0;
+function tooEarly() {
+  shooUntil = time + 6; me.keyMove = false;
+  const left = mine - cur;
+  clerkSays(`${mine}번 고객님이시죠? 아직 순서가 아니에요. 앞에 ${left}명 더 계시니까 앉아서 기다려 주세요.`);
+  setTimeout(() => { me.shakeUntil = time + 1.2; }, 1200);
+  setTimeout(() => { if (mineState === 'wait' && me.roam) sitDown(); }, 2600);
 }
 function toldLate() {
   if (mineState !== 'missed') return;
