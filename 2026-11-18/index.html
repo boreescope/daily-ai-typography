@@ -48,6 +48,8 @@
     pointer-events: none;
   }
   .cap.on { opacity: 1; transform: translate(-50%, 0); }
+  body:has(.ask.on) .cap { bottom: calc(56px + 200px); }
+  .cap { transition: opacity .5s, transform .5s, bottom .4s; }
   .cap .dd {
     margin-right: .7em;
     color: #ff5a3c;
@@ -160,7 +162,43 @@
     font: 700 14px/1.35 'Nanum Myeongjo', serif;
     animation: pop .25s ease-out;
   }
-  .msg .b.v { width: 80%; height: 96px; display: flex; align-items: flex-end; background: linear-gradient(135deg, #e0a85a, #8a5a3a); color: #fff; font-size: 12px; }
+  .msg .b.v { width: 86%; padding: 0; overflow: hidden; font: 400 10px/1 'Space Mono', monospace; color: #a9a397; }
+  .msg .b.v svg { display: block; width: 100%; }
+  .msg .b.v span { display: block; padding: 7px 10px; }
+  .cat .paw { transform-origin: 96px 66px; animation: paw 1.6s ease-in-out infinite; }
+  .cat .kb { animation: kb 1.6s steps(1) infinite; }
+  .cat .tk { animation: tk 1.6s ease-out infinite; }
+  .cat .tail { transform-origin: 44px 70px; animation: tail 1.1s ease-in-out infinite alternate; }
+  .cat .hd { transform-origin: 82px 56px; animation: hd 1.6s ease-in-out infinite; }
+  .cat .pg { animation: pg 42s linear forwards; }
+  @keyframes paw { 0%, 100% { transform: rotate(0); } 35%, 50% { transform: rotate(-38deg); } }
+  @keyframes kb { 0%, 38% { fill: #8a2a20; } 40%, 60% { fill: #ff5a3c; } 62% { fill: #8a2a20; } }
+  @keyframes tk { 0%, 45% { transform: translateY(0); opacity: 0; } 50% { opacity: 1; } 85%, 100% { transform: translateY(12px); opacity: 1; } }
+  @keyframes tail { to { transform: rotate(-24deg); } }
+  @keyframes hd { 0%, 100% { transform: rotate(0); } 50%, 70% { transform: rotate(-10deg); } }
+  @keyframes pg { from { width: 0; } to { width: 160px; } }
+
+  .ask {
+    position: fixed; left: 50%; bottom: 56px; z-index: 7;
+    width: min(440px, calc(100vw - 32px)); padding: 16px 18px 14px;
+    background: #f5f1e8; color: #2a2a2a;
+    box-shadow: 0 18px 40px rgba(0,0,0,.5);
+    transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    transition: opacity .3s, transform .3s;
+  }
+  .ask.on { transform: translate(-50%, 0); opacity: 1; pointer-events: auto; }
+  .ask .who { color: #8a857a; font: 700 10px/1 'Space Mono', monospace; letter-spacing: .14em; }
+  .ask .line { margin-top: 8px; font: 700 16px/1.5 'Nanum Myeongjo', serif; }
+  .ask .btns { display: flex; gap: 8px; margin-top: 12px; }
+  .ask .btns span {
+    flex: 1; padding: 9px 0; text-align: center; cursor: pointer;
+    border: 1px solid #2a2a2a; font: 700 13px/1 'Nanum Myeongjo', serif;
+  }
+  .ask .btns span:first-child { background: #2a2a2a; color: #f5f1e8; }
+  .ask .bar { height: 2px; margin-top: 12px; background: #ddd6c8; }
+  .ask .bar i { display: block; height: 100%; width: 100%; background: #c9402a; }
+  .ask.busy .btns { display: none; }
+  .end.win .line { color: #ffd84a; font-size: clamp(22px, 2.6vw, 34px); }
   @keyframes pop { from { transform: scale(.8); opacity: 0; } }
 
   .lid { position: fixed; left: 0; right: 0; z-index: 6; height: 0; background: #050506; pointer-events: none; }
@@ -186,6 +224,7 @@
 <div class="end" id="end"><div class="big" id="endNo">052</div><div class="line" id="endLine"></div><div class="sub" id="endSub"></div><div class="again" id="again">↻ 다시 기다리기</div></div>
 <div class="clock" id="clock"><span id="clk">3:50</span><small>마감 4:00</small></div>
 <div class="lid t" id="lidT"></div><div class="lid b" id="lidB"></div>
+<div class="ask" id="ask"><div class="who" id="askWho"></div><div class="line" id="askLine"></div><div class="btns"><span id="askYes"></span><span id="askNo"></span></div><div class="bar"><i id="askBar"></i></div></div>
 <div class="msg" id="msg"><div class="mh">친구</div><div class="mb" id="mb"></div></div>
 <div class="start" id="start"><div class="s1">오후 3시 50분, 은행 문 닫기 10분 전이에요.<br>번호표를 뽑고, 4시 전에 창구에 가야 해요.</div><div class="s2">▶ 번호표 뽑기</div></div>
 <div class="hint" id="hint">내 번호가 불리면 화면을 누르세요</div>
@@ -634,12 +673,13 @@ function say(text) {
 // ── 대기실 상태 ─────────────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 const ticketEl = $('ticket'), capEl = $('cap');
-let time = 0, cur = 37, mine = 41, issued = 47, win = 3;
+let time = 0, cur = 37, mine = 44, issued = 50, win = 3;
 let lastCall = 0, gap = 1.5, nextSpawn = 8, flashUntil = -1, boardLit = null, capUntil = 0;
 let mineState = PREVIEW ? 'wait' : 'enter', mineT = 0, mineCounter = null, mineRe = false;
 const GAME_LEN = 120;
 let startT = 0, endT = 0, tickets = 1, closedAt = 0;
 let msgOpen = false, msgTimers = [], dozeOn = false, drowsy = 0, evFor = 0;
+let helped = 0, gave = 0, swapDone = false, helpDone = false, asking = null, guest = null, askTimer = 0;
 const npcs = [];
 
 COUNTERS.forEach(c => {
@@ -774,6 +814,7 @@ function callNext(c) {
   c.busy = true; c.who = null; c.num = cur; drawPlaque(c);
   chime(cur, c, false);
   if (cur === mine) {
+    if (asking) answer(false);
     mineState = 'called'; mineT = time; mineCounter = c; mineRe = false; meTag();
     ticketEl.classList.add('call');
     return;
@@ -856,7 +897,8 @@ function updateTicket() {
   $('tAh').textContent = mineState === 'called' ? '지금 부르는 번호' : mineState === 'missed' || mineState === 'redraw' ? '지나간 번호' : `앞에 ${ahead}명`;
   const nb = COUNTERS.some(k => k.noshow && k.noshow.u && k.noshow.u.seat === NEIGH);
   const hint = $('hint');
-  hint.textContent = msgOpen ? '누르면 휴대폰을 내려놔요'
+  hint.textContent = asking ? '누가 말을 걸어요. 골라 주세요'
+    : msgOpen ? '누르면 휴대폰을 내려놔요'
     : dozeOn ? (drowsy < 1 ? '눈꺼풀이 무거워요… 누르면 정신 차려요' : 'zzz… 누르면 깨요')
     : mineState === 'enter' ? '입구 옆 기계에서 번호표를 뽑아요'
     : mineState === 'closed' || mineState === 'served' ? ''
@@ -1065,8 +1107,15 @@ function arriveCounter() {
 // ── 마감 시계와 딴짓 ─────────────────────────────────────────────────────────
 const MSGS = [
   ['은행 갔어?', '거기 4시에 닫지 않아?', '아 맞다 이거 봐 ㅋㅋㅋ', '▶ 번호표 뽑는 고양이  0:42', 'ㅋㅋㅋㅋㅋㅋㅋ', '아니 끝까지 봐 봐', '답장 왜 안 해'],
-  ['야', '아직 은행이야?', '끝나면 전화해', '▶ 오늘의 운세  1:15', '너 오늘 기다림 운 최악이래 ㅋㅋ'],
+  ['야', '아직 은행이야?', '끝나면 전화해', '아 오늘 운세 봤는데', '너 오늘 기다림 운 최악이래 ㅋㅋ'],
 ];
+const CAT = `<svg class="cat" viewBox="0 0 160 90"><rect width="160" height="90" fill="#3a312b"/><rect y="74" width="160" height="16" fill="#5a4c40"/>
+<rect x="104" y="14" width="36" height="62" fill="#d8d2c4"/><rect x="104" y="10" width="36" height="7" fill="#3a5f8a"/><rect x="109" y="22" width="26" height="15" fill="#4fb4ff"/>
+<rect class="tk" x="112" y="58" width="20" height="13" fill="#f3efe6"/><rect x="110" y="56" width="24" height="3" fill="#222"/><circle class="kb" cx="108" cy="46" r="4"/>
+<path class="tail" d="M44 70 Q26 66 30 46" stroke="#e0a85a" stroke-width="6" fill="none" stroke-linecap="round"/>
+<ellipse cx="62" cy="68" rx="22" ry="12" fill="#e0a85a"/><rect class="paw" x="80" y="62" width="18" height="6" rx="3" fill="#e0a85a"/>
+<g class="hd"><circle cx="82" cy="52" r="11" fill="#e0a85a"/><path d="M74 45 L75 34 L81 42 Z M84 42 L90 34 L91 45 Z" fill="#e0a85a"/><circle cx="86" cy="51" r="1.6" fill="#222"/><circle cx="79" cy="51" r="1.6" fill="#222"/></g>
+<rect class="pg" y="87" height="3" fill="#ff3b30"/></svg>`;
 let clockShown = '';
 function gameT() { return started ? Math.min(GAME_LEN, (endT || time) - startT) : 0; }
 function clockText() {
@@ -1079,7 +1128,13 @@ function gameClock(dt) {
   if (!started || endT) return;
   if (gameT() >= GAME_LEN && ['wait', 'missed', 'redraw', 'enter'].includes(mineState)) return closeBank();
   const kind = tickets % 2 ? 'msg' : 'doze', ahead = mine - cur;
-  if (evFor !== tickets && mineState === 'wait' && !me.roam && me.sit > .8 && ahead <= (kind === 'msg' ? 1 : 3)) {
+  if (!swapDone && gameT() > 3) { swapDone = true; guestComes('swap'); }
+  if (!helpDone && !guest && gameT() > 28 && mineState === 'wait' && ahead >= 4 && !msgOpen && !dozeOn) { helpDone = true; guestComes('help'); }
+  if (guest && guest.ready && !asking) {
+    if (mineState === 'wait' && me.sit > .8 && !me.roam && !msgOpen && !dozeOn) openAsk(guest);
+    else if (time - guest.ready > 12) { guest.ready = 0; guestSit(guest); }
+  }
+  if (evFor !== tickets && !asking && mineState === 'wait' && !me.roam && me.sit > .8 && ahead <= (kind === 'msg' ? 1 : 3)) {
     evFor = tickets;
     if (kind === 'msg') openMsg(MSGS[Math.floor(tickets / 2) % 2]); else { dozeOn = true; updateTicket(); }
   }
@@ -1098,11 +1153,103 @@ function openMsg(lines) {
   me.lookUntil = 0;
   lines.forEach((l, i) => msgTimers.push(setTimeout(() => {
     const b = document.createElement('div');
-    b.className = 'b' + (l.startsWith('▶') ? ' v' : ''); b.textContent = l;
+    const v = l.startsWith('▶');
+    b.className = 'b' + (v ? ' v' : '');
+    if (v) b.innerHTML = CAT + `<span>${l}</span>`; else b.textContent = l;
     $('mb').appendChild(b); sound.buzz();
   }, 400 + i * 1500)));
   msgTimers.push(setTimeout(closeMsg, 400 + lines.length * 1500 + 2500));
   updateTicket();
+}
+function guestComes(kind) {
+  const u = makeGuy({ phone: false, cloth: kind === 'help' ? '#8a6e9e' : '#d0442c' });
+  u.sit = u.sitT = 0; u.state = 'guest'; u.kind = kind; u.uses = false;
+  u.speed = kind === 'swap' ? 1.5 : .75;
+  if (kind === 'swap') u.ticket = ++issued;
+  u.g.position.set(6.9, 0, 3.6);
+  u.path = [[5.2, 3.6], [5.2, 1.7], [ME_SEAT.x + .2, 1.7]];
+  u.onArrive = g => { g.headingT = 0; g.ready = time; };
+  npcs.push(u); guest = u;
+}
+function guestSit(u) {
+  const seat = pick(freeSeats().filter(s => s !== NEIGH)) || pick(freeSeats());
+  if (guest === u) guest = null;
+  if (!seat) return leave(u);
+  seat.who = u; u.seat = seat;
+  const p = u.g.position, g = gapZ(p.z), ax = seat.x > 0 ? 5.2 : 0, lane = seat.z - .8;
+  u.path = [[p.x, g], [ax, g], [ax, lane], [seat.x, lane], [seat.x, seat.z + .04]];
+  u.onArrive = q => { q.state = 'sit'; q.headingT = Math.PI; q.sitT = 1; };
+}
+function askBar(sec, done) {
+  const b = $('askBar');
+  b.style.transition = 'none'; b.style.width = '100%'; void b.offsetWidth;
+  b.style.transition = `width ${sec}s linear`; b.style.width = '0';
+  clearTimeout(askTimer); askTimer = setTimeout(done, sec * 1000);
+}
+function openAsk(u) {
+  asking = u;
+  const swap = u.kind === 'swap';
+  const line = swap
+    ? `저기, 정말 죄송한데요. 급한 일이 생겨서요… 번호 좀 바꿔 주실 수 있어요? 제 건 ${u.ticket}번이에요.`
+    : '저기요, 번호표는 어디서 뽑아요? 눈이 침침해서 잘 안 보여서요.';
+  $('askWho').textContent = swap ? '급해 보이는 손님' : '두리번거리는 어르신';
+  $('askLine').textContent = line;
+  $('askYes').textContent = swap ? `바꿔 드릴게요 (${mine} → ${u.ticket})` : '같이 가 드릴게요';
+  $('askNo').textContent = swap ? '죄송해요, 저도 급해요' : '저기 입구 옆이에요';
+  $('ask').classList.remove('busy'); $('ask').classList.add('on');
+  me.lookY = 0; me.lookX = -.15; me.lookUntil = time + 9;
+  say(line);
+  askBar(9, () => answer(false));
+  updateTicket();
+}
+function reply(text, then) {
+  $('ask').classList.add('busy', 'on'); $('askLine').textContent = text; say(text);
+  askBar(2, () => { $('ask').classList.remove('on'); if (then) then(); updateTicket(); });
+}
+function answer(yes) {
+  const u = asking; if (!u) return;
+  asking = null; me.lookUntil = 0;
+  if (u.kind === 'swap') {
+    if (yes) {
+      const t = mine; mine = u.ticket; u.ticket = t; gave++;
+      ticketEl.classList.remove('fresh'); void ticketEl.offsetWidth; ticketEl.classList.add('fresh');
+      meTag();
+    }
+    reply(yes ? '정말 감사합니다! 복 받으실 거예요.' : '아… 네, 알겠어요.');
+    guestSit(u);
+  } else if (yes) {
+    reply('아이고, 고마워요. 같이 가 줘요.');
+    helpWalk(u);
+  } else {
+    reply('아, 저기요? 네…');
+    guestKiosk(u, null);
+  }
+  updateTicket();
+}
+function guestKiosk(u, after) {
+  const [kx, kz] = KIOSK.stand;
+  u.path = [[5.2, 1.7], [5.2, kz], [kx, kz]];
+  u.onArrive = g => {
+    g.headingT = Math.PI / 2;
+    setTimeout(() => {
+      sound.print();
+      setTimeout(() => { g.ticket = ++issued; guestSit(g); if (after) after(); }, 1500);
+    }, 600);
+  };
+}
+function helpWalk(u) {
+  setPhones(false);
+  me.roam = true; me.sitT = 0; me.onArrive = null;
+  guestKiosk(u, () => {
+    helped++;
+    if (mineState === 'wait') reply('고마워요. 복 받으실 거예요.');
+    sitDown();
+  });
+  setTimeout(() => {
+    if (mineState !== 'wait' && mineState !== 'called') return;
+    me.path = [[ME_SEAT.x, 1.7], [4.6, 1.7], [4.6, 2.5]];
+    me.onArrive = g => { g.headingT = Math.PI / 2; };
+  }, 700);
 }
 function closeMsg() {
   if (!msgOpen) return;
@@ -1116,7 +1263,8 @@ function wake() {
 }
 function closeBank() {
   mineState = 'closed'; closedAt = endT = time;
-  closeMsg(); dozeOn = false; drowsy = 0; sound.setDrowse(0);
+  closeMsg(); clearTimeout(askTimer); asking = null; $('ask').classList.remove('on');
+  dozeOn = false; drowsy = 0; sound.setDrowse(0);
   $('lidT').style.height = $('lidB').style.height = '0'; renderer.domElement.style.filter = '';
   ticketEl.classList.remove('call');
   setPhones(false);
@@ -1128,8 +1276,10 @@ function showEnd(closed) {
   const e = $('end');
   e.classList.toggle('closed', closed);
   $('endNo').textContent = closed ? '4:00' : pad(mine);
-  $('endLine').textContent = closed ? '은행 문이 닫혔어요. 내일 다시 와야 해요.' : '무엇을 도와드릴까요?';
-  $('endSub').textContent = closed ? `번호표 ${tickets}장을 들고 집에 가요` : `오후 ${clockText()} · 번호표 ${tickets}장째`;
+  e.classList.toggle('win', !closed);
+  $('endLine').textContent = closed ? '은행 문이 닫혔어요. 내일 다시 와야 해요.' : '은행 업무 보기 성공!';
+  const extra = (helped ? ` · 도와드린 분 ${helped}명` : '') + (gave ? ` · 번호 양보 ${gave}번` : '');
+  $('endSub').textContent = (closed ? `번호표 ${tickets}장을 들고 집에 가요` : `“무엇을 도와드릴까요?”  오후 ${clockText()} · 번호표 ${tickets}장째`) + extra;
   e.classList.add('on');
   ticketEl.style.opacity = 0; $('clock').classList.remove('on');
 }
@@ -1279,6 +1429,10 @@ $('snd').addEventListener('pointerdown', e => {
 let drag = null;
 $('again').addEventListener('pointerdown', e => e.stopPropagation());
 $('again').addEventListener('click', () => location.reload());
+['askYes', 'askNo'].forEach((id, i) => {
+  $(id).addEventListener('pointerdown', e => e.stopPropagation());
+  $(id).addEventListener('click', () => answer(i === 0));
+});
 document.addEventListener('pointerdown', e => {
   sound.kick();
   if (e.target.closest('.home-btn')) return;
@@ -1295,6 +1449,7 @@ addEventListener('pointerup', () => {
   if (!click) return;
   if (!started) return begin();
   if (mineState === 'served' || mineState === 'closed' || mineState === 'enter') return;
+  if (asking) return;
   if (msgOpen) return closeMsg();
   if (dozeOn) return wake();
   if (mineState === 'called') goToCounter();
