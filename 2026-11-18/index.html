@@ -165,6 +165,50 @@
   .msg .b.v { width: 86%; padding: 0; overflow: hidden; font: 400 10px/1 'Space Mono', monospace; color: #a9a397; }
   .msg .b.v svg { display: block; width: 100%; }
   .msg .b.v span { display: block; padding: 7px 10px; }
+  .msg .b em { display: block; margin-bottom: 3px; color: #8d877b; font: 400 10px/1 'Space Mono', monospace; font-style: normal; }
+  .msg .b.me { align-self: flex-end; background: #c9a227; color: #1b1a16; border-radius: 14px 14px 4px 14px; }
+  .msg.work .mh { font: 700 12px/1 'Space Mono', monospace; letter-spacing: .04em; text-align: left; }
+  .msg.work .mh::before { content: '#'; margin-right: 4px; color: #6e6a62; }
+  .msg .sl { display: flex; gap: 9px; animation: pop .25s ease-out; }
+  .msg .sl .av { flex: none; width: 28px; height: 28px; border-radius: 7px; background: #4a7c6b; color: #f4efe4; font: 700 12px/28px 'Nanum Myeongjo', serif; text-align: center; }
+  .msg .sl .av.me { background: #c9a227; color: #1b1a16; }
+  .msg .sl b { color: #eee8dc; font: 700 12px/1 'Nanum Myeongjo', serif; }
+  .msg .sl b small { margin-left: 6px; color: #6e6a62; font: 400 9px/1 'Space Mono', monospace; }
+  .msg .sl p { margin: 4px 0 0; color: #d9d3c6; font: 400 13px/1.45 'Nanum Myeongjo', serif; }
+  .msg .file { display: flex; align-items: center; gap: 8px; margin-top: 6px; padding: 7px 9px; border: 1px solid #33363e; border-radius: 6px; color: #cfc8ba; font: 400 10px/1.2 'Space Mono', monospace; }
+  .msg .file i { padding: 4px 3px; background: #2f6b45; color: #e8f2ea; font-style: normal; font-size: 8px; border-radius: 2px; }
+  .msg .ch { position: absolute; left: 14px; right: 14px; bottom: 16px; display: flex; flex-direction: column; gap: 6px; animation: pop .25s ease-out; }
+  .msg .ch span { padding: 10px 0; border: 1px solid #4a4d55; border-radius: 9px; color: #eee8dc; text-align: center; font: 700 13px/1 'Nanum Myeongjo', serif; cursor: pointer; }
+  .msg .ch span:first-child { background: #eee8dc; color: #14161b; border-color: #eee8dc; }
+  .msg .sheet { margin-top: 4px; border: 1px solid #33363e; font: 400 10px/1 'Space Mono', monospace; color: #cfc8ba; }
+  .msg .sheet .r { display: grid; grid-template-columns: 1fr 52px 34px; border-top: 1px solid #2a2c32; cursor: pointer; }
+  .msg .sheet .r:first-child { border-top: 0; background: #1d2a22; color: #8fb39c; cursor: default; }
+  .msg .sheet .r span { padding: 8px 6px; }
+  .msg .sheet .r span + span { border-left: 1px solid #2a2c32; text-align: right; }
+  .msg .sheet .r:not(:first-child):hover { background: #20232a; }
+  .msg .sheet .r.no { animation: no .3s; }
+  .msg .sheet .r.ok span:nth-child(2) { color: #7fd49a; }
+  .msg .sheet small { display: block; padding: 7px 6px; border-top: 1px solid #2a2c32; color: #6e6a62; font-size: 9px; }
+  .msg .tip { margin-top: 10px; color: #8d877b; font: 400 11px/1.4 'Nanum Myeongjo', serif; text-align: center; }
+  @keyframes no { 25% { transform: translateX(-4px); } 75% { transform: translateX(4px); } }
+  .msg.ring { animation: buzz .5s ease-in-out infinite; }
+  @keyframes buzz { 0%, 100% { transform: translate(-50%, 0) rotate(-2deg); } 20% { transform: translate(calc(-50% - 3px), 0) rotate(-3deg); } 40% { transform: translate(calc(-50% + 3px), 0) rotate(-1deg); } 60% { transform: translate(-50%, 0) rotate(-2deg); } }
+  .msg.oncall .mh { display: none; }
+  .msg.oncall .mb { padding-top: 0; }
+  .msg.file .mh::before { content: none; }
+  .msg .call { display: flex; flex-direction: column; align-items: center; height: 392px; padding-top: 40px; text-align: center; }
+  .msg .call .ph { width: 74px; height: 74px; border-radius: 50%; background: #3a3d45; color: #eee8dc; font: 700 26px/74px 'Nanum Myeongjo', serif; }
+  .msg .call h4 { margin: 16px 0 6px; color: #eee8dc; font: 700 20px/1 'Nanum Myeongjo', serif; }
+  .msg .call .st { color: #8d877b; font: 400 11px/1 'Space Mono', monospace; letter-spacing: .08em; }
+  .msg .call .gist { min-height: 90px; margin: 26px 8px 0; color: #7d786d; font: 400 12px/1.6 'Nanum Myeongjo', serif; }
+  .msg .call .gist p { margin: 0 0 4px; animation: pop .25s ease-out; }
+  .msg .call .bt { display: flex; gap: 46px; margin-top: auto; margin-bottom: 26px; }
+  .msg .call .bt span { display: flex; flex-direction: column; align-items: center; gap: 8px; color: #cfc8ba; font: 400 11px/1 'Nanum Myeongjo', serif; cursor: pointer; }
+  .msg .call .bt i { display: block; width: 58px; height: 58px; border-radius: 50%; background: #c9402a; font-style: normal; color: #fff; font-size: 22px; line-height: 58px; }
+  .msg .call .bt .y i { background: #3f9a5a; }
+  .msg .call .bt.one { gap: 0; }
+  .msg .call .bt.one span { max-width: 150px; line-height: 1.4; }
+  body.phoneup .cap { opacity: 0 !important; }
   .cat .paw { transform-origin: 96px 66px; animation: paw 1.6s ease-in-out infinite; }
   .cat .kb { animation: kb 1.6s steps(1) infinite; }
   .cat .tk { animation: tk 1.6s ease-out infinite; }
@@ -272,7 +316,7 @@
 <div class="ask" id="ask"><div class="who" id="askWho"></div><div class="line" id="askLine"></div><div class="btns"><span id="askYes"></span><span id="askNo"></span></div><div class="bar"><i id="askBar"></i></div></div>
 <div class="acts" id="acts"><div class="t">기다리는 동안</div><span data-a="music">음악 듣기<small>방송이 작게 들려요</small></span><span data-a="mag">잡지 보기<small>자막이 안 보여요</small></span><span data-a="water">물 마시기<small>잠이 깨요</small></span></div>
 <div class="mag" id="mag"><div class="pg" id="magL"></div><div class="pg" id="magR"></div><span class="no l" id="magNoL"></span><span class="no r" id="magNoR"></span></div>
-<div class="msg" id="msg"><div class="mh">친구</div><div class="mb" id="mb"></div></div>
+<div class="msg" id="msg"><div class="mh" id="mh">친구</div><div class="mb" id="mb"></div></div>
 <div class="start" id="start"><div class="s1">오후 3시 50분, 은행 문 닫기 10분 전이에요.<br>번호표를 뽑고, 4시 전에 창구에 가야 해요.</div><div class="s2">▶ 번호표 뽑기</div></div>
 <div class="hint" id="hint">내 번호가 불리면 화면을 누르세요</div>
 <script>
@@ -592,6 +636,7 @@ function numberTag(n) {
 
 // ── 소리 ───────────────────────────────────────────────────────────────────
 const sound = (() => {
+  let phoneIn = null, call = false, voices = [];
   let ac = null, master = null, room = null, roomF = null, music = null, musF = null, hum = null, noise = null;
   let on = true, phones = true, nextT = 0, stepN = 0, t0 = 0;
   const BPM = 128, S16 = 60 / BPM / 4;
@@ -605,6 +650,9 @@ const sound = (() => {
     room = ac.createGain(); roomF.connect(room).connect(master);
     musF = ac.createBiquadFilter(); musF.type = 'lowpass';
     music = ac.createGain(); musF.connect(music).connect(master);
+    const ph = ac.createBiquadFilter(); ph.type = "highpass"; ph.frequency.value = 380;
+    const pl = ac.createBiquadFilter(); pl.type = "lowpass"; pl.frequency.value = 2600;
+    phoneIn = ac.createGain(); phoneIn.gain.value = .9; phoneIn.connect(ph).connect(pl).connect(master);
     const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = 120;
     const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 260;
     hum = ac.createGain(); hum.gain.value = .01;
@@ -623,9 +671,9 @@ const sound = (() => {
   function apply(tc) {
     const t = ac.currentTime, z = 1 - .8 * drowse;
     roomF.frequency.setTargetAtTime((phones ? 650 : 16000) * (1 - .7 * drowse), t, tc);
-    room.gain.setTargetAtTime((phones ? .42 : 1) * z, t, tc);
+    room.gain.setTargetAtTime((phones ? .42 : 1) * (call ? .5 : 1) * z, t, tc);
     musF.frequency.setTargetAtTime(phones ? 16000 : 900, t, tc);
-    music.gain.setTargetAtTime(ended ? 0 : phones ? .95 : .03, t, tc);
+    music.gain.setTargetAtTime(ended || call ? 0 : phones ? .95 : .03, t, tc);
   }
   function env(g, t, vol, dur) {
     g.gain.setValueAtTime(0, t);
@@ -670,7 +718,76 @@ const sound = (() => {
       o.connect(g).connect(roomF); o.start(t0); o.stop(t0 + dur + .1);
     });
   }
+  function pluck(f, t, vol, out = master) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = 'triangle'; o.frequency.value = f;
+    env(g, t, vol, .22); o.connect(g).connect(out); o.start(t); o.stop(t + .26);
+  }
+  const VOW = [[730, 1090], [530, 1840], [300, 2200], [570, 840], [440, 1020], [400, 1700]];
   return {
+    mumble(text, v = {}) {
+      const rate = v.rate || 1, sy = [];
+      let t = .05;
+      [...text].forEach(c => {
+        if (c === ' ') t += .06 / rate;
+        else if (/[.,…!?~]/.test(c)) t += .24 / rate;
+        else if (/[가-힣ㄱ-ㅎA-Za-z0-9]/.test(c)) { const d = (.09 + Math.random() * .06) / rate; sy.push([t, d]); t += d * .92; }
+      });
+      if (!ac || !on) return t;
+      const t0 = ac.currentTime + (v.delay || 0), base = v.pitch || 110, q = /\?\s*$/.test(text), n = sy.length;
+      const out = v.phone ? phoneIn : roomF, vol = v.vol || .07, bus = v.phone ? 'phone' : 'room';
+      voices = voices.filter(x => x.end > ac.currentTime);
+      sy.forEach(([st, d], i) => {
+        const p = n > 1 ? i / (n - 1) : 0;
+        const tune = (q && p > .75 ? 1 + (p - .75) * 1.4 : 1 - .18 * p) * (1 + .1 * Math.sin(p * Math.PI));
+        const f0 = base * tune * (1 + (Math.random() - .5) * .14);
+        const [F1, F2] = VOW[Math.floor(Math.random() * VOW.length)];
+        const a = t0 + st, o = ac.createOscillator(), g = ac.createGain();
+        const p1 = ac.createBiquadFilter(), p2 = ac.createBiquadFilter(), lp = ac.createBiquadFilter();
+        o.type = 'sawtooth';
+        o.frequency.setValueAtTime(f0 * 1.04, a); o.frequency.linearRampToValueAtTime(f0 * .96, a + d);
+        p1.type = 'peaking'; p1.frequency.value = F1 * (v.form || 1); p1.Q.value = 3; p1.gain.value = 14;
+        p2.type = 'peaking'; p2.frequency.value = F2 * (v.form || 1); p2.Q.value = 4; p2.gain.value = 9;
+        lp.type = 'lowpass'; lp.frequency.value = v.phone ? 2400 : 1150; lp.Q.value = .5;
+        g.gain.setValueAtTime(0, a); g.gain.linearRampToValueAtTime(vol, a + .025);
+        g.gain.setValueAtTime(vol * .8, a + d * .6); g.gain.linearRampToValueAtTime(0, a + d);
+        o.connect(p1).connect(p2).connect(lp).connect(g).connect(out);
+        o.start(a); o.stop(a + d + .02);
+        voices.push({ o, bus, end: a + d + .02 });
+      });
+      return t;
+    },
+    hush(bus) {
+      voices.forEach(x => { if (!bus || x.bus === bus) try { x.o.stop(); } catch (e) {} });
+      voices = bus ? voices.filter(x => x.bus !== bus) : [];
+    },
+    ring() {
+      if (!ac) return () => {};
+      let live = true;
+      const once = () => {
+        if (!live) return; const t = ac.currentTime + .03;
+        [1318.5, 1568, 1975.5, 1568, 1318.5, 1568].forEach((f, i) => pluck(f, t + i * .14, .07));
+        [0, .45].forEach(d => {
+          const o = ac.createOscillator(), g = ac.createGain();
+          o.type = 'square'; o.frequency.value = 140;
+          env(g, t + 1.1 + d, .03, .32); o.connect(g).connect(master); o.start(t + 1.1 + d); o.stop(t + 1.5 + d);
+        });
+      };
+      once(); const id = setInterval(once, 2600);
+      return () => { live = false; clearInterval(id); };
+    },
+    knock() { if (!ac) return; const t = ac.currentTime + .02; pluck(784, t, .08); pluck(587, t + .1, .07); },
+    tap() { if (!ac) return; pluck(1760, ac.currentTime + .01, .035); },
+    hangup() {
+      if (!ac) return; const t = ac.currentTime + .05;
+      [0, .26, .52].forEach(d => {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'square'; o.frequency.value = 480;
+        g.gain.setValueAtTime(0, t + d); g.gain.linearRampToValueAtTime(.025, t + d + .01); g.gain.setValueAtTime(.025, t + d + .15); g.gain.linearRampToValueAtTime(0, t + d + .17);
+        o.connect(g).connect(phoneIn); o.start(t + d); o.stop(t + d + .2);
+      });
+    },
+    setCall(v) { call = v; if (ac) apply(.25); },
     kick() { ensure(); if (ac.state === 'suspended') ac.resume(); },
     print() {
       if (!ac) return; const t = ac.currentTime + .02;
@@ -1049,7 +1166,12 @@ function updateTicket() {
   const nb = COUNTERS.some(k => k.noshow && k.noshow.u && k.noshow.u.seat === NEIGH);
   const hint = $('hint');
   hint.textContent = asking ? '누가 말을 걸어요. 골라 주세요'
-    : msgOpen ? '누르면 휴대폰을 내려놔요'
+    : msgOpen ? ({
+      ring: '회사에서 전화가 와요 · 받을까요?',
+      call: mineState === 'called' ? '내 번호예요! 누르면 전화를 끊고 창구로 가요' : '통화 중이에요 · 방송 소리가 잘 안 들려요',
+      slack: '회사 슬랙이에요 · 누르면 휴대폰을 내려놔요',
+      sheet: '이상한 줄을 찾아 눌러요 · 자막이 안 보이니 방송을 잘 들으세요',
+    }[phoneMode] || '누르면 휴대폰을 내려놔요')
     : dozeOn ? (drowsy < 1 ? '눈꺼풀이 무거워요… 누르면 정신 차려요' : 'zzz… 누르면 깨요')
     : mineState === 'enter' ? '입구 옆 기계에서 번호표를 뽑아요'
     : mineState === 'closed' || mineState === 'served' ? ''
@@ -1274,9 +1396,18 @@ function arriveCounter() {
 
 // ── 마감 시계와 딴짓 ─────────────────────────────────────────────────────────
 const MSGS = [
-  ['은행 갔어?', '거기 4시에 닫지 않아?', '아 맞다 이거 봐 ㅋㅋㅋ', '▶ 번호표 뽑는 고양이  0:42', 'ㅋㅋㅋㅋㅋㅋㅋ', '아니 끝까지 봐 봐', '답장 왜 안 해'],
-  ['야', '아직 은행이야?', '끝나면 전화해', '아 오늘 운세 봤는데', '너 오늘 기다림 운 최악이래 ㅋㅋ'],
+  { who: '지원', lines: ['은행 갔어?', '거기 4시에 닫지 않아?', '아 맞다 이거 봐 ㅋㅋㅋ', '▶ 번호표 뽑는 고양이  0:42', 'ㅋㅋㅋㅋㅋㅋㅋ', '아니 끝까지 봐 봐', '답장 왜 안 해'] },
+  { who: '지원', lines: ['야', '아직 은행이야?', '끝나면 전화해', '아 오늘 운세 봤는데', '너 오늘 기다림 운 최악이래 ㅋㅋ'] },
+  { who: '엄마', lines: ['은행이니?', '간 김에 통장 정리도 해 와', '엄마 거 말고 네 거', '그리고 김치 가지러 언제 오니', '답장해'] },
+  { who: '민', lines: ['저녁 뭐 먹을래', '마라탕 vs 국밥', '3초 안에 골라', '…', '국밥이다', '7시에 역 앞에서 봐'] },
+  { who: '대학 동기 (5)', lines: ['서연|이번 주 토요일 되는 사람?', '준호|나 됨', '다은|나도!!', '서연|보리는?', '준호|보리 읽고 답 안 함 ㅋㅋ', '다은|은행이래 ㅋㅋ 아까 그랬음'] },
+  { who: '택배', lines: ['[배송 알림] 주문하신 상품이 오늘 도착할 예정이에요.', '[배송 완료] 문 앞에 두고 갔어요.', '사진 확인 ▸'] },
 ];
+let msgDeck = [];
+function nextMsg() {
+  if (!msgDeck.length) msgDeck = MSGS.map((m, i) => i).sort(() => Math.random() - .5);
+  return MSGS[msgDeck.pop()];
+}
 const CAT = `<svg class="cat" viewBox="0 0 160 90"><rect width="160" height="90" fill="#3a312b"/><rect y="74" width="160" height="16" fill="#5a4c40"/>
 <rect x="104" y="14" width="36" height="62" fill="#d8d2c4"/><rect x="104" y="10" width="36" height="7" fill="#3a5f8a"/><rect x="109" y="22" width="26" height="15" fill="#4fb4ff"/>
 <rect class="tk" x="112" y="58" width="20" height="13" fill="#f3efe6"/><rect x="110" y="56" width="24" height="3" fill="#222"/><circle class="kb" cx="108" cy="46" r="4"/>
@@ -1302,9 +1433,13 @@ function gameClock(dt) {
     if (mineState === 'wait' && me.sit > .8 && !me.roam && !msgOpen && !dozeOn) openAsk(guest);
     else if (time - guest.ready > 12) { guest.ready = 0; guestSit(guest); }
   }
-  if (evFor !== tickets && !asking && !(kind === 'doze' && time < freshUntil) && mineState === 'wait' && !me.roam && me.sit > .8 && ahead <= (kind === 'msg' ? 1 : 3)) {
+  const free = mineState === 'wait' && !me.roam && me.sit > .8 && !asking && !msgOpen && !dozeOn && !me.errand && !(guest && guest.ready);
+  if (free && work.follow && time > work.follow.at) { openMsg(work.follow); work.follow = null; return; }
+  if (free && !work.slack && gameT() > 6 && ahead >= 3) return openSlack();
+  if (free && work.slack && !work.call && time > work.next && ahead >= 2) return openCall();
+  if (evFor !== tickets && !asking && !msgOpen && !(kind === 'doze' && time < freshUntil) && mineState === 'wait' && !me.roam && me.sit > .8 && ahead <= (kind === 'msg' ? 1 : 3)) {
     evFor = tickets;
-    if (kind === 'msg') openMsg(MSGS[Math.floor(tickets / 2) % 2]); else { dozeOn = true; updateTicket(); }
+    if (kind === 'msg') openMsg(nextMsg()); else { dozeOn = true; updateTicket(); }
   }
   drowsy = dozeOn ? Math.min(1, drowsy + dt / 7) : Math.max(0, drowsy - dt * 1.5);
   const lid = drowsy >= 1 ? .45 + Math.sin(time * 1.3) * .02 : Math.pow(drowsy, 1.4) * .4 * (.8 + .2 * Math.sin(time * 1.7));
@@ -1316,23 +1451,11 @@ function gameClock(dt) {
     me.lookUntil = time + .2;
   }
 }
-function openMsg(lines) {
-  msgOpen = true; $('mb').innerHTML = ''; $('msg').classList.add('on');
-  me.lookUntil = 0;
-  lines.forEach((l, i) => msgTimers.push(setTimeout(() => {
-    const b = document.createElement('div');
-    const v = l.startsWith('▶');
-    b.className = 'b' + (v ? ' v' : '');
-    if (v) b.innerHTML = CAT + `<span>${l}</span>`; else b.textContent = l;
-    $('mb').appendChild(b); sound.buzz();
-  }, 400 + i * 1500)));
-  msgTimers.push(setTimeout(closeMsg, 400 + lines.length * 1500 + 2500));
-  updateTicket();
-}
 function guestComes(kind) {
   const u = makeGuy({ phone: false, cloth: kind === 'help' ? '#8a6e9e' : '#d0442c' });
   u.sit = u.sitT = 0; u.state = 'guest'; u.kind = kind; u.uses = false;
   u.speed = kind === 'swap' ? 1.5 : .75;
+  u.voice = kind === 'swap' ? { pitch: 118, rate: 1.2, vol: .075 } : { pitch: 92, rate: .78, form: .9, vol: .08 };
   if (kind === 'swap') u.ticket = ++issued;
   u.g.position.set(6.9, 0, 3.6);
   u.path = [[5.2, 3.6], [5.2, 1.7], [ME_SEAT.x + .2, 1.7]];
@@ -1366,12 +1489,12 @@ function openAsk(u) {
   $('askNo').textContent = swap ? '죄송해요, 저도 급해요' : '저기 입구 옆이에요';
   $('ask').classList.remove('busy'); $('ask').classList.add('on');
   me.lookY = 0; me.lookX = -.15; me.lookUntil = time + 9;
-  say(line);
+  sound.mumble(line, u.voice);
   askBar(9, () => answer(false));
   updateTicket();
 }
-function reply(text, then) {
-  $('ask').classList.add('busy', 'on'); $('askLine').textContent = text; say(text);
+function reply(text, then, voice) {
+  $('ask').classList.add('busy', 'on'); $('askLine').textContent = text; sound.mumble(text, voice);
   askBar(2, () => { $('ask').classList.remove('on'); if (then) then(); updateTicket(); });
 }
 function answer(yes) {
@@ -1383,13 +1506,13 @@ function answer(yes) {
       ticketEl.classList.remove('fresh'); void ticketEl.offsetWidth; ticketEl.classList.add('fresh');
       meTag();
     }
-    reply(yes ? '정말 감사합니다! 복 받으실 거예요.' : '아… 네, 알겠어요.');
+    reply(yes ? '정말 감사합니다! 복 받으실 거예요.' : '아… 네, 알겠어요.', null, u.voice);
     guestSit(u);
   } else if (yes) {
-    reply('아이고, 고마워요. 같이 가 줘요.');
+    reply('아이고, 고마워요. 같이 가 줘요.', null, u.voice);
     helpWalk(u);
   } else {
-    reply('아, 저기요? 네…');
+    reply('아, 저기요? 네…', null, u.voice);
     guestKiosk(u, null);
   }
   updateTicket();
@@ -1410,7 +1533,7 @@ function helpWalk(u) {
   me.roam = true; me.sitT = 0; me.onArrive = null;
   guestKiosk(u, () => {
     helped++;
-    if (mineState === 'wait') reply('고마워요. 복 받으실 거예요.');
+    if (mineState === 'wait') reply('고마워요. 복 받으실 거예요.', null, u.voice);
     sitDown();
   });
   setTimeout(() => {
@@ -1419,10 +1542,170 @@ function helpWalk(u) {
     me.onArrive = g => { g.headingT = Math.PI / 2; };
   }, 700);
 }
+let phoneMode = null, phoneAct = {};
+const work = { slack: null, call: null, next: 0, follow: null, ringStop: null };
+const DOYUN = ['이도윤', '도'], BOSS = ['팀장님', '팀'], ME = ['보리', '보'];
+const CALL = [
+  '보리씨, 지금 통화 괜찮아요? 슬랙 봤죠?', '>네, 잠깐은요…',
+  '발주서 그거요. 협력사에서 수량이 이상하다고 연락이 왔어요.', '내일 오전에 넘어가야 해서 오늘 꼭 봐야 하거든요.', '>네, 네…',
+  '지금 밖이에요? 들어오면 바로 봐 줄 수 있죠?', '>네, 4시 넘어서 바로 볼게요.', '네, 그럼 부탁해요.',
+];
+const CALL_FIXED = [
+  '보리씨, 방금 고쳐 준 거 봤어요. 고마워요.', '>아, 네네.',
+  '근데 하나만 더요. 단가 칸에 작년 단가가 들어가 있대요.', '그것도 오늘 안에 같이 봐 줄 수 있어요?', '>아… 네, 들어가서 볼게요.', '고마워요, 그럼 부탁해요.',
+];
+const SHEET = [['종이컵 8oz', '20'], ['냅킨', '15'], ['배달 봉투(중)', '1,200', '12'], ['나무젓가락', '30'], ['소스 컵', '18']];
+const later = (ms, f) => msgTimers.push(setTimeout(f, ms));
+function phoneHead(text, cls) {
+  $('mh').textContent = text;
+  ['work', 'file', 'oncall'].forEach(c => $('msg').classList.toggle(c, c === cls || (cls === 'file' && c === 'work')));
+}
+function phoneUp(mode) {
+  msgOpen = true; phoneMode = mode; phoneAct = {};
+  msgTimers.forEach(clearTimeout); msgTimers = [];
+  $('mb').innerHTML = ''; $('msg').querySelectorAll('.ch').forEach(c => c.remove());
+  $('msg').classList.remove('ring'); $('msg').classList.add('on');
+  me.lookUntil = 0; updateTicket();
+}
+function slackRow([name, av], text, mine) {
+  const r = document.createElement('div'); r.className = 'sl';
+  r.innerHTML = `<div class="av${mine ? ' me' : ''}">${av}</div><div><b>${name}<small>오후 ${clockText()}</small></b><p>${text}</p></div>`;
+  $('mb').appendChild(r);
+  mine ? sound.tap() : sound.knock();
+}
+function choices(a, b, fa, fb) {
+  const c = document.createElement('div'); c.className = 'ch';
+  c.innerHTML = `<span data-k="a">${a}</span><span data-k="b">${b}</span>`;
+  phoneAct = { a: () => { c.remove(); fa(); }, b: () => { c.remove(); fb(); } };
+  $('msg').appendChild(c);
+}
+$('msg').addEventListener('pointerdown', e => { if (e.target.closest('[data-k]')) e.stopPropagation(); });
+$('msg').addEventListener('click', e => {
+  const k = e.target.closest('[data-k]'); if (!k) return;
+  const f = phoneAct[k.dataset.k]; if (f) f(k);
+});
+
+function openMsg(m) {
+  phoneHead(m.who, m.work ? 'work' : ''); phoneUp(m.work ? 'note' : 'friend');
+  m.lines.forEach((l, i) => later(400 + i * 1500, () => {
+    if (m.work) return slackRow(m.from, l);
+    const v = l.startsWith('▶'), [n, t] = l.includes('|') ? l.split('|') : ['', l];
+    const b = document.createElement('div'); b.className = 'b' + (v ? ' v' : '');
+    b.innerHTML = v ? CAT + `<span>${t}</span>` : (n ? `<em>${n}</em>` : '') + t;
+    $('mb').appendChild(b); sound.buzz();
+  }));
+  later(400 + m.lines.length * 1500 + 2500, closeMsg);
+}
+
+function openSlack() {
+  work.slack = 'open';
+  phoneHead('발주-운영', 'work'); phoneUp('slack');
+  slackRow(DOYUN, '보리씨, 이거 내일까지 발주인데 오류있다고 해요.');
+  later(1300, () => slackRow(DOYUN, '<span class="file"><i>XLSX</i>발주서_1119_최종.xlsx</span>'));
+  later(2700, () => {
+    slackRow(DOYUN, '체크해줄 수 있어요?');
+    choices('지금 볼게요', '은행이라 이따 볼게요', openSheet, slackLater);
+  });
+  later(16000, closeMsg);
+}
+function slackLater() {
+  work.slack = 'later';
+  slackRow(ME, '지금 은행이라 4시 넘어서 볼게요!', true);
+  later(1600, () => slackRow(DOYUN, '넵넵 천천히요!'));
+  later(3800, closeMsg);
+}
+function openSheet() {
+  work.slack = 'check';
+  slackRow(ME, '지금 볼게요!', true);
+  msgTimers.forEach(clearTimeout); msgTimers = [];
+  later(800, () => {
+    phoneMode = 'sheet'; document.body.classList.add('phoneup');
+    phoneHead('발주서_1119_최종.xlsx', 'file');
+    $('mb').innerHTML = `<div class="sheet"><div class="r"><span>품목</span><span>수량</span><span>단위</span></div>`
+      + SHEET.map(([n, q], i) => `<div class="r" data-k="r${i}"><span>${n}</span><span>${q}</span><span>박스</span></div>`).join('')
+      + `<small>협력사 메모 · 수량 확인 부탁드려요</small></div><div class="tip">이상한 줄을 찾아 눌러요</div>`;
+    SHEET.forEach(([, , fix], i) => phoneAct['r' + i] = row => fix ? fixRow(row, fix) : (row.classList.remove('no'), void row.offsetWidth, row.classList.add('no'), sound.tap()));
+    updateTicket();
+  });
+}
+function fixRow(row, fix) {
+  phoneAct = {};
+  row.children[1].textContent = fix; row.classList.add('ok'); sound.tap();
+  work.slack = 'fixed'; document.body.classList.remove('phoneup');
+  later(1100, () => {
+    phoneMode = 'slack'; phoneHead('발주-운영', 'work'); $('mb').innerHTML = '';
+    slackRow(ME, '배달 봉투 수량이 1,200으로 들어가 있었어요. 12로 고쳤어요!', true);
+    later(1700, () => slackRow(DOYUN, '헐 살았어요 🙏 감사해요!!'));
+    later(4200, closeMsg);
+  });
+  updateTicket();
+}
+
+function stopRing() { if (work.ringStop) { work.ringStop(); work.ringStop = null; } }
+function callScreen(st, btns) {
+  $('mb').innerHTML = `<div class="call"><div class="ph">${BOSS[1]}</div><h4>${BOSS[0]}</h4><div class="st" id="cst">${st}</div><div class="gist" id="gist"></div><div class="bt ${btns.length < 2 ? 'one' : ''}">`
+    + btns.map(([k, cls, ic, t]) => `<span class="${cls}" data-k="${k}"><i>${ic}</i>${t}</span>`).join('') + '</div></div>';
+}
+function openCall() {
+  work.call = 'ringing';
+  phoneHead('', 'oncall'); phoneUp('ring');
+  $('msg').classList.add('ring');
+  callScreen('회사 · 걸려 오는 전화', [['n', 'n', '✕', '거절'], ['y', 'y', '✆', '받기']]);
+  phoneAct = { n: () => endRing('declined'), y: answerCall };
+  work.ringStop = sound.ring();
+  later(11000, () => endRing('missed'));
+}
+function endRing(why) {
+  if (work.call !== 'ringing') return;
+  stopRing(); work.call = why; phoneAct = {};
+  $('msg').classList.remove('ring');
+  if (msgOpen && phoneMode === 'ring') { $('cst').textContent = why === 'missed' ? '부재중 전화' : '통화 거절'; later(1000, closeMsg); }
+  work.follow = { at: time + 7, work: true, who: '팀장님', from: BOSS, lines: ['보리씨, 통화 어려우면 슬랙 주세요.', '발주 건이라 조금 급해요 🙏'] };
+}
+function answerCall() {
+  stopRing(); work.call = 'talk'; phoneMode = 'call';
+  $('msg').classList.remove('ring');
+  callScreen('통화 중 0:00', [['h', 'n', '✕', '은행이라 이따 다시 걸게요']]);
+  phoneAct = { h: () => hangUp(true) };
+  sound.setCall(true); freshUntil = Math.max(freshUntil, time + 30);
+  const t0 = time;
+  msgTimers.push(setInterval(() => { const s = Math.floor(time - t0); $('cst').textContent = `통화 중 0:${pad(s, 2)}`; }, 250));
+  const lines = work.slack === 'fixed' ? CALL_FIXED : CALL;
+  const speak = i => {
+    if (i >= lines.length) return hangUp(false);
+    const l = lines[i], mine = l[0] === '>', t = mine ? l.slice(1) : l;
+    const p = document.createElement('p'); p.textContent = (mine ? '나  ' : '') + t;
+    if (mine) p.style.color = '#c9a227';
+    $('gist').appendChild(p); while ($('gist').children.length > 2) $('gist').firstChild.remove();
+    const d = mine ? sound.mumble(t, { pitch: 175, vol: .03, rate: 1.15, form: 1.1 }) : sound.mumble(t, { phone: true, pitch: 128, vol: .1, rate: 1.05 });
+    later(d * 1000 + (mine ? 450 : 750), () => speak(i + 1));
+  };
+  later(500, () => speak(0));
+  updateTicket();
+}
+function hangUp(early) {
+  if (work.call !== 'talk') return;
+  work.call = early ? 'cut' : 'done'; phoneAct = {};
+  sound.hush('phone'); sound.setCall(false); sound.hangup();
+  if (early) work.follow = { at: time + 6, work: true, who: '팀장님', from: BOSS, lines: ['끊겼네요? 들어오면 바로 연락 줘요 🙏'] };
+  if (msgOpen && phoneMode === 'call') {
+    msgTimers.forEach(clearTimeout); msgTimers = [];
+    $('cst').textContent = '통화 종료';
+    later(1200, closeMsg);
+  }
+}
 function closeMsg() {
   if (!msgOpen) return;
-  msgOpen = false; msgTimers.forEach(clearTimeout); msgTimers = [];
-  $('msg').classList.remove('on'); updateTicket();
+  const m = phoneMode;
+  msgOpen = false; phoneMode = null; phoneAct = {};
+  msgTimers.forEach(clearTimeout); msgTimers = [];
+  if (work.slack === 'open' || work.slack === 'check') work.slack = work.slack === 'open' ? 'ignored' : 'later';
+  if (m === 'ring') endRing('declined');
+  if (m === 'call') hangUp(true);
+  if (m === 'slack' || m === 'sheet') work.next = time + 4;
+  $('msg').querySelectorAll('.ch').forEach(c => c.remove());
+  $('msg').classList.remove('on', 'ring'); document.body.classList.remove('phoneup');
+  updateTicket();
 }
 function wake() {
   dozeOn = false;
@@ -1462,7 +1745,9 @@ function showEnd(closed) {
   $('endNo').textContent = closed ? '4:00' : pad(mine);
   e.classList.toggle('win', !closed);
   $('endLine').textContent = closed ? '은행 문이 닫혔어요. 내일 다시 와야 해요.' : '은행 업무 보기 성공!';
-  const extra = (helped ? ` · 도와드린 분 ${helped}명` : '') + (gave ? ` · 번호 양보 ${gave}번` : '');
+  const extra = (helped ? ` · 도와드린 분 ${helped}명` : '') + (gave ? ` · 번호 양보 ${gave}번` : '')
+    + (work.slack === 'fixed' ? ' · 발주 오류 고침' : '')
+    + ({ done: ' · 팀장님 전화 받음', cut: ' · 팀장님 전화 받음', declined: ' · 전화 거절 1통', missed: ' · 부재중 전화 1통' }[work.call] || '');
   $('endSub').textContent = (closed ? `번호표 ${tickets}장을 들고 집에 가요` : `“무엇을 도와드릴까요?”  오후 ${clockText()} · 번호표 ${tickets}장째`) + extra;
   e.classList.add('on');
   ticketEl.style.opacity = 0; $('clock').classList.remove('on');
@@ -1558,6 +1843,8 @@ function grooveMe(dt) {
     me.torso.rotation.x = .14;
   }
   if (me.cup.visible) { me.armR.rotation.x = -2.35; me.armR.rotation.z = -.5; }
+  me.uses = msgOpen && phoneMode !== 'call';
+  if (phoneMode === 'call') { me.phone.visible = false; me.armR.rotation.set(-2.7, 0, -.15); me.head.rotation.z = .12; }
 
   const hot = mineState === 'called', party = d * (hot ? 0 : 1), lk = Math.min(1, dt * (hot ? 3 : 4));
   const pulse = Math.pow(1 - (bt % 1), 3), col = DISCO[Math.floor(bt / 4) % 4];
@@ -1640,7 +1927,12 @@ addEventListener('pointerup', () => {
   if (!started) return begin();
   if (mineState === 'served' || mineState === 'closed' || mineState === 'enter') return;
   if (asking) return;
-  if (msgOpen) return closeMsg();
+  if (msgOpen) {
+    if (phoneMode === 'ring') return;
+    if (phoneMode === 'call' && mineState !== 'called') return;
+    closeMsg();
+    if (mineState !== 'called') return;
+  }
   if (dozeOn) return wake();
   if (mineState === 'called') goToCounter();
   else if (mineState === 'missed') goLate();
@@ -1649,7 +1941,7 @@ addEventListener('pointerup', () => {
 });
 addEventListener('keydown', e => {
   if (!started) { if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); begin(); return; }
-  if (msgOpen) closeMsg();
+  if (msgOpen) { if (phoneMode === 'ring' || phoneMode === 'call') return; closeMsg(); }
   if (dozeOn) wake();
   if (mineState === 'enter' || mineState === 'closed') return;
   if (e.code === 'Space') { e.preventDefault(); sitDown(); return; }
