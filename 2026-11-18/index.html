@@ -1166,6 +1166,7 @@ function updateTicket() {
   const nb = COUNTERS.some(k => k.noshow && k.noshow.u && k.noshow.u.seat === NEIGH);
   const hint = $('hint');
   hint.textContent = asking ? '누가 말을 걸어요. 골라 주세요'
+    : msgOpen && mineState === 'called' && phoneMode !== 'call' && phoneMode !== 'ring' ? '내 번호예요! 누르면 휴대폰을 내려놓고 창구로 가요'
     : msgOpen ? ({
       ring: '회사에서 전화가 와요 · 받을까요?',
       call: mineState === 'called' ? '내 번호예요! 누르면 전화를 끊고 창구로 가요' : '통화 중이에요 · 방송 소리가 잘 안 들려요',
@@ -1175,6 +1176,7 @@ function updateTicket() {
     : dozeOn ? (drowsy < 1 ? '눈꺼풀이 무거워요… 누르면 정신 차려요' : 'zzz… 누르면 깨요')
     : mineState === 'enter' ? '입구 옆 기계에서 번호표를 뽑아요'
     : mineState === 'closed' || mineState === 'served' ? ''
+    : mineState === 'walk' ? '창구로 걸어가는 중이에요'
     : nb ? '앞사람 번호예요. 눌러서 알려 주세요'
     : mineState === 'called' ? `내 번호예요! ${mineCounter ? mineCounter.i + 1 + '번 ' : ''}창구로 걸어가거나 화면을 누르세요`
     : mineState === 'missed' ? '어? 번호가 지나간 것 같아요. 창구에 가서 물어보세요 · 누르면 걸어가요'
@@ -1215,7 +1217,7 @@ function step(dt) {
       setTimeout(stareAtMe, 1400);
     }
     if (time - mineT > 10.5) {
-      mineState = 'missed'; mineT = time; meTag();
+      mineState = 'missed'; mineT = time; meTag(); updateTicket();
       setTimeout(() => {
         if (mineState !== 'missed' || sound.phones) return;
         me.lookY = 0; me.lookX = -.25; me.lookUntil = time + 3.4; me.shakeUntil = time + 3.4;
@@ -1433,7 +1435,7 @@ function gameClock(dt) {
     if (mineState === 'wait' && me.sit > .8 && !me.roam && !msgOpen && !dozeOn) openAsk(guest);
     else if (time - guest.ready > 12) { guest.ready = 0; guestSit(guest); }
   }
-  const free = mineState === 'wait' && !me.roam && me.sit > .8 && !asking && !msgOpen && !dozeOn && !me.errand && !(guest && guest.ready);
+  const free = mineState === 'wait' && !me.roam && me.sit > .8 && !asking && !$('ask').classList.contains('on') && !msgOpen && !dozeOn && !me.errand && !(guest && guest.ready);
   if (free && work.follow && time > work.follow.at) { openMsg(work.follow); work.follow = null; return; }
   if (free && !work.slack && gameT() > 6 && ahead >= 3) return openSlack();
   if (free && work.slack && !work.call && time > work.next && ahead >= 2) return openCall();
