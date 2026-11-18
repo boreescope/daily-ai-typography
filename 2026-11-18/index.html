@@ -201,6 +201,51 @@
   .end.win .line { color: #ffd84a; font-size: clamp(22px, 2.6vw, 34px); }
   @keyframes pop { from { transform: scale(.8); opacity: 0; } }
 
+  .acts {
+    position: fixed; left: 36px; bottom: 44px; z-index: 8;
+    display: flex; flex-direction: column; gap: 6px;
+    opacity: 0; transform: translateX(-12px); pointer-events: none;
+    transition: opacity .35s, transform .35s;
+  }
+  .acts.on { opacity: 1; transform: none; pointer-events: auto; }
+  .acts .t { margin-bottom: 2px; color: #7d838d; font: 700 9px/1 'Space Mono', monospace; letter-spacing: .2em; }
+  .acts span {
+    padding: 9px 14px 8px; cursor: pointer; user-select: none;
+    background: rgba(20,23,28,.62); border: 1px solid rgba(150,160,175,.26);
+    color: #b9bec6; font: 700 13px/1 'Nanum Myeongjo', serif;
+    transition: background .2s, color .2s, border-color .2s;
+  }
+  .acts span:hover { color: #f1ece2; border-color: rgba(223,228,234,.5); }
+  .acts span.on { background: #f5f1e8; color: #2a2a2a; border-color: #f5f1e8; }
+  .acts small { margin-left: 8px; color: #7d838d; font: 400 10px/1 'Nanum Myeongjo', serif; }
+  .acts span.on small { color: #8a857a; }
+
+  .mag {
+    position: fixed; left: 50%; bottom: -14px; z-index: 6;
+    display: flex; width: min(600px, calc(100vw - 32px)); height: 310px;
+    background: #f3eee3; color: #2a2a2a; cursor: pointer;
+    box-shadow: 0 30px 60px rgba(0,0,0,.6);
+    transform: translate(-50%, 115%) rotate(0);
+    transition: transform .5s cubic-bezier(.2,.8,.3,1);
+  }
+  .mag.on { transform: translate(-50%, 0) rotate(1.2deg); }
+  body:has(.msg.on) .mag.on, body:has(.ask.on) .mag.on { transform: translate(-50%, 70%) rotate(1.2deg); }
+  .mag::after {
+    content: ''; position: absolute; left: 50%; top: 0; bottom: 0; width: 40px; transform: translateX(-50%);
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,.14) 48%, rgba(0,0,0,.2) 50%, rgba(0,0,0,.14) 52%, transparent);
+    pointer-events: none;
+  }
+  .mag .pg { flex: 1; padding: 22px 24px; overflow: hidden; }
+  .mag.flip .pg { animation: flip .35s ease-out; }
+  .mag .k { color: #c9402a; font: 700 9px/1 'Space Mono', monospace; letter-spacing: .2em; }
+  .mag h3 { margin: 10px 0 10px; font: 800 21px/1.3 'Nanum Myeongjo', serif; }
+  .mag p { font: 400 12px/1.75 'Nanum Myeongjo', serif; color: #4a4740; }
+  .mag .art { height: 74px; margin-bottom: 12px; }
+  .mag .no { position: absolute; bottom: 24px; font: 400 9px/1 'Space Mono', monospace; color: #9a958a; }
+  .mag .no.l { left: 24px; } .mag .no.r { right: 24px; }
+  body.reading .cap { opacity: 0 !important; }
+  @keyframes flip { from { opacity: 0; transform: translateX(-14px); } }
+
   .lid { position: fixed; left: 0; right: 0; z-index: 6; height: 0; background: #050506; pointer-events: none; }
   .lid.t { top: 0; border-radius: 0 0 50% 50% / 0 0 40px 40px; }
   .lid.b { bottom: 0; border-radius: 50% 50% 0 0 / 40px 40px 0 0; }
@@ -225,6 +270,8 @@
 <div class="clock" id="clock"><span id="clk">3:50</span><small>마감 4:00</small></div>
 <div class="lid t" id="lidT"></div><div class="lid b" id="lidB"></div>
 <div class="ask" id="ask"><div class="who" id="askWho"></div><div class="line" id="askLine"></div><div class="btns"><span id="askYes"></span><span id="askNo"></span></div><div class="bar"><i id="askBar"></i></div></div>
+<div class="acts" id="acts"><div class="t">기다리는 동안</div><span data-a="music">음악 듣기<small>방송이 작게 들려요</small></span><span data-a="mag">잡지 보기<small>자막이 안 보여요</small></span><span data-a="water">물 마시기<small>잠이 깨요</small></span></div>
+<div class="mag" id="mag"><div class="pg" id="magL"></div><div class="pg" id="magR"></div><span class="no l" id="magNoL"></span><span class="no r" id="magNoR"></span></div>
 <div class="msg" id="msg"><div class="mh">친구</div><div class="mb" id="mb"></div></div>
 <div class="start" id="start"><div class="s1">오후 3시 50분, 은행 문 닫기 10분 전이에요.<br>번호표를 뽑고, 4시 전에 창구에 가야 해요.</div><div class="s2">▶ 번호표 뽑기</div></div>
 <div class="hint" id="hint">내 번호가 불리면 화면을 누르세요</div>
@@ -649,6 +696,24 @@ const sound = (() => {
         env(g, t + d, .05, .12); o.connect(g).connect(master); o.start(t + d); o.stop(t + d + .15);
       });
     },
+    flip() {
+      if (!ac) return; const t = ac.currentTime + .01;
+      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = noise; f.type = 'bandpass'; f.Q.value = .7;
+      f.frequency.setValueAtTime(1800, t); f.frequency.exponentialRampToValueAtTime(5200, t + .22);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.16, t + .05); g.gain.exponentialRampToValueAtTime(.0001, t + .3);
+      s.connect(f).connect(g).connect(roomF); s.start(t, Math.random()); s.stop(t + .35);
+    },
+    pour() {
+      if (!ac) return; const t = ac.currentTime + .02;
+      for (let i = 0; i < 26; i++) {
+        const o = ac.createOscillator(), g = ac.createGain(), at = t + i * .07 + Math.random() * .03;
+        o.type = 'sine'; o.frequency.setValueAtTime(500 + i * 22 + Math.random() * 180, at);
+        o.frequency.exponentialRampToValueAtTime(1400 + i * 30, at + .04);
+        env(g, at, .035, .05); o.connect(g).connect(roomF); o.start(at); o.stop(at + .07);
+      }
+      bell(220, t + 2.1, .5, .05);
+    },
     closingSong() {
       if (!ac) return; ended = true; apply(1.2);
       const B = .62, t0 = ac.currentTime + .8;
@@ -751,6 +816,17 @@ me.phone.material.emissiveIntensity = .7;
     part(.02, .1, .1, padM, sd * .245, -.01, -.01);
   });
 }
+{
+  const mag = new THREE.Group(); mag.position.set(0, .44, .3); mag.rotation.x = -.85; mag.visible = false; me.g.add(mag); me.mag = mag;
+  const cov = M('#c9402a'), pap = M('#f3eee3');
+  [-1, 1].forEach(sd => {
+    const p = new THREE.Group(); p.position.x = sd * .005; p.rotation.y = sd * -.25; mag.add(p);
+    const c = new THREE.Mesh(new THREE.BoxGeometry(.2, .27, .008), cov); c.position.x = sd * .1; p.add(c);
+    const f = new THREE.Mesh(new THREE.BoxGeometry(.18, .25, .004), pap); f.position.set(sd * .1, 0, .006); p.add(f);
+  });
+  const cup = new THREE.Mesh(new THREE.CylinderGeometry(.045, .032, .1, 8), M('#f2f0ea'));
+  cup.position.set(0, -.5, .05); cup.visible = false; me.armR.add(cup); me.cup = cup;
+}
 const spot = new THREE.SpotLight('#ffe2a8', 0, 7, .3, .55, 1);
 spot.position.set(ME_SEAT.x, 3.7, ME_SEAT.z + .1);
 spot.target.position.set(ME_SEAT.x, .5, ME_SEAT.z);
@@ -770,6 +846,62 @@ function setPhones(v) {
   else { me.lookY = 0; me.lookX = -.22; me.lookUntil = time + 1e4; }
   updateTicket();
 }
+
+let act = null, lastAct = 'music', freshUntil = 0, magAt = 0;
+const MAG = [
+  ['LIFE · 11월호', '<div class="art" style="background:linear-gradient(90deg,#e0a85a 0 30%,#c9402a 30% 55%,#7a8b5c 55%)"></div>', '단풍 보러 가기 좋은 동네 산책길 다섯 곳',
+    '멀리 가지 않아도 돼요. 동네 뒷산 둘레길, 강변 은행나무 길, 오래된 대학 캠퍼스까지. 이번 주말이 마지막 절정이에요.'],
+  ['ESSAY', '', '기다리는 시간은 왜 길게 느껴질까',
+    '할 일이 없을 때 사람은 시계를 더 자주 봐요. 눈은 번호판에 가 있는데 마음은 벌써 창구에 가 있어요. 그래서 대기실에는 늘 잡지가 놓여 있어요.'],
+  ['FOOD', '<div class="art" style="background:radial-gradient(circle at 50% 60%,#f3d27a 0 26px,#e8b34a 27px 34px,transparent 35px),#3e5a6e"></div>', '찬바람 불 때 끓이는 달걀국 한 그릇',
+    '멸치 육수에 달걀 두 개, 대파 한 줌이면 충분해요. 불을 끄기 직전에 달걀을 둘러 넣는 게 요령이에요.'],
+  ['HOROSCOPE', '<div class="art" style="background:repeating-linear-gradient(90deg,#2a2c32 0 14px,#3a3d45 14px 28px)"></div>', '이번 주 운세',
+    '물고기자리: 기다림이 길어지는 날이에요. 귀를 열어 두면 반가운 소식이 들려요. 행운의 숫자는 오늘 손에 쥔 번호예요.'],
+];
+function drawMag(flip) {
+  const i = (magAt * 2) % MAG.length, pg = ([kk, art, h, p]) => `<div class="k">${kk}</div>${art}<h3>${h}</h3><p>${p}</p>`;
+  $('magL').innerHTML = pg(MAG[i]); $('magR').innerHTML = pg(MAG[(i + 1) % MAG.length]);
+  $('magNoL').textContent = 40 + magAt * 2; $('magNoR').textContent = 41 + magAt * 2;
+  if (flip) { const m = $('mag'); m.classList.remove('flip'); void m.offsetWidth; m.classList.add('flip'); sound.flip(); }
+}
+function reading(v) {
+  me.mag.visible = v;
+  $('mag').classList.toggle('on', v); document.body.classList.toggle('reading', v);
+  if (v) { me.lookY = 0; me.lookX = .55; me.lookUntil = time + 1e4; }
+}
+function idle() { act = null; me.errand = false; me.cup.visible = false; reading(false); setPhones(false); }
+function setAct(a) {
+  if (a === 'water') return goWater();
+  if (a === act) a = null;
+  idle(); act = a; if (a) lastAct = a;
+  if (a === 'music') setPhones(true);
+  if (a === 'mag') { drawMag(false); reading(true); sound.flip(); }
+  updateTicket();
+}
+function goWater() {
+  if (mineState !== 'wait' || me.roam) return;
+  idle();
+  me.roam = true; me.sitT = 0; me.errand = true;
+  me.path = [[ME_SEAT.x, 1.7], [5.2, 1.7], [5.2, -4.3], [5.95, -4.95]];
+  me.onArrive = g => {
+    g.headingT = Math.PI;
+    if (mineState !== 'wait') { g.errand = false; return updateTicket(); }
+    sound.pour();
+    setTimeout(() => { me.cup.visible = true; me.lookY = 0; me.lookX = -.45; updateTicket(); }, 1600);
+    setTimeout(() => {
+      me.cup.visible = false; me.errand = false; me.lookX = -.22;
+      freshUntil = time + 40; drowsy = 0;
+      if (mineState === 'wait' && me.roam && !me.path.length) sitDown(); else updateTicket();
+    }, 5200);
+  };
+  updateTicket();
+}
+document.querySelectorAll('#acts span').forEach(s => {
+  s.addEventListener('pointerdown', e => e.stopPropagation());
+  s.addEventListener('click', () => setAct(s.dataset.a));
+});
+$('mag').addEventListener('pointerdown', e => e.stopPropagation());
+$('mag').addEventListener('click', () => { magAt++; drawMag(true); });
 COUNTERS.forEach((c, i) => {
   const u = makeGuy(); u.ticket = 35 + i; u.sit = u.sitT = 0;
   u.g.position.set(c.x, 0, -4.4);
@@ -925,8 +1057,14 @@ function updateTicket() {
     : mineState === 'called' ? `내 번호예요! ${mineCounter ? mineCounter.i + 1 + '번 ' : ''}창구로 걸어가거나 화면을 누르세요`
     : mineState === 'missed' ? '어? 번호가 지나간 것 같아요. 창구에 가서 물어보세요 · 누르면 걸어가요'
     : mineState === 'redraw' ? '입구 옆 번호표 기계에서 다시 뽑으세요 · 누르면 걸어가요'
+    : me.errand ? (me.cup.visible ? '물 한 잔 마시는 중이에요' : '정수기로 물 마시러 가요')
     : me.roam ? '드래그로 둘러보고 방향키로 걸어요 · 스페이스로 자리에 앉아요'
-    : sound.phones ? '드래그로 둘러보고 방향키로 걸어요 · 누르면 헤드폰을 벗어요' : '다시 누르면 헤드폰을 써요';
+    : act === 'music' ? '드래그로 둘러보고 방향키로 걸어요 · 누르면 헤드폰을 벗어요'
+    : act === 'mag' ? '잡지를 누르면 넘겨요 · 자막 대신 방송 소리를 잘 들으세요'
+    : '왼쪽에서 기다리는 동안 할 일을 골라요';
+  const free = started && mineState === 'wait' && !me.roam && !asking && !msgOpen && !dozeOn;
+  $('acts').classList.toggle('on', free);
+  document.querySelectorAll('#acts span').forEach(s => s.classList.toggle('on', s.dataset.a === act));
   hint.classList.toggle('alert', nb);
   const d = new Date();
   $('tDt').textContent = `2026.11.18  ${pad(d.getHours(), 2)}:${pad(d.getMinutes(), 2)}`;
@@ -1015,12 +1153,13 @@ function roamMe(dt) {
   if (mineState === 'wait' && me.roam && !me.path.length && !asking && me.g.position.z < -2.7
     && Math.abs(me.g.position.x) < 4 && time > shooUntil) tooEarly();
   if (mineState === 'missed' && me.roam && !me.path.length && me.g.position.z < -2.7 && Math.abs(me.g.position.x) < 4) {
-    setPhones(false); toldLate();
+    idle(); toldLate();
   }
   if (mineState === 'walk' || mineState === 'served') return;
   const f = (keys.ArrowUp || keys.KeyW ? 1 : 0) - (keys.ArrowDown || keys.KeyS ? 1 : 0);
   const sd = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
   if (!f && !sd) return;
+  if (!me.roam && act === 'mag') setAct(null);
   if (!me.roam) {
     me.roam = true; me.sitT = 0; me.onArrive = null;
     me.path = [[ME_SEAT.x, 1.7]];
@@ -1038,7 +1177,7 @@ function roamMe(dt) {
 function goLate() {
   if (mineState !== 'missed' || me.path.length) return;
   const c = mineCounter || COUNTERS[1];
-  setPhones(false);
+  idle();
   const dest = [[0, -3.0], [c.x, -3.0], [c.x, -3.4]];
   if (!me.roam) { me.roam = true; me.sitT = 0; me.path = [[ME_SEAT.x, ME_SEAT.z - .8], [0, ME_SEAT.z - .8], ...dest]; }
   else me.path = route(dest);
@@ -1106,14 +1245,14 @@ function printTicket() {
 function sitDown() {
   if (!me.roam || mineState === 'walk' || mineState === 'served') return;
   me.path = route([[0, 1.7], [ME_SEAT.x, 1.7], [ME_SEAT.x, ME_SEAT.z + .04]]);
-  me.onArrive = g => { g.headingT = Math.PI; g.sitT = 1; g.roam = false; if (mineState === 'wait' && !sound.phones) setPhones(true); updateTicket(); };
+  me.onArrive = g => { g.headingT = Math.PI; g.sitT = 1; g.roam = false; if (mineState === 'wait' && !act) setAct(lastAct); updateTicket(); };
 }
 
 function goToCounter() {
   const c = mineCounter;
   mineState = 'walk';
   ticketEl.classList.remove('call');
-  setPhones(false);
+  idle();
   setTimeout(() => {
     me.sitT = 0;
     me.tag.visible = true;
@@ -1123,7 +1262,7 @@ function goToCounter() {
   }, 700);
 }
 function reachCounter() {
-  mineState = 'walk'; ticketEl.classList.remove('call'); setPhones(false);
+  mineState = 'walk'; ticketEl.classList.remove('call'); idle();
   me.keyMove = false;
   me.path = [[mineCounter.x, -4.4]];
   me.onArrive = g => { g.headingT = Math.PI; arriveCounter(); };
@@ -1163,7 +1302,7 @@ function gameClock(dt) {
     if (mineState === 'wait' && me.sit > .8 && !me.roam && !msgOpen && !dozeOn) openAsk(guest);
     else if (time - guest.ready > 12) { guest.ready = 0; guestSit(guest); }
   }
-  if (evFor !== tickets && !asking && mineState === 'wait' && !me.roam && me.sit > .8 && ahead <= (kind === 'msg' ? 1 : 3)) {
+  if (evFor !== tickets && !asking && !(kind === 'doze' && time < freshUntil) && mineState === 'wait' && !me.roam && me.sit > .8 && ahead <= (kind === 'msg' ? 1 : 3)) {
     evFor = tickets;
     if (kind === 'msg') openMsg(MSGS[Math.floor(tickets / 2) % 2]); else { dozeOn = true; updateTicket(); }
   }
@@ -1267,7 +1406,7 @@ function guestKiosk(u, after) {
   };
 }
 function helpWalk(u) {
-  setPhones(false);
+  idle();
   me.roam = true; me.sitT = 0; me.onArrive = null;
   guestKiosk(u, () => {
     helped++;
@@ -1296,7 +1435,7 @@ function closeBank() {
   dozeOn = false; drowsy = 0; sound.setDrowse(0);
   $('lidT').style.height = $('lidB').style.height = '0'; renderer.domElement.style.filter = '';
   ticketEl.classList.remove('call');
-  setPhones(false);
+  idle();
   clerkSays('오늘 업무는 마감했습니다. 내일 다시 와 주세요.');
   capHold = Infinity; capUntil = Infinity;
   sound.closingSong();
@@ -1413,6 +1552,12 @@ function grooveMe(dt) {
   me.armR.rotation.x = lerp(me.armR.rotation.x, -1.1 + Math.sin(b * 2) * .45, d);
   me.armR.rotation.z = lerp(me.armR.rotation.z, .55, d);
   if (me.sit > .8) me.legR.knee.rotation.x += hit * .25 * d;
+  if (me.mag.visible && d < .3) {
+    me.armL.rotation.x = me.armR.rotation.x = -1.15;
+    me.armL.rotation.y = -.35; me.armR.rotation.y = .35;
+    me.torso.rotation.x = .14;
+  }
+  if (me.cup.visible) { me.armR.rotation.x = -2.35; me.armR.rotation.z = -.5; }
 
   const hot = mineState === 'called', party = d * (hot ? 0 : 1), lk = Math.min(1, dt * (hot ? 3 : 4));
   const pulse = Math.pow(1 - (bt % 1), 3), col = DISCO[Math.floor(bt / 4) % 4];
@@ -1500,7 +1645,7 @@ addEventListener('pointerup', () => {
   if (mineState === 'called') goToCounter();
   else if (mineState === 'missed') goLate();
   else if (mineState === 'redraw') goKiosk();
-  else if (!tapNeighbor() && mineState === 'wait') setPhones(!sound.phones);
+  else if (!tapNeighbor() && mineState === 'wait' && !me.errand) setAct(act ? act : me.roam ? 'music' : lastAct);
 });
 addEventListener('keydown', e => {
   if (!started) { if (e.code === 'Space' || e.code.startsWith('Arrow')) e.preventDefault(); begin(); return; }
@@ -1566,7 +1711,7 @@ async function boot() {
   COUNTERS.forEach(drawPlaque); meTag();
   if (PREVIEW) setupPreview();
   else {
-    setPhones(false); me.tag.visible = false; ticketEl.style.opacity = 0;
+    idle(); me.tag.visible = false; ticketEl.style.opacity = 0;
     updateTicket();
     sound.kick(); setTimeout(() => sound.kick(), 400);
   }
