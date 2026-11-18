@@ -314,6 +314,9 @@ const kioskPaper = box(.005, .16, .2, M('#f3efe6'), -.25, .55, 0, kiosk); kioskP
 box(14, 3.8, .1, sideM, 0, 1.9, 6.3);
 box(14, .1, 14, M('#77746d'), 0, 3.8, -.5);
 box(14, .5, .12, M('#9c968a'), 0, .25, -6.42);
+box(1.0, 2.1, .06, M('#8a7058'), 5.3, 1.05, -6.43);
+box(.06, .06, .08, M('#d8c48a'), 4.95, 1.0, -6.38);
+box(.42, .14, .02, M('#3a5a4a'), 5.3, 2.3, -6.42);
 const panelM = M('#fffbea', { emissive: '#fff6dc', emissiveIntensity: .9 });
 [-4, 0, 4].forEach(x => [-4, -.5, 3].forEach(z => box(1.4, .04, .6, panelM, x, 3.74, z)));
 
@@ -569,13 +572,13 @@ const sound = (() => {
     apply(.01);
     setInterval(schedule, 25);
   }
-  let drowse = 0;
+  let drowse = 0, ended = false;
   function apply(tc) {
     const t = ac.currentTime, z = 1 - .8 * drowse;
     roomF.frequency.setTargetAtTime((phones ? 650 : 16000) * (1 - .7 * drowse), t, tc);
     room.gain.setTargetAtTime((phones ? .42 : 1) * z, t, tc);
     musF.frequency.setTargetAtTime(phones ? 16000 : 900, t, tc);
-    music.gain.setTargetAtTime(phones ? .95 : .03, t, tc);
+    music.gain.setTargetAtTime(ended ? 0 : phones ? .95 : .03, t, tc);
   }
   function env(g, t, vol, dur) {
     g.gain.setValueAtTime(0, t);
@@ -645,6 +648,21 @@ const sound = (() => {
         o.type = 'square'; o.frequency.value = 155;
         env(g, t + d, .05, .12); o.connect(g).connect(master); o.start(t + d); o.stop(t + d + .15);
       });
+    },
+    closingSong() {
+      if (!ac) return; ended = true; apply(1.2);
+      const B = .62, t0 = ac.currentTime + .8;
+      const F = { C4: 261.63, D4: 293.66, F4: 349.23, G4: 392, A4: 440, C5: 523.25, D5: 587.33, F3: 174.61, C3: 130.81, B2: 116.54 };
+      const mel = [['C4', 1], ['F4', 1.5], ['F4', .5], ['F4', 1], ['A4', 1], ['G4', 1.5], ['F4', .5], ['G4', 1], ['A4', .5], ['G4', .5],
+        ['F4', 1.5], ['F4', .5], ['A4', 1], ['C5', 1], ['D5', 3], ['D5', 1], ['C5', 1.5], ['A4', .5], ['A4', 1], ['F4', 1],
+        ['G4', 1.5], ['F4', .5], ['G4', 1], ['A4', .5], ['G4', .5], ['F4', 1.5], ['D4', .5], ['D4', 1], ['C4', 1], ['F4', 3]];
+      const bass = ['F3', 'C3', 'F3', 'B2', 'F3', 'C3', 'B2', 'F3'];
+      for (let rep = 0; rep < 2; rep++) {
+        const base = t0 + rep * 33 * B;
+        let at = base;
+        mel.forEach(([n, d]) => { bell(F[n], at, d * B * 2.2, .13); at += d * B; });
+        bass.forEach((n, i) => bell(F[n], base + (1 + i * 4) * B, 4 * B, .07));
+      }
     },
     clunk() {
       if (!ac) return; const t = ac.currentTime + .02;
@@ -1280,8 +1298,24 @@ function closeBank() {
   ticketEl.classList.remove('call');
   setPhones(false);
   clerkSays('오늘 업무는 마감했습니다. 내일 다시 와 주세요.');
-  [1800, 3000, 4200].forEach(d => setTimeout(() => sound.clunk(), d));
-  setTimeout(() => showEnd(true), 5800);
+  capHold = Infinity; capUntil = Infinity;
+  sound.closingSong();
+  COUNTERS.forEach((c, i) => setTimeout(() => offWork(c.staff), 2600 + i * 1300));
+  lightsAt = closedAt + 9;
+  [9000, 10200, 11400].forEach(d => setTimeout(() => sound.clunk(), d));
+  setTimeout(() => showEnd(true), 13500);
+}
+let lightsAt = 0;
+function offWork(u) {
+  if (!u) return;
+  u.offWork = true; u.speed = .9;
+  u.headingT = Math.PI; u.lookY = 0; u.lookX = 0;
+  u.armL.rotation.x = u.armR.rotation.x = 0;
+  const x = u.g.position.x;
+  setTimeout(() => {
+    u.path = [[x, -6.05], [5.3, -6.05], [5.3, -6.6]];
+    u.onArrive = g => { scene.remove(g.g); npcs.splice(npcs.indexOf(g), 1); };
+  }, 700);
 }
 function showEnd(closed) {
   const e = $('end');
@@ -1418,7 +1452,7 @@ function grooveMe(dt) {
     n.sp.scale.setScalar(.1 + n.t * .08);
   });
   if (closedAt) {
-    const k = clamp(Math.floor((time - closedAt - 1.8) / 1.2) + 1, 0, 3) / 3;
+    const k = clamp(Math.floor((time - lightsAt) / 1.2) + 1, 0, 3) / 3;
     hemi.intensity = lerp(.55, .05, k); sun.intensity = lerp(.75, 0, k);
     panelM.emissiveIntensity = .9 * (1 - k);
   }
@@ -1497,7 +1531,7 @@ function loop(now) {
   }
   npcs.forEach(u => {
     poseGuy(u, PREVIEW ? 1 : dt, time);
-    if (u.staff) {
+    if (u.staff && !u.offWork) {
       u.armL.rotation.x = -1.05 + Math.sin(time * 13 + u.jig) * .07;
       u.armR.rotation.x = -1.05 + Math.sin(time * 11 + u.jig * 2) * .07;
       u.head.rotation.x = .25;
