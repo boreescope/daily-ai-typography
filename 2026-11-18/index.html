@@ -290,7 +290,6 @@
   body.reading .cap { opacity: 0 !important; }
   @keyframes flip { from { opacity: 0; transform: translateX(-14px); } }
 
-  .lid { position: fixed; left: 0; right: 0; z-index: 6; height: 0; background: #050506; pointer-events: none; }
   .lid.t { top: 0; border-radius: 0 0 50% 50% / 0 0 40px 40px; }
   .lid.b { bottom: 0; border-radius: 50% 50% 0 0 / 40px 40px 0 0; }
 
@@ -312,7 +311,7 @@
 </div>
 <div class="end" id="end"><div class="big" id="endNo">052</div><div class="line" id="endLine"></div><div class="sub" id="endSub"></div><div class="again" id="again">↻ 다시 기다리기</div></div>
 <div class="clock" id="clock"><span id="clk">3:50</span><small>마감 4:00</small></div>
-<div class="lid t" id="lidT"></div><div class="lid b" id="lidB"></div>
+
 <div class="ask" id="ask"><div class="who" id="askWho"></div><div class="line" id="askLine"></div><div class="btns"><span id="askYes"></span><span id="askNo"></span></div><div class="bar"><i id="askBar"></i></div></div>
 <div class="acts" id="acts"><div class="t">기다리는 동안</div><span data-a="music">음악 듣기<small>방송이 작게 들려요</small></span><span data-a="mag">잡지 보기<small>자막이 안 보여요</small></span><span data-a="water">물 마시기<small>잠이 깨요</small></span></div>
 <div class="mag" id="mag"><div class="pg" id="magL"></div><div class="pg" id="magR"></div><span class="no l" id="magNoL"></span><span class="no r" id="magNoR"></span></div>
@@ -1444,14 +1443,7 @@ function gameClock(dt) {
     if (kind === 'msg') openMsg(nextMsg()); else { dozeOn = true; updateTicket(); }
   }
   drowsy = dozeOn ? Math.min(1, drowsy + dt / 7) : Math.max(0, drowsy - dt * 1.5);
-  const lid = drowsy >= 1 ? .45 + Math.sin(time * 1.3) * .02 : Math.pow(drowsy, 1.4) * .4 * (.8 + .2 * Math.sin(time * 1.7));
-  $('lidT').style.height = $('lidB').style.height = (lid * 100).toFixed(1) + 'vh';
-  renderer.domElement.style.filter = drowsy > .02 ? `blur(${(drowsy * 3).toFixed(1)}px)` : '';
   sound.setDrowse(drowsy);
-  if (drowsy > .2) {
-    me.lookY = 0; me.lookX = .25 + drowsy * .7 + Math.max(0, Math.sin(time * 1.1)) * .3 * (1 - drowsy);
-    me.lookUntil = time + .2;
-  }
 }
 function guestComes(kind) {
   const u = makeGuy({ phone: false, cloth: kind === 'help' ? '#8a6e9e' : '#d0442c' });
@@ -1711,6 +1703,7 @@ function closeMsg() {
 }
 function wake() {
   dozeOn = false;
+  if (drowsy > .2) me.head.rotation.x = -.45;
   me.lookY = 0; me.lookX = -.35; me.lookUntil = time + .8; me.shakeUntil = time + .4;
   updateTicket();
 }
@@ -1718,7 +1711,6 @@ function closeBank() {
   mineState = 'closed'; closedAt = endT = time;
   closeMsg(); clearTimeout(askTimer); asking = null; $('ask').classList.remove('on');
   dozeOn = false; drowsy = 0; sound.setDrowse(0);
-  $('lidT').style.height = $('lidB').style.height = '0'; renderer.domElement.style.filter = '';
   ticketEl.classList.remove('call');
   idle();
   clerkSays('오늘 업무는 마감했습니다. 내일 다시 와 주세요.');
@@ -1847,6 +1839,23 @@ function grooveMe(dt) {
   if (me.cup.visible) { me.armR.rotation.x = -2.35; me.armR.rotation.z = -.5; }
   me.uses = msgOpen && phoneMode !== 'call';
   if (phoneMode === 'call') { me.phone.visible = false; me.armR.rotation.set(-2.7, 0, -.15); me.head.rotation.z = .12; }
+  if (dozeOn && drowsy > .02 && me.sit > .8 && !msgOpen) {
+    const w = Math.min(1, drowsy), deep = drowsy >= 1;
+    const per = lerp(4.2, 1.9, w), f = (time % per) / per;
+    const nod = f < .82 ? Math.pow(f / .82, 1.6) : 1 - (f - .82) / .18;
+    const drop = deep ? 1.05 + Math.sin(time * .9) * .05 : lerp(.25, .95, w) * nod - (f > .82 && f < .9 ? .12 : 0);
+    me.head.rotation.x = lerp(me.head.rotation.x, drop, Math.min(1, w * 3));
+    me.head.rotation.z = (deep ? .38 : .12 * w * nod) + Math.sin(time * .7) * .03;
+    me.head.position.y = .76 - .03 * w;
+    me.torso.rotation.x = lerp(me.torso.rotation.x, .1 + .3 * w * (deep ? 1.1 : .6 + .4 * nod), w);
+    me.torso.rotation.z = (deep ? .16 : .06 * w) + Math.sin(time * .9) * .015 * w;
+    me.g.position.y -= .03 * w;
+    [me.armL, me.armR].forEach((a, i) => {
+      a.rotation.x = lerp(a.rotation.x, -.78, w);
+      a.rotation.y = lerp(a.rotation.y, 0, w);
+      a.rotation.z = lerp(a.rotation.z, i ? .03 : -.03, w);
+    });
+  }
 
   const hot = mineState === 'called', party = d * (hot ? 0 : 1), lk = Math.min(1, dt * (hot ? 3 : 4));
   const pulse = Math.pow(1 - (bt % 1), 3), col = DISCO[Math.floor(bt / 4) % 4];
@@ -1864,14 +1873,14 @@ function grooveMe(dt) {
     l.intensity += (party * (1.4 + pulse * 1.2) - l.intensity) * lk;
   });
 
-  const beatN = Math.floor(bt * 2), zz = drowsy >= 1;
-  if ((party > .6 || zz) && beatN !== noteBeat && (!zz || beatN % 3 === 0)) {
+  const beatN = Math.floor(bt * 2), zz = dozeOn && drowsy > .6;
+  if ((party > .6 || zz) && beatN !== noteBeat && (!zz || beatN % (drowsy >= 1 ? 2 : 4) === 0)) {
     noteBeat = beatN;
     const n = notes.find(o => o.t >= 1);
     if (n) {
       n.sp.material.map = zz ? zTex : n.tex;
       const hp = me.head.getWorldPosition(new THREE.Vector3());
-      n.t = 0; n.sp.position.set(hp.x + rnd(-.25, .25), hp.y + .2, hp.z + rnd(-.15, .15));
+      n.t = 0; n.z = zz; n.sp.position.set(hp.x + rnd(-.25, .25), hp.y + .2, hp.z + rnd(-.15, .15));
       n.vx = rnd(-.15, .15); n.vz = rnd(-.1, .1);
       n.sp.material.color.copy(zz ? ZCOL : DISCO[Math.floor(Math.random() * 4)]);
     }
@@ -1883,7 +1892,7 @@ function grooveMe(dt) {
     n.sp.position.x += n.vx * dt; n.sp.position.z += n.vz * dt; n.sp.position.y += dt * .5;
     n.sp.material.opacity = Math.sin(n.t * Math.PI);
     n.sp.material.rotation = Math.sin(n.t * 9) * .4;
-    n.sp.scale.setScalar(.1 + n.t * .08);
+    n.sp.scale.setScalar(n.z ? .15 + n.t * .16 : .1 + n.t * .08);
   });
   if (closedAt) {
     const k = clamp(Math.floor((time - lightsAt) / 1.2) + 1, 0, 3) / 3;
