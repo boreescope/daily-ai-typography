@@ -58,7 +58,8 @@
     padding: 4px;
     transition: transform .15s ease-out, background .15s;
   }
-  .sw svg { display: block; width: 100%; height: 62px; border-radius: 3px; box-shadow: 0 2px 4px rgba(60,40,20,.25); }
+  .sw i { display: block; height: 62px; border-radius: 3px; background-size: 150px; background-position: center;
+    box-shadow: 0 2px 4px rgba(60,40,20,.25), inset -12px 0 0 rgba(0,0,0,.1), inset 0 10px 18px rgba(255,255,255,.12); }
   .sw span { display: block; font-size: 11px; margin-top: 5px; text-align: center; color: #5a4a3a; }
   .sw:hover { transform: translateY(-2px); }
   .sw.on { background: rgba(255,255,255,.55); }
@@ -79,7 +80,7 @@
   }
   .note {
     position: absolute; top: 64px; left: 40px; z-index: 3;
-    width: 230px; padding: 16px 18px 18px;
+    width: 250px; padding: 16px 18px 18px;
     background: #fffdf6;
     box-shadow: 0 6px 14px rgba(60,40,20,.22);
     transform: rotate(-2.5deg);
@@ -92,7 +93,8 @@
   }
   .note .no { font: 700 9px/1 'Space Mono', monospace; letter-spacing: .14em; color: #a08a72; }
   .note .item { font-size: 24px; font-weight: 700; margin: 8px 0 6px; color: #2e241b; }
-  .note .msg { font-size: 19px; line-height: 1.25; color: #5a4a3a; }
+  .note .meta { font: 400 10px/1.4 'Space Mono', 'Noto Sans KR', monospace; color: #a08a72; margin: -2px 0 8px; }
+  .note .msg { font-size: 18px; line-height: 1.25; color: #5a4a3a; }
   .note.out { transform: translate(-40px, -20px) rotate(-8deg); opacity: 0; }
 
   .table-pkg {
@@ -141,6 +143,7 @@
     transition: background .15s, transform .15s ease-out;
   }
   .chip svg { width: 46px; height: 34px; display: block; }
+  .chip img { width: 38px; height: 38px; object-fit: contain; display: block; filter: drop-shadow(0 1px 1px rgba(60,40,20,.3)); }
   .chip span { font-size: 10px; color: #6a5a48; text-align: center; line-height: 1.2; }
   .chip:hover { transform: translateY(-2px); }
   .chip.on { background: rgba(200,170,130,.35); }
@@ -214,6 +217,7 @@
     <div class="note" id="note">
       <div class="no" id="noteNo">ORDER No.01</div>
       <div class="item" id="noteItem"></div>
+      <div class="meta" id="noteMeta"></div>
       <div class="msg" id="noteMsg"></div>
     </div>
     <div class="hint" id="hint">왼쪽에서 포장지를 골라요</div>
@@ -248,22 +252,30 @@
 const NS = 'http://www.w3.org/2000/svg';
 
 const ITEMS = [
-  { id: 'lp', name: 'IRON MOTH 3집 LP', short: '메탈 LP', w: 210, h: 210, tags: ['dark', 'rough'],
-    msg: '동생 생일이에요. 요즘 메탈에 빠져서 방에서 안 나와요.' },
-  { id: 'plush', name: '털복숭이 원숭이 인형', short: '털 인형', w: 170, h: 185, tags: ['cute', 'colorful'],
-    msg: '조카 첫 돌 선물이요. 무조건 귀엽게 해주세요!' },
-  { id: 'candle', name: '무화과 향초', short: '향초', w: 140, h: 155, tags: ['natural', 'elegant'],
-    msg: '집들이 가요. 친구 집이 원목 가구로 꽉 차 있어요.' },
-  { id: 'wine', name: '레드 와인 한 병', short: '와인', w: 92, h: 270, tags: ['elegant', 'classic'],
-    msg: '부모님 결혼 30주년이에요. 점잖게요.' },
-  { id: 'book', name: '오래된 시집', short: '시집', w: 160, h: 220, tags: ['retro', 'natural', 'classic'],
-    msg: '헌책방 하는 선배한테 드려요. 옛날 걸 좋아하세요.' },
-  { id: 'cactus', name: '손바닥 선인장', short: '선인장', w: 140, h: 165, tags: ['fun', 'natural'],
-    msg: '퇴사하는 동기한테요. 웃으면서 보내고 싶어요.' },
-  { id: 'shoes', name: '한정판 운동화', short: '운동화', w: 250, h: 140, tags: ['fun', 'rough', 'colorful'],
-    msg: '남자친구가 한 달 내내 이 얘기만 했어요.' },
-  { id: 'mug', name: '고양이 머그컵', short: '머그컵', w: 150, h: 135, tags: ['cute', 'fun'],
-    msg: '고양이 두 마리랑 사는 친구예요.' },
+  { id: 'lp', name: 'IRON MOTH 3집 LP', short: '메탈 LP', w: 200, h: 224, tags: ['dark', 'rough'],
+    meta: '1998 · 초판 500장 중 한 장',
+    msg: '고등학교 때 형이랑 테이프가 늘어나도록 들은 앨범이에요. 형 생일이라 초판 LP를 겨우 구했어요. 재킷 모서리 닳은 건 원래 그래요.' },
+  { id: 'plush', name: '털복숭이 원숭이 인형', short: '털 인형', w: 156, h: 208, tags: ['cute', 'colorful'],
+    meta: '중고 · 오른쪽 귀 실밥 풀림',
+    msg: '조카가 놀이공원에서 잃어버리고 사흘을 울었대요. 똑같은 걸 중고로 겨우 찾았어요. 귀 실밥 풀린 것까지 닮았어요. 무조건 귀엽게요!' },
+  { id: 'candle', name: '무화과 향초', short: '향초', w: 140, h: 166, tags: ['natural', 'elegant'],
+    meta: '제주 작은 공방 · 무화과와 시더',
+    msg: '공방 사장님이 직접 부은 향초예요. 친구가 원목 가구 가득한 집으로 이사했어요. 새 집 첫 밤에 켜 달라고 할 거예요.' },
+  { id: 'wine', name: '레드 와인 한 병', short: '와인', w: 66, h: 285, tags: ['elegant', 'classic'],
+    meta: 'Rosso · 1996 빈티지',
+    msg: '부모님이 결혼하신 해에 담근 와인이에요. 결혼 30주년이라 반년 동안 찾았어요. 점잖게 부탁드려요.' },
+  { id: 'book', name: '오래된 시집', short: '시집', w: 150, h: 226, tags: ['retro', 'natural', 'classic'],
+    meta: '1987 · 초판 · 헌책방에서',
+    msg: '속표지에 누가 연필로 "봄에, 너에게"라고 써 놨어요. 그 한 줄 때문에 샀어요. 헌책방 하는 선배한테 드려요.' },
+  { id: 'cactus', name: '손바닥 선인장', short: '선인장', w: 100, h: 198, tags: ['fun', 'natural'],
+    meta: '이름은 버티기 · 물은 한 달에 한 번',
+    msg: '퇴사하는 동기한테 줘요. 화분마다 다 죽이던 친구라 제일 튼튼한 걸로 골랐어요. 웃으면서 보내고 싶어요.' },
+  { id: 'shoes', name: '한정판 운동화', short: '운동화', w: 260, h: 129, tags: ['fun', 'rough', 'colorful'],
+    meta: '270 · 500켤레 중 001번',
+    msg: '새벽 4시부터 줄 서서 샀어요. 남자친구가 한 달 내내 이 얘기만 했어요. 영수증은 상자 안에 넣어 뒀어요.' },
+  { id: 'mug', name: '고양이 머그컵', short: '머그컵', w: 160, h: 138, tags: ['cute', 'fun'],
+    meta: '도예 수업 첫 작품 · 손잡이 삐뚤',
+    msg: '고양이 두 마리랑 사는 친구한테 줘요. 첫째 두부 얼굴을 그렸는데 좀 덜 닮았어요.' },
 ];
 
 const PAPERS = [
@@ -271,11 +283,11 @@ const PAPERS = [
   { id: 'skull', name: '해골 무늬', tags: ['dark', 'fun', 'rough'] },
   { id: 'kraft', name: '크라프트지', tags: ['natural', 'rough', 'retro'] },
   { id: 'news', name: '신문지', tags: ['retro', 'rough', 'fun'] },
-  { id: 'polka', name: '파스텔 땡땡이', tags: ['cute', 'colorful'] },
+  { id: 'dots', name: '파스텔 땡땡이', tags: ['cute', 'colorful'] },
   { id: 'rainbow', name: '무지개 줄무늬', tags: ['colorful', 'fun'] },
-  { id: 'flower', name: '작은 꽃무늬', tags: ['cute', 'natural'] },
+  { id: 'floral', name: '작은 꽃무늬', tags: ['cute', 'natural'] },
   { id: 'tartan', name: '빨간 체크', tags: ['classic', 'retro'] },
-  { id: 'navy', name: '남색 별무늬', tags: ['elegant', 'classic'] },
+  { id: 'stars', name: '남색 별무늬', tags: ['elegant', 'classic'] },
   { id: 'holo', name: '홀로그램', tags: ['fun', 'colorful'] },
 ];
 
@@ -298,252 +310,52 @@ const STICKERS = [
   { id: 'spark', tags: ['elegant', 'colorful'] }, { id: 'leaf', tags: ['natural'] },
 ];
 
+const IMG = 'img/';
+const BANDS = { jute: [7, 585], rope: [12, 406], chain: [10, 595], satin: [16, 446], gold: [6, 992], pink: [22, 281], curly: [12, 452] };
+const BOWS = { jute: [74, 360, 323, .42], rope: [80, 360, 295, .38], chain: [46, 223, 360, .6], satin: [100, 360, 301, .38],
+  gold: [70, 360, 336, .4], pink: [112, 329, 360, .42], curly: [100, 331, 360, .5] };
+
 const DEFS = `
-<pattern id="p-black" width="18" height="18" patternUnits="userSpaceOnUse">
-  <rect width="18" height="18" fill="#17171a"/><circle cx="4" cy="6" r=".7" fill="#2b2b30"/><circle cx="13" cy="14" r=".6" fill="#26262b"/>
-</pattern>
-<pattern id="p-skull" width="44" height="44" patternUnits="userSpaceOnUse">
-  <rect width="44" height="44" fill="#222225"/>
-  <g fill="#d9d6cf" transform="translate(11 11)"><circle r="6"/><rect x="-3.5" y="3" width="7" height="4" rx="1"/></g>
-  <g fill="#222225" transform="translate(11 11)"><circle cx="-2.3" cy="-.5" r="1.6"/><circle cx="2.3" cy="-.5" r="1.6"/></g>
-  <g fill="#8d8a84" transform="translate(33 33) rotate(20)"><circle r="5"/><rect x="-3" y="2.5" width="6" height="3.4" rx="1"/></g>
-  <g fill="#222225" transform="translate(33 33) rotate(20)"><circle cx="-2" cy="-.4" r="1.3"/><circle cx="2" cy="-.4" r="1.3"/></g>
-</pattern>
-<pattern id="p-kraft" width="40" height="40" patternUnits="userSpaceOnUse">
-  <rect width="40" height="40" fill="#b88b5b"/>
-  <path d="M0 7 l14 2 M20 18 l18 -3 M5 30 l16 3 M26 35 l12 1" stroke="#a57a4c" stroke-width=".8"/>
-  <path d="M8 14 l10 -1 M24 4 l9 2 M2 22 l8 1" stroke="#c99c6c" stroke-width=".7"/>
-</pattern>
-<pattern id="p-news" width="120" height="90" patternUnits="userSpaceOnUse">
-  <rect width="120" height="90" fill="#ebe5d4"/>
-  <rect x="6" y="6" width="70" height="9" fill="#3c3a36"/>
-  <g fill="#8f8b82">
-    <rect x="6" y="20" width="52" height="2"/><rect x="6" y="25" width="50" height="2"/><rect x="6" y="30" width="53" height="2"/>
-    <rect x="6" y="35" width="48" height="2"/><rect x="6" y="40" width="52" height="2"/><rect x="6" y="45" width="40" height="2"/>
-    <rect x="64" y="20" width="50" height="2"/><rect x="64" y="25" width="48" height="2"/><rect x="64" y="30" width="50" height="2"/>
-    <rect x="6" y="58" width="108" height="2"/><rect x="6" y="63" width="104" height="2"/><rect x="6" y="68" width="108" height="2"/>
-    <rect x="6" y="73" width="96" height="2"/><rect x="6" y="78" width="106" height="2"/>
-  </g>
-  <rect x="64" y="35" width="50" height="16" fill="#b5afa2"/>
-</pattern>
-<pattern id="p-polka" width="30" height="30" patternUnits="userSpaceOnUse">
-  <rect width="30" height="30" fill="#f8d6df"/><circle cx="7" cy="7" r="4" fill="#fff6f8"/><circle cx="22" cy="22" r="4" fill="#bfe4df"/>
-</pattern>
-<pattern id="p-rainbow" width="84" height="84" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
-  <rect width="14" height="84" fill="#f26b6b"/><rect x="14" width="14" height="84" fill="#f7a64b"/><rect x="28" width="14" height="84" fill="#f6d84c"/>
-  <rect x="42" width="14" height="84" fill="#6cc27a"/><rect x="56" width="14" height="84" fill="#5aa6e0"/><rect x="70" width="14" height="84" fill="#9a7be0"/>
-</pattern>
-<pattern id="p-flower" width="36" height="36" patternUnits="userSpaceOnUse">
-  <rect width="36" height="36" fill="#f5eedd"/>
-  <g transform="translate(9 9)" fill="#ef9ab0"><circle cx="0" cy="-3" r="2.4"/><circle cx="3" cy="-1" r="2.4"/><circle cx="2" cy="2.6" r="2.4"/><circle cx="-2" cy="2.6" r="2.4"/><circle cx="-3" cy="-1" r="2.4"/></g>
-  <circle cx="9" cy="9" r="1.6" fill="#f4c94e"/>
-  <g transform="translate(27 27)" fill="#9cc7e8"><circle cx="0" cy="-2.6" r="2"/><circle cx="2.5" cy="-.8" r="2"/><circle cx="1.6" cy="2.2" r="2"/><circle cx="-1.6" cy="2.2" r="2"/><circle cx="-2.5" cy="-.8" r="2"/></g>
-  <circle cx="27" cy="27" r="1.3" fill="#fff"/>
-  <path d="M25 8 q3 -3 6 0 M6 28 q3 -3 6 0" stroke="#8fb07a" stroke-width="1.2" fill="none"/>
-</pattern>
-<pattern id="p-tartan" width="48" height="48" patternUnits="userSpaceOnUse">
-  <rect width="48" height="48" fill="#b3262e"/>
-  <rect x="0" y="16" width="48" height="12" fill="#1f3d2c" opacity=".55"/><rect x="16" y="0" width="12" height="48" fill="#1f3d2c" opacity=".55"/>
-  <rect x="0" y="36" width="48" height="2" fill="#f1d27a" opacity=".7"/><rect x="36" y="0" width="2" height="48" fill="#f1d27a" opacity=".7"/>
-  <rect x="0" y="6" width="48" height="3" fill="#1a1a1a" opacity=".35"/><rect x="6" y="0" width="3" height="48" fill="#1a1a1a" opacity=".35"/>
-</pattern>
-<pattern id="p-navy" width="40" height="40" patternUnits="userSpaceOnUse">
-  <rect width="40" height="40" fill="#1e2a4a"/>
-  <polygon points="10,4 11.6,8.4 16,8.6 12.6,11.4 13.8,15.8 10,13.2 6.2,15.8 7.4,11.4 4,8.6 8.4,8.4" fill="#d8b45a"/>
-  <polygon points="30,24 31,26.8 34,27 31.7,28.8 32.5,31.6 30,30 27.5,31.6 28.3,28.8 26,27 29,26.8" fill="#d8b45a" opacity=".7"/>
-</pattern>
-<linearGradient id="p-holo" x1="0" y1="0" x2="1" y2="1">
-  <stop offset="0" stop-color="#c9e7f5"/><stop offset=".25" stop-color="#e8c9f2"/><stop offset=".5" stop-color="#f7f0c4"/>
-  <stop offset=".75" stop-color="#c4f0de"/><stop offset="1" stop-color="#d6cdf7"/>
-</linearGradient>
+<filter id="bsh" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#2a1a0a" flood-opacity=".35"/></filter>
 <linearGradient id="shade" x1="0" y1="0" x2="1" y2="0">
   <stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/>
   <stop offset="1" stop-color="#000" stop-opacity=".22"/>
 </linearGradient>
-<linearGradient id="satin" x1="0" y1="0" x2="1" y2="0">
-  <stop offset="0" stop-color="#8e1220"/><stop offset=".5" stop-color="#e0414d"/><stop offset="1" stop-color="#8e1220"/>
-</linearGradient>
-<symbol id="s-skull" viewBox="-20 -20 40 40"><path d="M-13 -2 a13 13 0 1 1 26 0 v5 h-5 v7 h-16 v-7 h-5z" fill="#f4f1ea" stroke="#111" stroke-width="2"/><circle cx="-5" cy="-1" r="4" fill="#111"/><circle cx="5" cy="-1" r="4" fill="#111"/><path d="M-3 7 v3 M0 7 v3 M3 7 v3" stroke="#111" stroke-width="1.6"/></symbol>
-<symbol id="s-bolt" viewBox="-20 -20 40 40"><polygon points="4,-18 -12,3 -1,3 -5,18 12,-5 1,-5" fill="#f5d33a" stroke="#111" stroke-width="2" stroke-linejoin="round"/></symbol>
-<symbol id="s-heart" viewBox="-20 -20 40 40"><path d="M0 15 C-20 2 -16 -15 -6 -14 C-2 -14 0 -10 0 -8 C0 -10 2 -14 6 -14 C16 -15 20 2 0 15z" fill="#e8475c" stroke="#fff" stroke-width="2.5"/></symbol>
-<symbol id="s-star" viewBox="-20 -20 40 40"><polygon points="0,-17 5,-6 17,-5 8,3 11,15 0,9 -11,15 -8,3 -17,-5 -5,-6" fill="#ffd34d" stroke="#fff" stroke-width="2.5" stroke-linejoin="round"/></symbol>
-<symbol id="s-berry" viewBox="-20 -20 40 40"><path d="M0 17 C-14 9 -15 -6 -8 -8 C-4 -9 -2 -7 0 -7 C2 -7 4 -9 8 -8 C15 -6 14 9 0 17z" fill="#ef4b55" stroke="#fff" stroke-width="2"/><path d="M-8 -9 L0 -15 L8 -9 L3 -8 L0 -12 L-3 -8z" fill="#4fae5c"/><g fill="#ffe7a3"><circle cx="-4" cy="0" r="1.1"/><circle cx="4" cy="1" r="1.1"/><circle cx="0" cy="6" r="1.1"/><circle cx="-5" cy="7" r="1"/><circle cx="5" cy="8" r="1"/></g></symbol>
-<symbol id="s-smile" viewBox="-20 -20 40 40"><circle r="15" fill="#ffd94a" stroke="#fff" stroke-width="2.5"/><circle cx="-5" cy="-4" r="2.2" fill="#2a2a2a"/><circle cx="5" cy="-4" r="2.2" fill="#2a2a2a"/><path d="M-8 4 Q0 12 8 4" stroke="#2a2a2a" stroke-width="2.2" fill="none" stroke-linecap="round"/></symbol>
-<symbol id="s-daisy" viewBox="-20 -20 40 40"><g fill="#fff" stroke="#e7e1d6" stroke-width="1"><ellipse cy="-9" rx="5" ry="8"/><ellipse cy="-9" rx="5" ry="8" transform="rotate(72)"/><ellipse cy="-9" rx="5" ry="8" transform="rotate(144)"/><ellipse cy="-9" rx="5" ry="8" transform="rotate(216)"/><ellipse cy="-9" rx="5" ry="8" transform="rotate(288)"/></g><circle r="5.5" fill="#f4bf35"/></symbol>
-<symbol id="s-fragile" viewBox="-30 -14 60 28"><rect x="-28" y="-11" width="56" height="22" fill="#f4ecd9" stroke="#c4272f" stroke-width="2.5"/><text y="5" text-anchor="middle" font-family="Space Mono, monospace" font-weight="700" font-size="12" fill="#c4272f">FRAGILE</text></symbol>
-<symbol id="s-cherry" viewBox="-20 -20 40 40"><path d="M-6 6 Q-2 -8 6 -15 M7 8 Q6 -6 6 -15" stroke="#3f7a3a" stroke-width="2" fill="none"/><circle cx="-7" cy="9" r="7" fill="#d9243a" stroke="#fff" stroke-width="2"/><circle cx="8" cy="10" r="7" fill="#d9243a" stroke="#fff" stroke-width="2"/></symbol>
-<symbol id="s-paw" viewBox="-20 -20 40 40"><g fill="#f4a3b8" stroke="#fff" stroke-width="2"><ellipse cy="6" rx="9" ry="7.5"/><circle cx="-10" cy="-4" r="4"/><circle cx="-4" cy="-11" r="4"/><circle cx="4" cy="-11" r="4"/><circle cx="10" cy="-4" r="4"/></g></symbol>
-<symbol id="s-spark" viewBox="-20 -20 40 40"><path d="M0 -17 Q2 -2 17 0 Q2 2 0 17 Q-2 2 -17 0 Q-2 -2 0 -17z" fill="#f2e3a8" stroke="#c9a54a" stroke-width="1.5"/></symbol>
-<symbol id="s-leaf" viewBox="-20 -20 40 40"><path d="M-12 12 C-14 -8 2 -16 14 -14 C14 2 4 14 -12 12z" fill="#7fae5f" stroke="#fff" stroke-width="2"/><path d="M-12 12 L8 -8" stroke="#fff" stroke-width="1.4"/></symbol>
+${PAPERS.map(p => `<pattern id="p-${p.id}" width="210" height="210" patternUnits="userSpaceOnUse"><image href="${IMG}paper-${p.id}.jpg" width="210" height="210"/></pattern>`).join('')}
+${Object.entries(BANDS).map(([id, [t, w]]) => `<pattern id="b-${id}" width="${w * t / 48}" height="${t}" patternUnits="userSpaceOnUse"><image href="${IMG}band-${id}.png" width="${w * t / 48}" height="${t}" preserveAspectRatio="none"/></pattern>`).join('')}
 `;
 document.getElementById('defs').innerHTML = DEFS;
+[...ITEMS.map(i => `item-${i.id}.png`), ...PAPERS.map(p => `paper-${p.id}.jpg`),
+ ...STRINGS.flatMap(s => [`band-${s.id}.png`, `bow-${s.id}.png`]), ...STICKERS.map(s => `st-${s.id}.png`)]
+  .forEach(f => { new Image().src = IMG + f; });
 
 function itemArt(it, x, y) {
-  const { w, h } = it;
-  const cx = x + w / 2;
-  switch (it.id) {
-    case 'lp': return `
-      <circle cx="${x + w * .72}" cy="${y + h / 2}" r="${h * .46}" fill="#111"/>
-      <circle cx="${x + w * .72}" cy="${y + h / 2}" r="${h * .38}" fill="none" stroke="#2a2a2a" stroke-width="1"/>
-      <circle cx="${x + w * .72}" cy="${y + h / 2}" r="${h * .3}" fill="none" stroke="#2a2a2a" stroke-width="1"/>
-      <circle cx="${x + w * .72}" cy="${y + h / 2}" r="${h * .13}" fill="#b5262c"/>
-      <rect x="${x}" y="${y}" width="${w * .86}" height="${h}" fill="#141414"/>
-      <rect x="${x + 8}" y="${y + 8}" width="${w * .86 - 16}" height="${h - 16}" fill="none" stroke="#3a3a3a"/>
-      <g transform="translate(${x + w * .43} ${y + h * .46})" fill="#cfcac0">
-        <path d="M0 -6 C-20 -40 -60 -36 -62 -8 C-50 -2 -30 4 0 6 C30 4 50 -2 62 -8 C60 -36 20 -40 0 -6z" opacity=".9"/>
-        <path d="M0 4 C-14 22 -40 34 -44 20 C-30 14 -14 10 0 4 C14 10 30 14 44 20 C40 34 14 22 0 4z" opacity=".7"/>
-        <ellipse rx="4" ry="16" fill="#8a1c22"/>
-      </g>
-      <text x="${x + w * .43}" y="${y + h * .2}" text-anchor="middle" font-family="Metal Mania, serif" font-size="30" fill="#e9e3d8">Iron Moth</text>
-      <text x="${x + w * .43}" y="${y + h * .88}" text-anchor="middle" font-family="Space Mono" font-size="9" letter-spacing="3" fill="#7d776e">III · ASHES</text>`;
-    case 'plush': {
-      const hy = y + 68;
-      return `
-      <ellipse cx="${cx}" cy="${y + h - 46}" rx="58" ry="50" fill="#7b4a2a"/>
-      <ellipse cx="${cx}" cy="${y + h - 40}" rx="34" ry="32" fill="#e8b98e"/>
-      <ellipse cx="${cx - 52}" cy="${y + h - 20}" rx="18" ry="14" fill="#7b4a2a"/>
-      <ellipse cx="${cx + 52}" cy="${y + h - 20}" rx="18" ry="14" fill="#7b4a2a"/>
-      <circle cx="${cx - 62}" cy="${hy - 2}" r="19" fill="#e8b98e" stroke="#7b4a2a" stroke-width="7"/>
-      <circle cx="${cx + 62}" cy="${hy - 2}" r="19" fill="#e8b98e" stroke="#7b4a2a" stroke-width="7"/>
-      <circle cx="${cx}" cy="${hy}" r="64" fill="#7b4a2a"/>
-      <path d="M${cx - 44} ${hy - 44} q10 -26 22 -8 q8 -24 22 -6 q10 -20 22 -4 q12 -16 20 6" fill="#7b4a2a"/>
-      <path d="M${cx - 46} ${hy + 4} C${cx - 50} ${hy - 34} ${cx - 18} ${hy - 40} ${cx} ${hy - 22} C${cx + 18} ${hy - 40} ${cx + 50} ${hy - 34} ${cx + 46} ${hy + 4} C${cx + 46} ${hy + 40} ${cx - 46} ${hy + 40} ${cx - 46} ${hy + 4}z" fill="#f0c49b"/>
-      <ellipse cx="${cx - 18}" cy="${hy - 2}" rx="9" ry="11" fill="#2a1a12"/>
-      <ellipse cx="${cx + 18}" cy="${hy - 2}" rx="9" ry="11" fill="#2a1a12"/>
-      <circle cx="${cx - 15}" cy="${hy - 6}" r="3.2" fill="#fff"/><circle cx="${cx + 21}" cy="${hy - 6}" r="3.2" fill="#fff"/>
-      <ellipse cx="${cx - 33}" cy="${hy + 14}" rx="8" ry="5" fill="#f08f86" opacity=".7"/>
-      <ellipse cx="${cx + 33}" cy="${hy + 14}" rx="8" ry="5" fill="#f08f86" opacity=".7"/>
-      <path d="M${cx - 9} ${hy + 18} q9 8 18 0" stroke="#6b3a24" stroke-width="2.5" fill="none" stroke-linecap="round"/>`;
-    }
-    case 'candle': return `
-      <rect x="${x + 6}" y="${y + 22}" width="${w - 12}" height="${h - 22}" rx="10" fill="#e8e4da" opacity=".55" stroke="#c8c2b4"/>
-      <rect x="${x + 12}" y="${y + 40}" width="${w - 24}" height="${h - 48}" rx="6" fill="#efe1c6"/>
-      <rect x="${x + 22}" y="${y + 70}" width="${w - 44}" height="46" fill="#5b3a4a"/>
-      <text x="${cx}" y="${y + 92}" text-anchor="middle" font-family="Space Mono" font-weight="700" font-size="14" fill="#f1e5d1">FIG</text>
-      <text x="${cx}" y="${y + 107}" text-anchor="middle" font-family="Space Mono" font-size="7" fill="#c9b7a6">& CEDAR</text>
-      <rect x="${cx - 1}" y="${y + 26}" width="2" height="14" fill="#3a2f25"/>
-      <path d="M${cx} ${y + 2} C${cx + 8} ${y + 14} ${cx + 5} ${y + 26} ${cx} ${y + 26} C${cx - 5} ${y + 26} ${cx - 8} ${y + 14} ${cx} ${y + 2}z" fill="#f6b13c"/>
-      <path d="M${cx} ${y + 12} C${cx + 3} ${y + 18} ${cx + 2} ${y + 24} ${cx} ${y + 24} C${cx - 2} ${y + 24} ${cx - 3} ${y + 18} ${cx} ${y + 12}z" fill="#fff1c2"/>`;
-    case 'wine': return `
-      <rect x="${cx - 9}" y="${y}" width="18" height="24" fill="#7a1e2a"/>
-      <path d="M${cx - 12} ${y + 24} h24 v40 C${cx + 12} ${y + 92} ${x + w} ${y + 96} ${x + w} ${y + 124} V${y + h - 6} q0 6 -6 6 H${x + 6} q-6 0 -6 -6 V${y + 124} C${x} ${y + 96} ${cx - 12} ${y + 92} ${cx - 12} ${y + 64}z" fill="#1f3a2a"/>
-      <path d="M${x + 12} ${y + 130} V${y + h - 16}" stroke="#4f7a5c" stroke-width="5" stroke-linecap="round" opacity=".6"/>
-      <rect x="${x + 8}" y="${y + 150}" width="${w - 16}" height="70" fill="#efe6d2"/>
-      <text x="${cx}" y="${y + 178}" text-anchor="middle" font-family="Gaegu" font-weight="700" font-size="17" fill="#6a1a24">Rosso</text>
-      <text x="${cx}" y="${y + 198}" text-anchor="middle" font-family="Space Mono" font-size="8" fill="#8a7c66">1996</text>`;
-    case 'book': return `
-      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="4" fill="#6c2a2a"/>
-      <rect x="${x}" y="${y}" width="16" height="${h}" fill="#561f20"/>
-      <rect x="${x + 26}" y="${y + 14}" width="${w - 40}" height="${h - 28}" fill="none" stroke="#c9a45a" stroke-width="2"/>
-      <rect x="${x + 32}" y="${y + 20}" width="${w - 52}" height="${h - 40}" fill="none" stroke="#c9a45a" stroke-width=".8"/>
-      <text x="${x + w / 2 + 8}" y="${y + 92}" text-anchor="middle" font-family="Gaegu" font-weight="700" font-size="30" fill="#d9b56a">시집</text>
-      <text x="${x + w / 2 + 8}" y="${y + 116}" text-anchor="middle" font-family="Gaegu" font-size="14" fill="#c9a45a">별 헤는 저녁</text>
-      <circle cx="${x + w / 2 + 8}" cy="${y + 160}" r="12" fill="none" stroke="#c9a45a" stroke-width="1.5"/>`;
-    case 'cactus': return `
-      <path d="M${x + 22} ${y + 100} h${w - 44} l-10 ${h - 100} h-${w - 64}z" fill="#c8653d"/>
-      <rect x="${x + 14}" y="${y + 96}" width="${w - 28}" height="16" rx="3" fill="#d9774c"/>
-      <path d="M${cx - 18} ${y + 98} V${y + 40} a18 18 0 0 1 36 0 V${y + 98}z" fill="#5d9a55"/>
-      <path d="M${cx - 18} ${y + 70} h-14 a10 10 0 0 1 -10 -10 v-12 a7 7 0 0 1 14 0 v8 h10z" fill="#5d9a55"/>
-      <path d="M${cx + 18} ${y + 62} h12 a9 9 0 0 0 9 -9 v-10 a6 6 0 0 0 -12 0 v7 h-9z" fill="#5d9a55"/>
-      <path d="M${cx - 6} ${y + 34} v60 M${cx + 6} ${y + 34} v60" stroke="#4a8344" stroke-width="1.5"/>
-      <g fill="#f07aa0"><circle cx="${cx}" cy="${y + 18}" r="6"/><circle cx="${cx - 7}" cy="${y + 22}" r="5"/><circle cx="${cx + 7}" cy="${y + 22}" r="5"/></g>
-      <circle cx="${cx}" cy="${y + 21}" r="3" fill="#ffe08a"/>
-      <circle cx="${cx - 7}" cy="${y + 58}" r="2.4" fill="#1f2a1a"/><circle cx="${cx + 7}" cy="${y + 58}" r="2.4" fill="#1f2a1a"/>
-      <path d="M${cx - 5} ${y + 66} q5 5 10 0" stroke="#1f2a1a" stroke-width="1.6" fill="none"/>`;
-    case 'shoes': return `
-      <rect x="${x}" y="${y + 30}" width="${w}" height="${h - 30}" fill="#e4683a"/>
-      <rect x="${x - 4}" y="${y + 18}" width="${w + 8}" height="34" fill="#ef7b4b"/>
-      <rect x="${x - 4}" y="${y + 48}" width="${w + 8}" height="4" fill="#c4512a"/>
-      <path d="M${x + 30} ${y + 100} C${x + 70} ${y + 70} ${x + 120} ${y + 120} ${x + 220} ${y + 84}" stroke="#fff" stroke-width="10" fill="none" stroke-linecap="round"/>
-      <text x="${x + 20}" y="${y + 41}" font-family="Space Mono" font-weight="700" font-size="13" fill="#fff">RUN/LTD</text>
-      <text x="${x + w - 20}" y="${y + h - 12}" text-anchor="end" font-family="Space Mono" font-size="9" fill="#ffd9c6">270 · 001/500</text>`;
-    case 'mug': return `
-      <path d="M${x + w - 40} ${y + 50} a26 26 0 0 1 0 52" stroke="#f4f1ea" stroke-width="12" fill="none"/>
-      <path d="M${x + 6} ${y + 22} L${x + 18} ${y} L${x + 34} ${y + 22}z M${x + w - 70} ${y + 22} L${x + w - 54} ${y} L${x + w - 42} ${y + 22}z" fill="#f4f1ea"/>
-      <rect x="${x + 4}" y="${y + 18}" width="${w - 40}" height="${h - 18}" rx="14" fill="#f4f1ea"/>
-      <ellipse cx="${x + 4 + (w - 40) / 2}" cy="${y + 22}" rx="${(w - 40) / 2 - 2}" ry="6" fill="#3b2a20"/>
-      <circle cx="${x + 38}" cy="${y + 70}" r="4" fill="#2a2a2a"/><circle cx="${x + 76}" cy="${y + 70}" r="4" fill="#2a2a2a"/>
-      <path d="M${x + 52} ${y + 80} l5 4 l5 -4" stroke="#2a2a2a" stroke-width="2" fill="none"/>
-      <path d="M${x + 20} ${y + 80} h-14 M${x + 20} ${y + 86} h-12 M${x + 94} ${y + 80} h14 M${x + 94} ${y + 86} h12" stroke="#2a2a2a" stroke-width="1.4"/>
-      <ellipse cx="${x + 28}" cy="${y + 84}" rx="6" ry="4" fill="#f4a3b8" opacity=".7"/><ellipse cx="${x + 86}" cy="${y + 84}" rx="6" ry="4" fill="#f4a3b8" opacity=".7"/>`;
-  }
-  return '';
+  return `<image href="${IMG}item-${it.id}.png" x="${x}" y="${y}" width="${it.w}" height="${it.h}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 
-function loops(cx, cy, s, fill, stroke, sw) {
-  const f = fill ? `fill="${fill}"` : 'fill="none"';
-  const st = stroke ? `stroke="${stroke}" stroke-width="${sw}"` : '';
-  return `
-    <path d="M${cx} ${cy} C${cx - s * 1.3} ${cy - s * 1.1} ${cx - s * 1.5} ${cy + s * .7} ${cx} ${cy}z" ${f} ${st}/>
-    <path d="M${cx} ${cy} C${cx + s * 1.3} ${cy - s * 1.1} ${cx + s * 1.5} ${cy + s * .7} ${cx} ${cy}z" ${f} ${st}/>`;
-}
-function tails(cx, cy, s, color, sw) {
-  return `<path d="M${cx} ${cy} q${-s * .3} ${s * .7} ${-s * .8} ${s * 1.2} M${cx} ${cy} q${s * .35} ${s * .6} ${s * .7} ${s * 1.3}"
-    stroke="${color}" stroke-width="${sw}" fill="none" stroke-linecap="round"/>`;
+function band(id, x0, y0, len, horiz, off) {
+  const t = BANDS[id][0];
+  const tr = horiz ? `translate(${x0} ${y0 + off - t / 2})` : `translate(${x0 + off + t / 2} ${y0}) rotate(90)`;
+  return `<g transform="${tr}"><rect width="${len}" height="${t}" fill="url(#b-${id})"/></g>`;
 }
 
 function ribbon(id, x, y, W, H, anim) {
   const cx = x + W * .5, cy = y + H * .42;
   const a = anim ? ['band-v', 'band-h', 'bow'] : ['', '', ''];
-  const bands = (stroke, sw, dash = '', extra = '') =>
-    `<g class="${a[0]}"><line x1="${cx}" y1="${y - 2}" x2="${cx}" y2="${y + H + 2}" stroke="${stroke}" stroke-width="${sw}" stroke-dasharray="${dash}" ${extra}/></g>
-     <g class="${a[1]}"><line x1="${x - 2}" y1="${cy}" x2="${x + W + 2}" y2="${cy}" stroke="${stroke}" stroke-width="${sw}" stroke-dasharray="${dash}" ${extra}/></g>`;
-  const bow = (inner) => `<g class="${a[2]}">${inner}</g>`;
-  switch (id) {
-    case 'rope': return bands('#1b1b1d', 7) + bands('#4a4a4e', 2, '3 5') + bow(`
-      <ellipse cx="${cx - 9}" cy="${cy - 6}" rx="11" ry="6" transform="rotate(-30 ${cx - 9} ${cy - 6})" fill="none" stroke="#1b1b1d" stroke-width="6"/>
-      <ellipse cx="${cx + 8}" cy="${cy - 4}" rx="9" ry="5" transform="rotate(20 ${cx + 8} ${cy - 4})" fill="none" stroke="#1b1b1d" stroke-width="5"/>
-      ${tails(cx, cy, 26, '#1b1b1d', 6)}<circle cx="${cx}" cy="${cy}" r="7" fill="#26262a"/>
-      <path d="M${cx - 21} ${cy + 31} l-4 6 M${cx + 18} ${cy + 34} l3 6" stroke="#1b1b1d" stroke-width="3"/>`);
-    case 'chain': return bands('#a9adb4', 7, '8 3', 'stroke-linecap="round"') + bands('#5f636a', 2, '8 3') + bow(`
-      <path d="M${cx - 9} ${cy - 2} v-10 a9 9 0 0 1 18 0 v10" stroke="#9aa0a8" stroke-width="5" fill="none"/>
-      <rect x="${cx - 13}" y="${cy - 4}" width="26" height="22" rx="3" fill="#c9ccd2" stroke="#7a7e85" stroke-width="1.5"/>
-      <circle cx="${cx}" cy="${cy + 6}" r="3" fill="#4a4d52"/><rect x="${cx - 1.2}" y="${cy + 7}" width="2.4" height="6" fill="#4a4d52"/>`);
-    case 'jute': return bands('#a7814f', 5, '5 1.5') +
-      `<g class="${a[0]}"><line x1="${cx + 8}" y1="${y - 2}" x2="${cx + 8}" y2="${y + H + 2}" stroke="#a7814f" stroke-width="4" stroke-dasharray="5 1.5"/></g>` +
-      bow(loops(cx + 4, cy, 14, null, '#9a7444', 4) + tails(cx + 4, cy, 18, '#9a7444', 4) + `<circle cx="${cx + 4}" cy="${cy}" r="4" fill="#8d683b"/>`);
-    case 'satin': return `
-      <g class="${a[0]}"><rect x="${cx - 8}" y="${y - 2}" width="16" height="${H + 4}" fill="url(#satin)"/></g>
-      <g class="${a[1]}"><rect x="${x - 2}" y="${cy - 8}" width="${W + 4}" height="16" fill="#c41e2e"/><rect x="${x - 2}" y="${cy - 3}" width="${W + 4}" height="3" fill="#e65864" opacity=".6"/></g>` +
-      bow(`<path d="M${cx} ${cy} l-16 40 l8 -4 l4 8z M${cx} ${cy} l18 38 l-8 -3 l-3 9z" fill="#a8151f"/>` +
-        loops(cx, cy, 24, '#c41e2e', '#8e1220', 1.5) + `<rect x="${cx - 7}" y="${cy - 7}" width="14" height="14" rx="3" fill="#a8151f"/>`);
-    case 'gold': return bands('#d4a63a', 3) +
-      `<g class="${a[1]}"><line x1="${x - 2}" y1="${cy + 6}" x2="${x + W + 2}" y2="${cy + 6}" stroke="#d4a63a" stroke-width="2"/></g>` +
-      bow(loops(cx, cy, 13, null, '#d4a63a', 3) + tails(cx, cy, 20, '#d4a63a', 2.5) + `<circle cx="${cx}" cy="${cy}" r="3.5" fill="#e8c45e"/>`);
-    case 'pink': return `
-      <g class="${a[0]}"><rect x="${cx - 9}" y="${y - 2}" width="18" height="${H + 4}" fill="#f4a6c0"/></g>
-      <g class="${a[1]}"><rect x="${x - 2}" y="${cy - 9}" width="${W + 4}" height="18" fill="#f4a6c0"/></g>` +
-      bow(`<path d="M${cx} ${cy} l-22 46 l10 -5 l6 9z M${cx} ${cy} l22 44 l-10 -3 l-5 10z" fill="#ee8fae"/>` +
-        loops(cx, cy, 36, '#f7b7cc', '#e48aa8', 2) +
-        `<path d="M${cx - 30} ${cy - 10} q10 -8 20 2 M${cx + 30} ${cy - 10} q-10 -8 -20 2" stroke="#fff" stroke-width="2" fill="none" opacity=".6"/>
-         <circle cx="${cx}" cy="${cy}" r="9" fill="#ee8fae"/>`);
-    case 'curly': {
-      const cs = ['#f26b6b', '#5aa6e0', '#f6d84c', '#6cc27a'];
-      let s = '';
-      cs.forEach((c, i) => {
-        const o = (i - 1.5) * 4;
-        s += `<g class="${a[0]}"><line x1="${cx + o}" y1="${y - 2}" x2="${cx + o}" y2="${y + H + 2}" stroke="${c}" stroke-width="2.4"/></g>
-              <g class="${a[1]}"><line x1="${x - 2}" y1="${cy + o}" x2="${x + W + 2}" y2="${cy + o}" stroke="${c}" stroke-width="2.4"/></g>`;
-      });
-      let curls = '';
-      for (let i = 0; i < 9; i++) {
-        const ang = -Math.PI * .9 + i * Math.PI * 1.8 / 8, len = 30 + (i % 3) * 8;
-        const ex = cx + Math.cos(ang) * len, ey = cy + Math.sin(ang) * len * .8;
-        curls += `<path d="M${cx} ${cy} Q${(cx + ex) / 2 + 8} ${(cy + ey) / 2 - 8} ${ex} ${ey} q6 6 0 10 q-6 4 -2 10"
-          stroke="${cs[i % 4]}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`;
-      }
-      return s + bow(curls + `<circle cx="${cx}" cy="${cy}" r="5" fill="#f6d84c"/>`);
-    }
-  }
-  return '';
+  const offs = id === 'jute' ? [-4, 4] : [0];
+  const v = offs.map(o => band(id, cx, y - 2, H + 4, false, o)).join('');
+  const h = offs.map(o => band(id, x - 2, cy, W + 4, true, o)).join('');
+  const [bw0, sw, sh, ky] = BOWS[id];
+  const bw = Math.min(bw0, W * 1.15), bh = bw * sh / sw;
+  return `<g filter="url(#bsh)"><g class="${a[0]}">${v}</g><g class="${a[1]}">${h}</g></g>
+    <g class="${a[2]}" filter="url(#bsh)"><image href="${IMG}bow-${id}.png" x="${cx - bw / 2}" y="${cy - bh * ky}" width="${bw}" height="${bh}"/></g>`;
 }
 
 const P = 46;
 function stickerUse(s, anim) {
-  const big = s.id === 'fragile';
-  const w = big ? 64 : 38, h = big ? 30 : 38;
+  const z = s.id === 'fragile' ? 66 : 44;
   return `<g transform="translate(${s.x} ${s.y}) rotate(${s.r})" data-i="${s.i}" style="cursor:pointer">
-    <g class="${anim ? 'stk-in' : ''}"><use href="#s-${s.id}" x="${-w / 2}" y="${-h / 2}" width="${w}" height="${h}"/></g></g>`;
+    <g class="${anim ? 'stk-in' : ''}"><image href="${IMG}st-${s.id}.png" x="${-z / 2}" y="${-z / 2}" width="${z}" height="${z}"/></g></g>`;
 }
 
 function pkgSVG(st, anim = {}) {
@@ -552,11 +364,8 @@ function pkgSVG(st, anim = {}) {
   let paper = '';
   if (st.paper) {
     const fill = `url(#p-${st.paper})`;
-    const holo = st.paper === 'holo'
-      ? `<path d="M${x} ${y + it.h * .3} L${x + it.w} ${y} M${x} ${y + it.h * .8} L${x + it.w} ${y + it.h * .4}" stroke="#fff" stroke-width="10" opacity=".45"/>` : '';
     paper = `<g class="${anim.paper ? 'paper-in' : ''}">
       <rect x="${x - 5}" y="${y - 5}" width="${it.w + 10}" height="${it.h + 10}" rx="3" fill="${fill}"/>
-      ${holo}
       <rect x="${x - 5}" y="${y - 5}" width="${it.w + 10}" height="${it.h + 10}" rx="3" fill="url(#shade)"/>
       <path d="M${x - 5} ${y + 9} H${x + it.w + 5}" stroke="#fff" stroke-opacity=".22" stroke-width="1.5"/>
       <path d="M${x - 5} ${y + it.h + 5} l14 -12 M${x + it.w + 5} ${y + it.h + 5} l-14 -12" stroke="#000" stroke-opacity=".18" stroke-width="1.2"/>
@@ -636,6 +445,7 @@ function nextItem() {
   st = { item: deck.pop(), paper: null, string: null, stickers: [] };
   $('noteNo').textContent = 'ORDER No.' + String(orderNo).padStart(2, '0');
   $('noteItem').textContent = st.item.name;
+  $('noteMeta').textContent = st.item.meta;
   $('noteMsg').textContent = st.item.msg;
   $('note').classList.remove('out');
   const pkg = $('pkg');
@@ -668,14 +478,12 @@ function refresh() {
 
 /* palettes */
 $('papers').innerHTML = PAPERS.map(p => `
-  <div class="sw" data-id="${p.id}"><svg viewBox="0 0 100 62" preserveAspectRatio="none">
-    <rect width="100" height="62" fill="url(#p-${p.id})"/><rect width="100" height="62" fill="url(#shade)"/>
-    <rect x="86" width="14" height="62" fill="#000" opacity=".12"/></svg><span>${p.name}</span></div>`).join('');
+  <div class="sw" data-id="${p.id}"><i style="background-image:url(${IMG}paper-${p.id}.jpg)"></i><span>${p.name}</span></div>`).join('');
 $('strings').innerHTML = STRINGS.map(s => `
-  <div class="chip" data-id="${s.id}"><svg viewBox="-14 -12 88 72" style="overflow:visible">
-    <rect x="0" y="0" width="60" height="48" rx="2" fill="#ece2d2"/>${ribbon(s.id, 0, 0, 60, 48, false)}</svg><span>${s.name}</span></div>`).join('');
+  <div class="chip" data-id="${s.id}"><svg viewBox="-28 -24 176 144" style="overflow:visible">
+    <rect x="0" y="0" width="120" height="96" rx="3" fill="#ece2d2"/>${ribbon(s.id, 0, 0, 120, 96, false)}</svg><span>${s.name}</span></div>`).join('');
 $('stickers').innerHTML = STICKERS.map(s => `
-  <div class="chip stk" data-id="${s.id}"><svg viewBox="-22 -22 44 44"><use href="#s-${s.id}" x="${s.id === 'fragile' ? -21 : -18}" y="${s.id === 'fragile' ? -10 : -18}" width="${s.id === 'fragile' ? 42 : 36}" height="${s.id === 'fragile' ? 20 : 36}"/></svg></div>`).join('');
+  <div class="chip stk" data-id="${s.id}"><img src="${IMG}st-${s.id}.png" alt=""></div>`).join('');
 
 $('papers').onclick = (e) => {
   const el = e.target.closest('.sw'); if (!el || busy) return;
