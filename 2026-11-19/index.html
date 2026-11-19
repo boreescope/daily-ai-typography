@@ -174,7 +174,10 @@
   }
   .pile .label { position: absolute; top: 70px; left: 24px; }
   .pile .count { position: absolute; top: 88px; left: 24px; font: 700 44px/1 'Space Mono', monospace; color: #5a4a3a; }
-  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: #c7b294; border-top: 1px solid rgba(60,40,20,.2); }
+  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(180deg, #bfa888, #c9b495); border-top: 1px solid rgba(60,40,20,.2); }
+  .tree { position: absolute; left: 50%; bottom: 50px; width: 290px; transform: translateX(-50%); z-index: 1; pointer-events: none;
+    filter: drop-shadow(0 6px 6px rgba(50,30,10,.25)); }
+  .stacked.back { filter: drop-shadow(0 3px 2px rgba(50,30,10,.22)) brightness(.93); }
   .stacked { position: absolute; transform-origin: 50% 100%; filter: drop-shadow(0 4px 3px rgba(50,30,10,.25)); }
   .stacked svg { display: block; width: 100%; height: 100%; overflow: visible; }
   .stacked:hover { z-index: 999 !important; }
@@ -244,6 +247,7 @@
     <div class="label">STACK<b>포장한 선물</b></div>
     <div class="count" id="count">0</div>
     <div class="floor"></div>
+    <img class="tree" src="img/tree.png" alt="">
     <div class="tip" id="tip"></div>
   </aside>
 </div>
@@ -436,8 +440,11 @@ $('snd').onclick = () => { sound.init(); $('snd').textContent = sound.toggle() ?
 
 /* state */
 let deck = [], orderNo = 0, st = null, stickerSel = null, busy = false, stickN = 0;
-const stacks = [{ cx: 262, top: 0 }, { cx: 98, top: 0 }];
-const S = .5;
+const PILE_W = 360;
+const rows = [
+  { name: 'back', s: .32, base: 40, z: 10, hm: new Array(PILE_W).fill(0) },
+  { name: 'front', s: .38, base: 6, z: 200, hm: new Array(PILE_W).fill(0) },
+];
 
 function nextItem() {
   if (!deck.length) deck = shuffle(ITEMS);
@@ -540,21 +547,46 @@ function say(text) {
 }
 
 /* stack */
+function findSpot(row, bw, bh) {
+  const hm = row.hm, n = Math.ceil(bw);
+  let best = null;
+  for (let x = 6; x + n <= PILE_W - 6; x += 2) {
+    let base = 0;
+    for (let i = x; i < x + n; i++) base = Math.max(base, hm[i]);
+    let lo = -1, hi = -1;
+    for (let i = x; i < x + n; i++) if (hm[i] >= base - 1.5) { if (lo < 0) lo = i; hi = i; }
+    const cx = x + n / 2;
+    if (base > 0 && (cx < lo + 4 || cx > hi - 4 || hi - lo < n * .55)) continue;
+    const top = base + bh;
+    const overTrunk = x < 220 && x + n > 140;
+    const score = row.base + top + (overTrunk && top > 70 ? (top - 70) * 2.5 : 0) + Math.random() * 14;
+    if (!best || score < best.score) best = { x, base, lo, hi, score, flat: hi - lo >= n - 3 };
+  }
+  return best;
+}
+
 function placeOnPile(snap, line) {
   const pile = $('pile');
-  const it = snap.item, W = (it.w + P * 2) * S, H = (it.h + P * 2) * S;
-  const col = stacks[0].top <= stacks[1].top ? stacks[0] : stacks[1];
-  const floorH = 60, rot = Math.random() * 8 - 4;
+  const it = snap.item;
+  let pick = null;
+  for (const row of rows) {
+    const bw = it.w * row.s, bh = it.h * row.s, spot = findSpot(row, bw, bh);
+    if (spot && (!pick || spot.score < pick.spot.score)) pick = { row, spot, bw, bh };
+  }
+  const { row, spot, bw, bh } = pick, s = row.s;
+  const rot = spot.base === 0 ? Math.random() * 4 - 2 : spot.flat ? Math.random() * 2 - 1 : 0;
+  for (let i = spot.x; i < spot.x + Math.ceil(bw); i++) row.hm[i] = spot.base + bh - 2;
+  const W = (it.w + P * 2) * s, H = (it.h + P * 2) * s;
   const el = document.createElement('div');
-  el.className = 'stacked';
+  el.className = 'stacked ' + row.name;
   el.style.width = W + 'px'; el.style.height = H + 'px';
-  el.style.left = (col.cx - W / 2 + (Math.random() * 10 - 5)) + 'px';
-  el.style.bottom = (floorH - 2 + col.top - (P - 5) * S) + 'px';
+  el.style.left = (spot.x - P * s) + 'px';
+  el.style.bottom = (row.base + spot.base - (P - 5) * s) + 'px';
   el.style.transform = `rotate(${rot}deg)`;
-  el.style.zIndex = 10 + pile.querySelectorAll('.stacked').length;
+  el.dataset.z = row.z + pile.querySelectorAll('.stacked').length;
+  el.style.zIndex = el.dataset.z;
   el.innerHTML = pkgSVG(snap, {});
   el.dataset.tip = `${it.short} · ${line}`;
-  col.top += (it.h + 10) * S - 3;
   pile.appendChild(el);
   return { el, rot };
 }
@@ -574,7 +606,7 @@ function fly(snap, line) {
     { transform: `rotate(${rot}deg)` },
   ], { duration: 720, easing: 'cubic-bezier(.4,0,.3,1)' });
   return a.finished.then(() => {
-    el.style.zIndex = 10 + $('pile').querySelectorAll('.stacked').length;
+    el.style.zIndex = el.dataset.z;
     el.animate([{ transform: `rotate(${rot}deg) scaleY(.92)` }, { transform: `rotate(${rot}deg)` }], { duration: 180, easing: 'ease-out' });
     sound.thud();
   });
