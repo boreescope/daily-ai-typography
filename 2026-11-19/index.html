@@ -33,7 +33,7 @@
   .wrap {
     display: grid;
     grid-template-columns: 230px 1fr 500px;
-    grid-template-rows: 1fr 222px;
+    grid-template-rows: 1fr 246px;
     height: 100vh;
   }
   .grain::after {
@@ -56,16 +56,16 @@
     margin-bottom: 10px;
   }
   .label b { font-family: 'Noto Sans KR'; letter-spacing: 0; font-size: 12px; color: #5a4a3a; margin-left: 6px; }
-  .paper-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .paper-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px 5px; }
   .sw {
     cursor: pointer;
     border-radius: 4px;
     padding: 4px;
     transition: transform .15s ease-out, background .15s;
   }
-  .sw i { display: block; height: 60px; border-radius: 2px; background-size: 150px; background-position: center;
+  .sw i { display: block; height: 40px; border-radius: 2px; background-size: 110px; background-position: center;
     box-shadow: 0 2px 4px rgba(60,40,20,.22), inset -12px 0 0 rgba(0,0,0,.08); }
-  .sw span { display: block; font-size: 11px; margin-top: 5px; text-align: center; color: #5a4a3a; }
+  .sw span { display: block; font-size: 10px; margin-top: 4px; white-space: nowrap; text-align: center; color: #5a4a3a; }
   .sw:hover { transform: translateY(-2px); }
   .sw.on { background: rgba(255,255,255,.6); }
 
@@ -150,8 +150,8 @@
     background: #f4ecdc;
     border-top: 1px solid rgba(80,60,40,.14);
   }
-  .str-grid { display: grid; grid-template-columns: repeat(4, 62px); gap: 3px 4px; }
-  .stk-grid { display: grid; grid-template-columns: repeat(8, 42px); gap: 2px 4px; }
+  .str-grid { display: grid; grid-template-columns: repeat(5, 58px); gap: 2px 4px; }
+  .stk-grid { display: grid; grid-template-columns: repeat(6, 40px); gap: 2px 4px; }
   .chip {
     cursor: pointer;
     display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -159,9 +159,9 @@
     border-radius: 6px;
     transition: background .15s, transform .15s ease-out, opacity .2s;
   }
-  .chip img { width: 30px; height: 26px; object-fit: contain; display: block; filter: drop-shadow(0 1px 1px rgba(60,40,20,.3)); }
-  .chip span { font-size: 9.5px; color: #6a5a48; text-align: center; line-height: 1.15; white-space: nowrap; }
-  .chip.stk img { width: 34px; height: 34px; }
+  .chip img { width: 30px; height: 24px; object-fit: contain; display: block; filter: drop-shadow(0 1px 1px rgba(60,40,20,.3)); }
+  .chip span { font-size: 9px; color: #6a5a48; text-align: center; line-height: 1.15; white-space: nowrap; }
+  .chip.stk img { width: 32px; height: 32px; }
   .chip:hover { transform: translateY(-2px); }
   .chip.on { background: rgba(201,154,46,.3); }
   .chip.off { opacity: .3; pointer-events: none; }
@@ -344,6 +344,16 @@ const PAPERS = [
   { id: 'tartan', name: '빨간 체크', tags: ['classic', 'retro'] },
   { id: 'stars', name: '남색 별무늬', tags: ['elegant', 'classic'] },
   { id: 'holo', name: '홀로그램', tags: ['fun', 'colorful'] },
+  { id: 'mint', name: '민트 깅엄', tags: ['cute', 'natural', 'retro'] },
+  { id: 'wave', name: '테라코타 물결', tags: ['retro', 'fun', 'natural'] },
+  { id: 'goldfoil', name: '구김 금박지', tags: ['elegant', 'fun'] },
+  { id: 'shibori', name: '쪽빛 염색', tags: ['natural', 'elegant'] },
+  { id: 'retro70', name: '70년대 꽃', tags: ['retro', 'colorful', 'fun'] },
+  { id: 'lemon', name: '레몬 무늬', tags: ['cute', 'colorful', 'natural'] },
+  { id: 'marble', name: '마블지', tags: ['elegant', 'classic', 'retro'] },
+  { id: 'leopard', name: '표범 무늬', tags: ['fun', 'dark', 'rough'] },
+  { id: 'score', name: '악보', tags: ['classic', 'retro', 'elegant'] },
+  { id: 'bubble', name: '뽁뽁이', tags: ['fun', 'cute'] },
 ];
 
 // band: [thickness px], bow: [width px, src w, src h]  (1px ≈ K m)
@@ -360,6 +370,14 @@ const STRINGS = [
   { id: 'pink', name: '분홍 큰 리본', tags: ['cute'], band: 20, bow: [108, 360, 342] },
   { id: 'curly', name: '알록달록 컬링', tags: ['colorful', 'fun', 'cute'], band: 12, bow: [96, 358, 360] },
   { id: 'strap', name: '하늘색 포장 끈', tags: ['rough', 'fun'], band: 14, bow: [56, 360, 360], buckle: [.33, .7, .32, .69] },
+  { id: 'organza', name: '라벤더 오간자', tags: ['elegant', 'cute'], band: 14, bow: [96, 360, 333] },
+  { id: 'grosgrain', name: '줄무늬 리본', tags: ['classic', 'retro'], band: 14, bow: [92, 360, 301] },
+  { id: 'baker', name: '빨강 꼰실', tags: ['cute', 'retro', 'natural'], band: 6, bow: [80, 360, 351] },
+  { id: 'lace', name: '검정 레이스', tags: ['dark', 'elegant'], band: 16, bow: [76, 287, 360] },
+  { id: 'raffia', name: '분홍 라피아', tags: ['colorful', 'fun', 'natural'], band: 12, bow: [84, 360, 359] },
+  { id: 'cord', name: '형광 등산끈', tags: ['fun', 'rough', 'colorful'], band: 9, bow: [80, 360, 219] },
+  { id: 'pearl', name: '진주 줄', tags: ['elegant', 'classic'], band: 7, bow: [84, 360, 310] },
+  { id: 'tape', name: '경고 테이프', tags: ['fun', 'rough', 'dark'], band: 18, bow: [92, 337, 360] },
 ];
 
 const STICKERS = [
@@ -397,6 +415,8 @@ function paperMat(id) {
   const o = { map: TEX['paper-' + id], roughness: .86, metalness: 0, side: THREE.DoubleSide };
   if (id === 'holo') Object.assign(o, { roughness: .32, metalness: .45 });
   if (id === 'black') o.roughness = .7;
+  if (id === 'goldfoil') Object.assign(o, { roughness: .38, metalness: .55 });
+  if (id === 'bubble') o.roughness = .3;
   return (MAT[id] = new THREE.MeshStandardMaterial(o));
 }
 function bowMat(id) {
