@@ -6,12 +6,12 @@
 <title>포장지 — Wrapping</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&family=Metal+Mania&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; }
   body {
-    background: #e8dccb;
+    background: #efe6d4;
     color: #3a2f25;
     font-family: 'Noto Sans KR', sans-serif;
     user-select: none;
@@ -19,7 +19,7 @@
   .home-btn, .snd {
     position: fixed; top: 18px; z-index: 20;
     padding: 7px 13px;
-    background: rgba(255,250,240,.7);
+    background: rgba(255,250,240,.75);
     border: 1px solid rgba(80,60,40,.2);
     color: #7a6a58;
     font: 700 10px/1 'Space Mono', monospace;
@@ -32,64 +32,76 @@
 
   .wrap {
     display: grid;
-    grid-template-columns: 250px 1fr 360px;
-    grid-template-rows: 1fr 190px;
+    grid-template-columns: 230px 1fr 500px;
+    grid-template-rows: 1fr 222px;
     height: 100vh;
+  }
+  .grain::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: soft-light; opacity: .55;
   }
 
   /* left: paper rolls */
   .papers {
     grid-row: 1 / 3;
-    padding: 70px 18px 20px 22px;
-    background: #d9cab4;
-    border-right: 1px solid rgba(80,60,40,.15);
+    padding: 70px 16px 20px 20px;
+    background: #e4d6bb;
+    border-right: 1px solid rgba(80,60,40,.14);
     overflow-y: auto;
   }
   .label {
     font: 700 10px/1 'Space Mono', monospace;
     letter-spacing: .16em; color: #8b7864;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
   .label b { font-family: 'Noto Sans KR'; letter-spacing: 0; font-size: 12px; color: #5a4a3a; margin-left: 6px; }
-  .paper-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .paper-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
   .sw {
     cursor: pointer;
     border-radius: 4px;
     padding: 4px;
     transition: transform .15s ease-out, background .15s;
   }
-  .sw i { display: block; height: 62px; border-radius: 3px; background-size: 150px; background-position: center;
-    box-shadow: 0 2px 4px rgba(60,40,20,.25), inset -12px 0 0 rgba(0,0,0,.1), inset 0 10px 18px rgba(255,255,255,.12); }
+  .sw i { display: block; height: 60px; border-radius: 2px; background-size: 150px; background-position: center;
+    box-shadow: 0 2px 4px rgba(60,40,20,.22), inset -12px 0 0 rgba(0,0,0,.08); }
   .sw span { display: block; font-size: 11px; margin-top: 5px; text-align: center; color: #5a4a3a; }
   .sw:hover { transform: translateY(-2px); }
-  .sw.on { background: rgba(255,255,255,.55); }
-  .sw.off { opacity: .35; pointer-events: none; }
+  .sw.on { background: rgba(255,255,255,.6); }
 
-  /* center: table */
+  /* center: work table */
   .stage {
     position: relative;
     background:
-      radial-gradient(ellipse at 50% 40%, rgba(255,245,225,.55), transparent 65%),
-      repeating-linear-gradient(90deg, #c49a6c 0 3px, #c8a072 3px 9px, #c19767 9px 14px);
+      radial-gradient(ellipse 70% 55% at 30% 28%, rgba(255,238,200,.95), transparent 70%),
+      linear-gradient(180deg, #ebe0ca, #dccdb1);
     overflow: hidden;
   }
-  .stage::after {
-    content: ''; position: absolute; inset: 0;
-    background: linear-gradient(180deg, rgba(0,0,0,.08), transparent 30%, transparent 75%, rgba(0,0,0,.12));
+  #pv { position: absolute; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; }
+  #pv.sticking { cursor: crosshair; }
+  #pv:active { cursor: grabbing; }
+  .item-ph {
+    position: absolute; left: 50%; top: 52%; z-index: 2;
+    max-width: 44%; max-height: 52%;
+    transform: translate(-50%, -50%);
+    filter: drop-shadow(0 14px 12px rgba(50,30,10,.25));
     pointer-events: none;
+    transition: opacity .35s, transform .35s ease-out;
   }
+  .item-ph.gone { opacity: 0; transform: translate(-50%, -46%) scale(.92); }
   .note {
-    position: absolute; top: 64px; left: 40px; z-index: 3;
-    width: 250px; padding: 16px 18px 18px;
+    position: absolute; top: 64px; left: 36px; z-index: 3;
+    width: 240px; padding: 16px 18px 18px;
     background: #fffdf6;
-    box-shadow: 0 6px 14px rgba(60,40,20,.22);
+    box-shadow: 0 6px 14px rgba(60,40,20,.2);
     transform: rotate(-2.5deg);
     font-family: 'Gaegu', cursive;
     transition: transform .5s ease-out, opacity .4s;
+    pointer-events: none;
   }
   .note::before {
     content: ''; position: absolute; top: -9px; left: 50%; width: 70px; height: 20px;
-    margin-left: -35px; background: rgba(240,220,160,.75); transform: rotate(3deg);
+    margin-left: -35px; background: rgba(220,200,140,.7); transform: rotate(3deg);
   }
   .note .no { font: 700 9px/1 'Space Mono', monospace; letter-spacing: .14em; color: #a08a72; }
   .note .item { font-size: 24px; font-weight: 700; margin: 8px 0 6px; color: #2e241b; }
@@ -97,19 +109,28 @@
   .note .msg { font-size: 18px; line-height: 1.25; color: #5a4a3a; }
   .note.out { transform: translate(-40px, -20px) rotate(-8deg); opacity: 0; }
 
-  .table-pkg {
-    position: absolute; left: 50%; top: 52%;
-    transform: translate(-50%, -50%);
-    z-index: 2;
-    filter: drop-shadow(0 14px 12px rgba(50,30,10,.28));
-    transition: transform .55s cubic-bezier(.2,.8,.2,1), opacity .3s;
+  .hint {
+    position: absolute; right: 24px; top: 64px; z-index: 3;
+    font-size: 12px; color: rgba(60,40,20,.62); text-align: right; line-height: 1.6;
+    pointer-events: none;
   }
-  .table-pkg.enter { transform: translate(-160%, -50%) rotate(-6deg); opacity: 0; }
-  .table-pkg svg { display: block; overflow: visible; }
-  .table-pkg.sticking { cursor: crosshair; }
+  .shapes {
+    position: absolute; right: 24px; top: 122px; z-index: 3;
+    display: flex; gap: 4px;
+    padding: 4px; border-radius: 8px;
+    background: rgba(255,250,240,.6);
+    transition: opacity .2s;
+  }
+  .shapes.off { opacity: .3; pointer-events: none; }
+  .shapes button {
+    cursor: pointer; border: 0; background: transparent;
+    padding: 6px 9px; border-radius: 5px;
+    font: 500 12px/1 'Noto Sans KR', sans-serif; color: #6a5a48;
+  }
+  .shapes button.on { background: #6b6a3a; color: #f4ecdc; }
 
   .say {
-    position: absolute; left: 50%; bottom: 34px; z-index: 4;
+    position: absolute; left: 50%; bottom: 30px; z-index: 6;
     transform: translate(-50%, 10px);
     padding: 10px 18px;
     background: #fffdf6; border-radius: 18px;
@@ -122,39 +143,33 @@
   .say.show { opacity: 1; transform: translate(-50%, 0); }
   .say small { font-family: 'Noto Sans KR'; font-size: 11px; color: #9a866f; margin-left: 8px; }
 
-  .hint {
-    position: absolute; right: 26px; top: 66px; z-index: 3;
-    font-size: 12px; color: rgba(60,40,20,.6); text-align: right; line-height: 1.6;
-  }
-
   /* bottom: strings + stickers */
   .tools {
-    display: grid; grid-template-columns: 1fr 1fr auto; gap: 22px;
-    padding: 18px 24px 20px;
-    background: #f3ebdf;
-    border-top: 1px solid rgba(80,60,40,.15);
+    display: grid; grid-template-columns: auto 1fr auto; gap: 20px;
+    padding: 14px 20px 14px;
+    background: #f4ecdc;
+    border-top: 1px solid rgba(80,60,40,.14);
   }
-  .row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .str-grid { display: grid; grid-template-columns: repeat(4, 62px); gap: 3px 4px; }
+  .stk-grid { display: grid; grid-template-columns: repeat(8, 42px); gap: 2px 4px; }
   .chip {
     cursor: pointer;
-    display: flex; flex-direction: column; align-items: center; gap: 3px;
-    width: 64px; padding: 6px 2px 5px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 3px 2px 3px;
     border-radius: 6px;
-    transition: background .15s, transform .15s ease-out;
+    transition: background .15s, transform .15s ease-out, opacity .2s;
   }
-  .chip svg { width: 46px; height: 34px; display: block; }
-  .chip img { width: 38px; height: 38px; object-fit: contain; display: block; filter: drop-shadow(0 1px 1px rgba(60,40,20,.3)); }
-  .chip span { font-size: 10px; color: #6a5a48; text-align: center; line-height: 1.2; }
+  .chip img { width: 30px; height: 26px; object-fit: contain; display: block; filter: drop-shadow(0 1px 1px rgba(60,40,20,.3)); }
+  .chip span { font-size: 9.5px; color: #6a5a48; text-align: center; line-height: 1.15; white-space: nowrap; }
+  .chip.stk img { width: 34px; height: 34px; }
   .chip:hover { transform: translateY(-2px); }
-  .chip.on { background: rgba(200,170,130,.35); }
+  .chip.on { background: rgba(201,154,46,.3); }
   .chip.off { opacity: .3; pointer-events: none; }
-  .stk { width: 44px; padding: 4px 0; }
-  .stk svg { width: 34px; height: 34px; }
 
   .done-col { display: flex; flex-direction: column; justify-content: center; gap: 8px; }
   .btn {
     cursor: pointer; border: 0;
-    padding: 14px 22px;
+    padding: 14px 20px;
     background: #3a2f25; color: #f7efe2;
     font: 700 14px/1 'Noto Sans KR', sans-serif;
     border-radius: 6px;
@@ -164,51 +179,46 @@
   .btn:disabled { opacity: .25; pointer-events: none; }
   .btn.ghost { background: transparent; color: #7a6a58; border: 1px solid rgba(80,60,40,.25); padding: 9px 14px; font-size: 12px; }
 
-  /* right: pile */
+  /* right: the room */
   .pile {
     grid-row: 1 / 3; grid-column: 3;
     position: relative;
-    background: linear-gradient(180deg, #e1d3bf, #d6c5ad);
-    border-left: 1px solid rgba(80,60,40,.15);
+    background: #d8c6a6;
     overflow: hidden;
   }
-  .pile .label { position: absolute; top: 70px; left: 24px; }
-  .pile .count { position: absolute; top: 88px; left: 24px; font: 700 44px/1 'Space Mono', monospace; color: #5a4a3a; }
-  .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 60px; background: linear-gradient(180deg, #bfa888, #c9b495); border-top: 1px solid rgba(60,40,20,.2); }
-  .tree { position: absolute; left: 50%; bottom: 50px; width: 290px; transform: translateX(-50%); z-index: 1; pointer-events: none;
-    filter: drop-shadow(0 6px 6px rgba(50,30,10,.25)); }
-  .stacked.back { filter: drop-shadow(0 3px 2px rgba(50,30,10,.22)) brightness(.93); }
-  .stacked { position: absolute; transform-origin: 50% 100%; filter: drop-shadow(0 4px 3px rgba(50,30,10,.25)); }
-  .stacked svg { display: block; width: 100%; height: 100%; overflow: visible; }
-  .stacked:hover { z-index: 999 !important; }
+  .room {
+    position: absolute; top: 0; left: 50%; height: 100%;
+    aspect-ratio: 2 / 3;
+    transform: translateX(-50%);
+    background: url(img/room.jpg) center / 100% 100% no-repeat;
+    filter: sepia(.08) saturate(.9) contrast(.97);
+  }
+  .room::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 4;
+    background:
+      radial-gradient(ellipse 80% 70% at 50% 55%, transparent 55%, rgba(60,35,15,.38)),
+      linear-gradient(180deg, rgba(255,226,170,.12), rgba(255,200,140,.08));
+  }
+  #rc { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .pile .label, .pile .count { position: absolute; left: 24px; z-index: 6; }
+  .pile .label { top: 70px; }
+  .pile .count { top: 88px; font: 700 44px/1 'Space Mono', monospace; color: #5a4a3a; }
   .tip {
-    position: absolute; z-index: 1000; pointer-events: none;
+    position: absolute; z-index: 10; pointer-events: none;
     padding: 6px 10px; background: #fffdf6; border-radius: 10px;
     font-family: 'Gaegu', cursive; font-size: 17px; white-space: nowrap;
     box-shadow: 0 3px 8px rgba(60,40,20,.2);
     opacity: 0; transition: opacity .15s;
   }
-
-  @keyframes wrapIn { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-  @keyframes bandV { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-  @keyframes bandH { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-  @keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.18); } 100% { transform: scale(1); } }
-  @keyframes jiggle { 0%,100% { transform: rotate(0); } 30% { transform: rotate(-2deg); } 60% { transform: rotate(1.5deg); } }
-  .paper-in { transform-box: fill-box; transform-origin: 50% 100%; animation: wrapIn .55s cubic-bezier(.3,.7,.2,1) both; }
-  .band-v { transform-box: fill-box; transform-origin: 50% 0; animation: bandV .35s ease-out both; }
-  .band-h { transform-box: fill-box; transform-origin: 0 50%; animation: bandH .35s .15s ease-out both; }
-  .bow { transform-box: fill-box; transform-origin: 50% 50%; animation: pop .4s .4s cubic-bezier(.3,1.4,.5,1) both; }
-  .stk-in { transform-box: fill-box; transform-origin: 50% 50%; animation: pop .3s cubic-bezier(.3,1.5,.5,1) both; }
-  .jig { animation: jiggle .4s ease-in-out; }
+  .loading { position: absolute; inset: 0; display: grid; place-items: center; z-index: 30;
+    background: #efe6d4; font: 700 11px/1 'Space Mono', monospace; letter-spacing: .2em; color: #8b7864; transition: opacity .4s; }
+  .loading.gone { opacity: 0; pointer-events: none; }
 </style>
 </head>
 <body>
 <a class="home-btn" href="../index.html">← INDEX</a>
 <button class="snd" id="snd">SOUND ON</button>
-
-<svg width="0" height="0" style="position:absolute">
-  <defs id="defs"></defs>
-</svg>
+<div class="loading" id="loading">UNROLLING PAPER…</div>
 
 <div class="wrap">
   <aside class="papers">
@@ -216,26 +226,28 @@
     <div class="paper-grid" id="papers"></div>
   </aside>
 
-  <main class="stage" id="stage">
+  <main class="stage grain" id="stage">
+    <canvas id="pv"></canvas>
+    <img class="item-ph" id="itemPh" alt="">
     <div class="note" id="note">
       <div class="no" id="noteNo">ORDER No.01</div>
       <div class="item" id="noteItem"></div>
       <div class="meta" id="noteMeta"></div>
       <div class="msg" id="noteMsg"></div>
     </div>
-    <div class="hint" id="hint">왼쪽에서 포장지를 골라요</div>
-    <div class="table-pkg enter" id="pkg"></div>
+    <div class="hint" id="hint"></div>
+    <div class="shapes off" id="shapes"></div>
     <div class="say" id="say"></div>
   </main>
 
   <section class="tools">
     <div>
       <div class="label">STRING<b>끈 · 리본</b></div>
-      <div class="row" id="strings"></div>
+      <div class="str-grid" id="strings"></div>
     </div>
     <div>
       <div class="label">STICKER<b>스티커 — 고르고 선물을 눌러 붙여요</b></div>
-      <div class="row" id="stickers"></div>
+      <div class="stk-grid" id="stickers"></div>
     </div>
     <div class="done-col">
       <button class="btn" id="done" disabled>다 쌌어요 →</button>
@@ -244,43 +256,64 @@
   </section>
 
   <aside class="pile" id="pile">
-    <div class="label">STACK<b>포장한 선물</b></div>
+    <div class="room grain" id="room"><canvas id="rc"></canvas></div>
+    <div class="label">UNDER THE TREE<b>포장한 선물</b></div>
     <div class="count" id="count">0</div>
-    <div class="floor"></div>
-    <img class="tree" src="img/tree.png" alt="">
     <div class="tip" id="tip"></div>
   </aside>
 </div>
 
-<script>
-const NS = 'http://www.w3.org/2000/svg';
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/",
+  "cannon-es": "https://cdn.jsdelivr.net/npm/cannon-es@0.20.0/dist/cannon-es.js"
+} }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { DecalGeometry } from 'three/addons/geometries/DecalGeometry.js';
+import * as CANNON from 'cannon-es';
 
+const $ = (id) => document.getElementById(id);
+const V = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? a : b; };
+const byId = (arr, id) => arr.find(o => o.id === id);
+const DEBUG = location.search.includes('debug');
+
+/* ---------- data ---------- */
 const ITEMS = [
-  { id: 'lp', name: 'IRON MOTH 3집 LP', short: '메탈 LP', w: 200, h: 224, tags: ['dark', 'rough'],
+  { id: 'lp', name: 'IRON MOTH 3집 LP', short: '메탈 LP', tags: ['dark', 'rough'], shape: 'box', d: { w: .32, h: .04, d: .32 },
     meta: '1998 · 초판 500장 중 한 장',
     msg: '고등학교 때 형이랑 테이프가 늘어나도록 들은 앨범이에요. 형 생일이라 초판 LP를 겨우 구했어요. 재킷 모서리 닳은 건 원래 그래요.' },
-  { id: 'plush', name: '털복숭이 원숭이 인형', short: '털 인형', w: 156, h: 208, tags: ['cute', 'colorful'],
+  { id: 'plush', name: '털복숭이 원숭이 인형', short: '털 인형', tags: ['cute', 'colorful'], shape: 'candy', d: { r: .1, L: .26 },
     meta: '중고 · 오른쪽 귀 실밥 풀림',
     msg: '조카가 놀이공원에서 잃어버리고 사흘을 울었대요. 똑같은 걸 중고로 겨우 찾았어요. 귀 실밥 풀린 것까지 닮았어요. 무조건 귀엽게요!' },
-  { id: 'candle', name: '무화과 향초', short: '향초', w: 124, h: 175, tags: ['natural', 'elegant'],
+  { id: 'candle', name: '무화과 향초', short: '향초', tags: ['natural', 'elegant'], shape: 'tube', d: { r: .07, h: .16 },
     meta: '제주 작은 공방 · 무화과와 시더',
     msg: '공방 사장님이 직접 부은 향초예요. 친구가 원목 가구 가득한 집으로 이사했어요. 새 집 첫 밤에 켜 달라고 할 거예요.' },
-  { id: 'wine', name: '레드 와인 한 병', short: '와인', w: 69, h: 285, tags: ['elegant', 'classic'],
+  { id: 'wine', name: '레드 와인 한 병', short: '와인', tags: ['elegant', 'classic'], shape: 'tube', d: { r: .05, h: .36 },
     meta: 'Rosso · 1996 빈티지',
     msg: '부모님이 결혼하신 해에 담근 와인이에요. 결혼 30주년이라 반년 동안 찾았어요. 점잖게 부탁드려요.' },
-  { id: 'book', name: '오래된 시집', short: '시집', w: 150, h: 226, tags: ['retro', 'natural', 'classic'],
+  { id: 'book', name: '오래된 시집', short: '시집', tags: ['retro', 'natural', 'classic'], shape: 'box', d: { w: .17, h: .05, d: .24 },
     meta: '1987 · 초판 · 헌책방에서',
     msg: '속표지에 누가 연필로 "봄에, 너에게"라고 써 놨어요. 그 한 줄 때문에 샀어요. 헌책방 하는 선배한테 드려요.' },
-  { id: 'cactus', name: '손바닥 선인장', short: '선인장', w: 106, h: 198, tags: ['fun', 'natural'],
+  { id: 'cactus', name: '손바닥 선인장', short: '선인장', tags: ['fun', 'natural'], shape: 'prism', d: { L: .2, H: .22, b: .1 },
     meta: '이름은 버티기 · 물은 한 달에 한 번',
     msg: '퇴사하는 동기한테 줘요. 화분마다 다 죽이던 친구라 제일 튼튼한 걸로 골랐어요. 웃으면서 보내고 싶어요.' },
-  { id: 'shoes', name: '한정판 운동화', short: '운동화', w: 260, h: 129, tags: ['fun', 'rough', 'colorful'],
+  { id: 'shoes', name: '한정판 운동화', short: '운동화', tags: ['fun', 'rough', 'colorful'], shape: 'box', d: { w: .32, h: .13, d: .2 },
     meta: '270 · 500켤레 중 001번',
     msg: '새벽 4시부터 줄 서서 샀어요. 남자친구가 한 달 내내 이 얘기만 했어요. 영수증은 상자 안에 넣어 뒀어요.' },
-  { id: 'mug', name: '고양이 머그컵', short: '머그컵', w: 160, h: 138, tags: ['cute', 'fun'],
+  { id: 'mug', name: '고양이 머그컵', short: '머그컵', tags: ['cute', 'fun'], shape: 'box', d: { w: .14, h: .14, d: .14 },
     meta: '도예 수업 첫 작품 · 손잡이 삐뚤',
     msg: '고양이 두 마리랑 사는 친구한테 줘요. 첫째 두부 얼굴을 그렸는데 좀 덜 닮았어요.' },
 ];
+
+const SHAPES = [{ id: 'box', name: '상자' }, { id: 'tube', name: '원통' }, { id: 'candy', name: '사탕' }, { id: 'prism', name: '삼각' }];
 
 const PAPERS = [
   { id: 'black', name: '블랙 무지', tags: ['dark', 'elegant'] },
@@ -295,100 +328,437 @@ const PAPERS = [
   { id: 'holo', name: '홀로그램', tags: ['fun', 'colorful'] },
 ];
 
+// band: [thickness px], bow: [width px, src w, src h]  (1px ≈ K m)
 const STRINGS = [
-  { id: 'rope', name: '거친 검정 끈', tags: ['dark', 'rough'] },
-  { id: 'chain', name: '은색 체인', tags: ['dark', 'rough', 'fun'] },
-  { id: 'jute', name: '마끈', tags: ['natural', 'rough', 'retro'] },
-  { id: 'satin', name: '빨간 새틴', tags: ['classic', 'elegant'] },
-  { id: 'gold', name: '금색 끈', tags: ['elegant', 'classic'] },
-  { id: 'pink', name: '분홍 큰 리본', tags: ['cute'] },
-  { id: 'curly', name: '알록달록 컬링', tags: ['colorful', 'fun', 'cute'] },
+  { id: 'jute', name: '마끈', tags: ['natural', 'rough', 'retro'], band: 8, bow: [84, 315, 360] },
+  { id: 'twine', name: '파랑 실끈', tags: ['retro', 'natural', 'fun'], band: 6, bow: [80, 360, 292] },
+  { id: 'rope', name: '거친 검정 끈', tags: ['dark', 'rough'], band: 12, bow: [84, 334, 360] },
+  { id: 'chain', name: '은색 체인', tags: ['dark', 'rough', 'fun'], band: 10, bow: [52, 222, 360] },
+  { id: 'satin', name: '빨간 새틴', tags: ['classic', 'elegant'], band: 16, bow: [100, 325, 360] },
+  { id: 'gingham', name: '빨간 체크 리본', tags: ['cute', 'retro', 'classic'], band: 16, bow: [96, 353, 360] },
+  { id: 'velvet', name: '머스터드 벨벳', tags: ['elegant', 'classic', 'natural'], band: 18, bow: [96, 299, 360] },
+  { id: 'gold', name: '금색 끈', tags: ['elegant', 'classic'], band: 7, bow: [80, 360, 316] },
+  { id: 'yarn', name: '올리브 털실', tags: ['natural', 'cute'], band: 12, bow: [70, 259, 360] },
+  { id: 'pink', name: '분홍 큰 리본', tags: ['cute'], band: 20, bow: [108, 360, 342] },
+  { id: 'curly', name: '알록달록 컬링', tags: ['colorful', 'fun', 'cute'], band: 12, bow: [96, 358, 360] },
+  { id: 'strap', name: '하늘색 포장 끈', tags: ['rough', 'fun'], band: 14, bow: [56, 360, 360] },
 ];
 
 const STICKERS = [
-  { id: 'skull', tags: ['dark', 'fun'] }, { id: 'bolt', tags: ['dark', 'rough'] },
-  { id: 'heart', tags: ['cute', 'classic'] }, { id: 'star', tags: ['colorful', 'fun'] },
-  { id: 'berry', tags: ['cute', 'colorful'] }, { id: 'smile', tags: ['fun', 'cute'] },
-  { id: 'daisy', tags: ['cute', 'natural'] }, { id: 'fragile', tags: ['rough', 'retro'] },
-  { id: 'cherry', tags: ['cute', 'retro'] }, { id: 'paw', tags: ['cute'] },
-  { id: 'spark', tags: ['elegant', 'colorful'] }, { id: 'leaf', tags: ['natural'] },
-];
+  ['skull', 'dark', 'fun'], ['stamp', 'retro', 'natural'], ['receipt', 'rough', 'retro'], ['memo', 'retro', 'natural'],
+  ['kiss', 'cute', 'classic'], ['egg', 'fun', 'cute'], ['pickle', 'fun', 'rough'], ['bandage', 'fun', 'cute'],
+  ['mandarin', 'natural', 'colorful'], ['cassette', 'retro', 'dark'], ['goldstar', 'elegant', 'classic'], ['evileye', 'colorful', 'elegant'],
+  ['fragile', 'rough', 'retro'], ['smile', 'fun', 'cute'], ['bolt', 'dark', 'rough'], ['heart', 'cute', 'classic'],
+  ['cherry', 'cute', 'retro'], ['berry', 'cute', 'colorful'], ['daisy', 'cute', 'natural'], ['mushroom', 'natural', 'fun'],
+  ['pine', 'natural', 'classic'], ['matchbox', 'retro', 'rough'], ['polaroid', 'retro', 'elegant'], ['pretzel', 'fun', 'rough'],
+].map(([id, ...tags]) => ({ id, tags }));
 
-const IMG = 'img/';
-const BANDS = { jute: [8, 773], rope: [12, 359], chain: [10, 655], satin: [16, 363], gold: [7, 1675], pink: [20, 450], curly: [12, 1370] };
-const BOWS = { jute: [84, 315, 360, .33], rope: [84, 334, 360, .26], chain: [52, 222, 360, .3], satin: [100, 325, 360, .26],
-  gold: [80, 360, 316, .3], pink: [108, 360, 342, .37], curly: [96, 358, 360, .5] };
+const IMG = 'img/', K = .0016, TILE = .2, EPS = .003;
 
-const DEFS = `
-<filter id="bsh" x="-20%" y="-30%" width="140%" height="170%"><feDropShadow dx="0" dy="1.5" stdDeviation="1.2" flood-color="#2a1a0a" flood-opacity=".35"/></filter>
-<linearGradient id="shade" x1="0" y1="0" x2="1" y2="0">
-  <stop offset="0" stop-color="#fff" stop-opacity=".16"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/>
-  <stop offset="1" stop-color="#000" stop-opacity=".22"/>
-</linearGradient>
-${PAPERS.map(p => `<pattern id="p-${p.id}" width="210" height="210" patternUnits="userSpaceOnUse"><image href="${IMG}paper-${p.id}.jpg" width="210" height="210"/></pattern>`).join('')}
-${Object.entries(BANDS).map(([id, [t, w]]) => `<pattern id="b-${id}" width="${w * t / 48}" height="${t}" patternUnits="userSpaceOnUse"><image href="${IMG}band-${id}.png" width="${w * t / 48}" height="${t}" preserveAspectRatio="none"/></pattern>`).join('')}
-`;
-document.getElementById('defs').innerHTML = DEFS;
-[...ITEMS.map(i => `item-${i.id}.png`), ...PAPERS.map(p => `paper-${p.id}.jpg`),
- ...STRINGS.flatMap(s => [`band-${s.id}.png`, `bow-${s.id}.png`]), ...STICKERS.map(s => `st-${s.id}.png`)]
-  .forEach(f => { new Image().src = IMG + f; });
-
-function itemArt(it, x, y) {
-  return `<image href="${IMG}item-${it.id}.png" x="${x}" y="${y}" width="${it.w}" height="${it.h}" preserveAspectRatio="xMidYMid meet"/>`;
+/* ---------- textures ---------- */
+const loader = new THREE.TextureLoader();
+const TEX = {};
+function loadTex(key, url, srgb = true) {
+  return new Promise((res) => loader.load(url, (t) => {
+    if (srgb) t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4; TEX[key] = t; res();
+  }, undefined, () => res()));
+}
+async function preload() {
+  const jobs = [];
+  PAPERS.forEach(p => jobs.push(loadTex('paper-' + p.id, `${IMG}paper-${p.id}.jpg`)));
+  STRINGS.forEach(s => { jobs.push(loadTex('band-' + s.id, `${IMG}band-${s.id}.png`)); jobs.push(loadTex('bow-' + s.id, `${IMG}bow-${s.id}.png`)); });
+  STICKERS.forEach(s => jobs.push(loadTex('st-' + s.id, `${IMG}st-${s.id}.png`)));
+  await Promise.all(jobs);
+  PAPERS.forEach(p => { const t = TEX['paper-' + p.id]; if (t) t.wrapS = t.wrapT = THREE.RepeatWrapping; });
 }
 
-function band(id, x0, y0, len, horiz, off) {
-  const t = BANDS[id][0];
-  const tr = horiz ? `translate(${x0} ${y0 + off - t / 2})` : `translate(${x0 + off + t / 2} ${y0}) rotate(90)`;
-  return `<g transform="${tr}"><rect width="${len}" height="${t}" fill="url(#b-${id})"/></g>`;
+const MAT = {};
+function paperMat(id) {
+  if (MAT[id]) return MAT[id];
+  const o = { map: TEX['paper-' + id], roughness: .86, metalness: 0, side: THREE.DoubleSide };
+  if (id === 'holo') Object.assign(o, { roughness: .32, metalness: .45 });
+  if (id === 'black') o.roughness = .7;
+  return (MAT[id] = new THREE.MeshStandardMaterial(o));
+}
+function bowMat(id) {
+  const k = 'bow-' + id;
+  return MAT[k] || (MAT[k] = new THREE.MeshStandardMaterial({ map: TEX[k], transparent: true, alphaTest: .35, side: THREE.DoubleSide, roughness: .7 }));
+}
+function stickerMat(id) {
+  const k = 'st-' + id;
+  return MAT[k] || (MAT[k] = new THREE.MeshStandardMaterial({ map: TEX[k], transparent: true, alphaTest: .25, roughness: .62,
+    polygonOffset: true, polygonOffsetFactor: -4, depthWrite: false }));
+}
+function bandMat(id, len, t) {
+  const base = TEX['band-' + id], tex = base.clone();
+  tex.needsUpdate = true; tex.wrapS = THREE.RepeatWrapping;
+  tex.repeat.x = len / (base.image.width / base.image.height * t);
+  const m = new THREE.MeshStandardMaterial({ map: tex, transparent: true, alphaTest: .35, side: THREE.DoubleSide, roughness: .72 });
+  m.userData.own = true;
+  return m;
 }
 
-function ribbon(id, x, y, W, H, anim) {
-  const cx = x + W * .5, cy = y + H * .42;
-  const a = anim ? ['band-v', 'band-h', 'bow'] : ['', '', ''];
-  const offs = id === 'jute' ? [-4, 4] : [0];
-  const v = offs.map(o => band(id, cx, y - 2, H + 4, false, o)).join('');
-  const h = offs.map(o => band(id, x - 2, cy, W + 4, true, o)).join('');
-  const [bw0, sw, sh, ky] = BOWS[id];
-  const bw = Math.min(bw0, W * 1.15), bh = bw * sh / sw;
-  return `<g filter="url(#bsh)"><g class="${a[0]}">${v}</g><g class="${a[1]}">${h}</g></g>
-    <g class="${a[2]}" filter="url(#bsh)"><image href="${IMG}bow-${id}.png" x="${cx - bw / 2}" y="${cy - bh * ky}" width="${bw}" height="${bh}"/></g>`;
+/* ---------- shapes ---------- */
+function bbox(shape, d) {
+  if (shape === 'box') return [d.w, d.h, d.d];
+  if (shape === 'tube') return [2 * d.r, d.h, 2 * d.r];
+  if (shape === 'candy') return [d.L + 1.8 * d.r, 2 * d.r, 2 * d.r];
+  return [d.L, d.H, 2 * d.b];
+}
+function dimsFor(item, shape) {
+  if (shape === item.shape) return item.d;
+  const [X, Y, Z] = bbox(item.shape, item.d), a = [X, Y, Z].sort((p, q) => q - p);
+  if (shape === 'box') return { w: X, h: Y, d: Z };
+  if (shape === 'tube') return { r: Math.max(X, Z) * .45, h: Math.max(Y, .08) };
+  if (shape === 'candy') return { L: a[0] * .75, r: Math.min(a[1] / 2, a[0] * .28) };
+  return { L: Math.max(X, Z), H: Math.max(Y, .1), b: Math.max(Math.min(X, Z) / 2, .06) };
+}
+function restY(shape, d) {
+  return shape === 'box' ? d.h / 2 : shape === 'tube' ? d.h / 2 : shape === 'candy' ? d.r : d.H / 3;
 }
 
-const P = 46;
-function stickerUse(s, anim) {
-  const z = s.id === 'fragile' ? 66 : 44;
-  return `<g transform="translate(${s.x} ${s.y}) rotate(${s.r})" data-i="${s.i}" style="cursor:pointer">
-    <g class="${anim ? 'stk-in' : ''}"><image href="${IMG}st-${s.id}.png" x="${-z / 2}" y="${-z / 2}" width="${z}" height="${z}"/></g></g>`;
+function scaleUV(g, scales) {
+  const uv = g.attributes.uv, idx = g.index, done = new Set();
+  const groups = g.groups.length ? g.groups : [{ start: 0, count: idx ? idx.count : uv.count }];
+  groups.forEach((gr, gi) => {
+    const [su, sv] = scales[gi] || scales[0];
+    for (let i = gr.start; i < gr.start + gr.count; i++) {
+      const v = idx ? idx.getX(i) : i;
+      if (done.has(v)) continue; done.add(v);
+      uv.setXY(v, uv.getX(v) * su, uv.getY(v) * sv);
+    }
+  });
 }
 
-function pkgSVG(st, anim = {}) {
-  const it = st.item, W = it.w + P * 2, H = it.h + P * 2;
-  const x = P, y = P;
-  let paper = '';
-  if (st.paper) {
-    const fill = `url(#p-${st.paper})`;
-    paper = `<g class="${anim.paper ? 'paper-in' : ''}">
-      <rect x="${x - 5}" y="${y - 5}" width="${it.w + 10}" height="${it.h + 10}" rx="3" fill="${fill}"/>
-      <rect x="${x - 5}" y="${y - 5}" width="${it.w + 10}" height="${it.h + 10}" rx="3" fill="url(#shade)"/>
-      <path d="M${x - 5} ${y + 9} H${x + it.w + 5}" stroke="#fff" stroke-opacity=".22" stroke-width="1.5"/>
-      <path d="M${x - 5} ${y + it.h + 5} l14 -12 M${x + it.w + 5} ${y + it.h + 5} l-14 -12" stroke="#000" stroke-opacity=".18" stroke-width="1.2"/>
-      <rect x="${x + it.w * .62}" y="${y + it.h - 4}" width="22" height="9" fill="#fff" opacity=".35" transform="rotate(-4 ${x + it.w * .62} ${y + it.h})"/>
-    </g>`;
+function paperGeo(shape, d) {
+  const T = TILE;
+  if (shape === 'box') {
+    const g = new THREE.BoxGeometry(d.w, d.h, d.d);
+    const sx = [d.d / T, d.h / T], sy = [d.w / T, d.d / T], sz = [d.w / T, d.h / T];
+    scaleUV(g, [sx, sx, sy, sy, sz, sz]);
+    return g;
   }
-  const rib = st.paper && st.string ? ribbon(st.string, x - 5, y - 5, it.w + 10, it.h + 10, anim.ribbon) : '';
-  const stk = st.stickers.map((s, i) => stickerUse(s, anim.sticker === i)).join('');
-  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
-    <g opacity="${st.paper ? 1 : 1}">${st.paper && !anim.paper ? '' : itemArt(it, x, y)}</g>
-    ${paper}${rib}${stk}</svg>`;
+  if (shape === 'tube') {
+    const g = new THREE.CylinderGeometry(d.r, d.r, d.h, 48);
+    const c = [2 * d.r / T, 2 * d.r / T];
+    scaleUV(g, [[2 * Math.PI * d.r / T, d.h / T], c, c]);
+    return g;
+  }
+  if (shape === 'candy') {
+    const r = d.r, h = d.L / 2, e = r * .72, p = r * .22;
+    const half = [[r * .95, -h - e], [r * .72, -h - e * .72], [r * .42, -h - e * .4], [p, -h - e * .08],
+      [p * 1.3, -h + r * .03], [r * .72, -h + r * .2], [r * .95, -h + r * .48], [r, -h + r * .82]];
+    const pts = [...half, ...half.slice().reverse().map(([x, y]) => [x, -y])].map(([x, y]) => new THREE.Vector2(x, y));
+    const g = new THREE.LatheGeometry(pts, 56);
+    const pos = g.attributes.position;
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const k = Math.max(0, (Math.abs(y) - h) / e);
+      const a = Math.atan2(z, x);
+      const f = 1 + .1 * k * Math.sin(a * 7 + (y > 0 ? 1.7 : 0)) + .05 * k * Math.sin(a * 13 + y * 30) + .012 * Math.sin(a * 5 + y * 40);
+      pos.setXYZ(i, x * f, y, z * f);
+    }
+    g.computeVertexNormals();
+    scaleUV(g, [[2 * Math.PI * r / T, (d.L + 2 * e) / T]]);
+    g.rotateZ(-Math.PI / 2);
+    return g;
+  }
+  const s = new THREE.Shape();
+  s.moveTo(-d.b, -d.H / 3); s.lineTo(d.b, -d.H / 3); s.lineTo(0, 2 * d.H / 3); s.closePath();
+  const g = new THREE.ExtrudeGeometry(s, { depth: d.L, bevelEnabled: false });
+  g.translate(0, 0, -d.L / 2); g.rotateY(Math.PI / 2);
+  scaleUV(g, [[1 / T, 1 / T], [1 / T, 1 / T]]);
+  return g;
 }
 
-const $ = (id) => document.getElementById(id);
-const pick = (a) => a[Math.floor(Math.random() * a.length)];
-const shuffle = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const josa = (w, a, b) => { const c = w.charCodeAt(w.length - 1); return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 ? a : b; };
+function addPhys(body, shape, d) {
+  if (shape === 'box') body.addShape(new CANNON.Box(new CANNON.Vec3(d.w / 2, d.h / 2, d.d / 2)));
+  else if (shape === 'tube') body.addShape(new CANNON.Cylinder(d.r, d.r, d.h, 14));
+  else if (shape === 'candy') {
+    const q = new CANNON.Quaternion(); q.setFromAxisAngle(new CANNON.Vec3(0, 0, 1), Math.PI / 2);
+    body.addShape(new CANNON.Cylinder(d.r * .95, d.r * .95, d.L + d.r * 1.1, 14), new CANNON.Vec3(), q);
+  } else {
+    const L = d.L / 2, a = -d.H / 3, t = 2 * d.H / 3, b = d.b;
+    const verts = [[-L, a, b], [-L, a, -b], [-L, t, 0], [L, a, b], [L, a, -b], [L, t, 0]].map(v => new CANNON.Vec3(...v));
+    body.addShape(new CANNON.ConvexPolyhedron({ vertices: verts, faces: [[0, 2, 1], [3, 4, 5], [0, 1, 4, 3], [1, 2, 5, 4], [2, 0, 3, 5]] }));
+  }
+  const [X, Y, Z] = bbox(shape, d);
+  body.mass = clamp(X * Y * Z * 380, .15, 3); body.updateMassProperties();
+}
 
-/* sound */
+/* ---------- strings & bows ---------- */
+function strip(id, len, t, pos, n, dir) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(len, t), bandMat(id, len, t));
+  const x = dir.clone().normalize(), z = n.clone().normalize(), y = V().crossVectors(z, x);
+  m.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
+  m.position.copy(pos);
+  return m;
+}
+function ring(id, rad, t, alongX) {
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(rad, rad, t, 48, 1, true), bandMat(id, 2 * Math.PI * rad, t));
+  if (alongX) m.rotation.z = Math.PI / 2;
+  return m;
+}
+function bow(id, maxW, pos, scale = 1) {
+  const [bw0, sw, sh] = byId(STRINGS, id).bow;
+  const bw = Math.min(bw0 * K * 1.15, maxW) * scale;
+  const g = new THREE.PlaneGeometry(bw, bw * sh / sw); g.rotateX(-Math.PI / 2);
+  const m = new THREE.Mesh(g, bowMat(id));
+  m.position.copy(pos); m.rotation.y = rand(-.25, .25);
+  m.userData.bow = true;
+  return m;
+}
+function bandsFor(shape, d, id) {
+  const G = new THREE.Group(), t = byId(STRINGS, id).band * K, e = EPS;
+  const add = (...a) => G.add(strip(id, ...a));
+  if (shape === 'box') {
+    const { w, h, d: dd } = d;
+    add(dd, t, V(0, h / 2 + e, 0), V(0, 1, 0), V(0, 0, 1)); add(dd, t, V(0, -h / 2 - e, 0), V(0, -1, 0), V(0, 0, 1));
+    add(h, t, V(0, 0, dd / 2 + e), V(0, 0, 1), V(0, 1, 0)); add(h, t, V(0, 0, -dd / 2 - e), V(0, 0, -1), V(0, 1, 0));
+    add(w, t, V(0, h / 2 + 2 * e, 0), V(0, 1, 0), V(1, 0, 0)); add(w, t, V(0, -h / 2 - 2 * e, 0), V(0, -1, 0), V(1, 0, 0));
+    add(h, t, V(w / 2 + e, 0, 0), V(1, 0, 0), V(0, 1, 0)); add(h, t, V(-w / 2 - e, 0, 0), V(-1, 0, 0), V(0, 1, 0));
+    G.add(bow(id, Math.min(w, dd) * 1.1, V(0, h / 2 + 4 * e, 0)));
+  } else if (shape === 'tube') {
+    const { r, h } = d;
+    const rg = ring(id, r + e, t, false); rg.position.y = h * .08; G.add(rg);
+    add(2 * r, t, V(0, h / 2 + e, 0), V(0, 1, 0), V(1, 0, 0)); add(2 * r, t, V(0, -h / 2 - e, 0), V(0, -1, 0), V(1, 0, 0));
+    add(h, t, V(r + e, 0, 0), V(1, 0, 0), V(0, 1, 0)); add(h, t, V(-r - e, 0, 0), V(-1, 0, 0), V(0, 1, 0));
+    G.add(bow(id, 2 * r * 1.2, V(0, h / 2 + 3 * e, 0)));
+  } else if (shape === 'candy') {
+    const xp = d.L / 2 + d.r * .07, rr = d.r * .22 * 1.35;
+    [-1, 1].forEach(s => {
+      const rg = ring(id, rr, Math.max(t, .012), true); rg.position.x = s * xp; G.add(rg);
+      G.add(bow(id, d.r * 1.6, V(s * xp, rr + e, 0), .62));
+    });
+  } else {
+    const { H, b } = d, P = [[b, -H / 3], [0, 2 * H / 3], [-b, -H / 3]];
+    for (let i = 0; i < 3; i++) {
+      const [z0, y0] = P[i], [z1, y1] = P[(i + 1) % 3];
+      const dir = V(0, y1 - y0, z1 - z0), mid = V(0, (y0 + y1) / 2, (z0 + z1) / 2);
+      const n = V(0, -(z1 - z0), y1 - y0).normalize();
+      if (n.dot(mid) < 0) n.negate();
+      add(dir.length() + t * .3, t, mid.addScaledVector(n, e), n, dir);
+    }
+    G.add(bow(id, Math.min(d.L, 2 * b) * .9, V(0, 2 * H / 3 + 2 * e, 0), .8));
+  }
+  return G;
+}
+
+/* ---------- gift ---------- */
+function decal(paper, s, i) {
+  const tex = TEX['st-' + s.id], asp = tex.image.height / tex.image.width;
+  const size = s.id === 'fragile' ? .1 : .07;
+  const p = V(...s.p), n = V(...s.n);
+  const o = new THREE.Object3D(); o.position.copy(p); o.lookAt(p.clone().add(n)); o.rotateZ(s.r);
+  const m = new THREE.Mesh(new DecalGeometry(paper, p, o.rotation, V(size, size * asp, .05)), stickerMat(s.id));
+  m.userData.si = i; m.receiveShadow = true;
+  return m;
+}
+function buildGift(snap) {
+  const G = new THREE.Group();
+  const paper = new THREE.Mesh(paperGeo(snap.shape, snap.dims), paperMat(snap.paper));
+  G.add(paper);
+  let bands = null;
+  if (snap.string) { bands = bandsFor(snap.shape, snap.dims, snap.string); G.add(bands); }
+  G.updateMatrixWorld(true);
+  snap.stickers.forEach((s, i) => G.add(decal(paper, s, i)));
+  G.traverse(o => { if (o.isMesh) { o.castShadow = o.userData.si === undefined; o.receiveShadow = true; } });
+  G.userData = { paper, bands };
+  return G;
+}
+function disposeGift(G) {
+  G.traverse(o => {
+    if (!o.isMesh) return;
+    o.geometry.dispose();
+    if (o.material.userData.own) { o.material.map.dispose(); o.material.dispose(); }
+  });
+}
+
+/* ---------- renderers ---------- */
+function mkRenderer(canvas) {
+  const r = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  r.setPixelRatio(Math.min(2, devicePixelRatio));
+  r.outputColorSpace = THREE.SRGBColorSpace;
+  r.toneMapping = THREE.ACESFilmicToneMapping; r.toneMappingExposure = 1.05;
+  r.shadowMap.enabled = true; r.shadowMap.type = THREE.PCFShadowMap;
+  return r;
+}
+function fit(r, cam, el) {
+  const w = el.clientWidth, h = el.clientHeight;
+  r.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+}
+
+/* preview: one gift on the work table */
+const pv = { r: mkRenderer($('pv')), scene: new THREE.Scene(), cam: new THREE.PerspectiveCamera(30, 1, .01, 20),
+  holder: new THREE.Group(), gift: null, yaw: -.55, pitch: 0, drag: null, idle: 0, tilt: 0 };
+{
+  const s = pv.scene;
+  s.add(new THREE.HemisphereLight(0xfff3df, 0x8a6c4c, 1.15));
+  const key = new THREE.DirectionalLight(0xffdcaa, 2.3);
+  key.position.set(-1.4, 2.1, 1.1); key.castShadow = true;
+  Object.assign(key.shadow.camera, { left: -.5, right: .5, top: .5, bottom: -.5, near: .1, far: 6 });
+  key.shadow.mapSize.set(1024, 1024); key.shadow.radius = 5; key.shadow.bias = -.0006; key.shadow.normalBias = .01;
+  s.add(key);
+  const fillL = new THREE.DirectionalLight(0xd8e4ff, .35); fillL.position.set(1.5, .6, 1); s.add(fillL);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.ShadowMaterial({ color: 0x4a2e14, opacity: .28 }));
+  ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; s.add(ground);
+  s.add(pv.holder);
+}
+function pvFrame() {
+  const [X, Y, Z] = bbox(st.shape, st.dims), R = Math.hypot(X, Y, Z) / 2;
+  const dist = R / Math.sin(THREE.MathUtils.degToRad(pv.cam.fov / 2)) * 1.32, el = THREE.MathUtils.degToRad(26);
+  const cy = restY(st.shape, st.dims);
+  pv.cam.position.set(0, cy + dist * Math.sin(el), dist * Math.cos(el));
+  pv.cam.lookAt(0, cy * .9, 0);
+}
+function pvSet(anim) {
+  if (pv.gift) { pv.holder.remove(pv.gift); disposeGift(pv.gift); pv.gift = null; }
+  if (!st.paper) return;
+  pv.gift = buildGift(st);
+  pv.holder.add(pv.gift);
+  pv.holder.position.set(0, restY(st.shape, st.dims), 0);
+  pvFrame();
+  const g = pv.gift;
+  if (anim === 'paper') tween(480, k => g.scale.setScalar(.55 + .45 * backOut(k)));
+  if (anim === 'string' && g.userData.bands) { const b = g.userData.bands; tween(420, k => b.scale.setScalar(1.35 - .35 * backOut(k))); }
+  if (anim === 'sticker') tween(220, k => g.scale.setScalar(1 + .035 * Math.sin(k * Math.PI)));
+}
+
+/* room: the photo floor, 4pm window light, physics */
+const ZW = -.55;
+// walls traced from the photo's baseboards: [point on floor, inward normal]
+const WALLS = [[[.17, -.42], [-.557, .83]], [[-.47, -.546], [.617, .786]], [[-.62, 0], [1, 0]], [[.82, 0], [-1, 0]]];
+const inRoom = (x, z, m) => WALLS.every(([[px, pz], [nx, nz]]) => ((x - px) * nx + (z - pz) * nz) / Math.hypot(nx, nz) > m);
+const room = { r: mkRenderer($('rc')), scene: new THREE.Scene(), cam: new THREE.PerspectiveCamera(50, 2 / 3, .05, 20),
+  world: new CANNON.World({ gravity: new CANNON.Vec3(0, -9.82, 0) }), gifts: [], lastThud: 0 };
+{
+  const s = room.scene, cam = room.cam;
+  cam.position.set(.03, 1.78, 2.12); cam.lookAt(.03, 0, 0);
+  s.add(new THREE.HemisphereLight(0xfff1dc, 0x8f6f4e, 1.05));
+  const sun = new THREE.DirectionalLight(0xffcf8e, 2.6);
+  const L = V(-1, .62, .22).normalize(), T = V(.08, 0, .3);
+  sun.position.copy(T).addScaledVector(L, 4); sun.target.position.copy(T);
+  sun.castShadow = true;
+  Object.assign(sun.shadow.camera, { left: -2.4, right: 2.4, top: 2.4, bottom: -2.4, near: .1, far: 9 });
+  sun.shadow.mapSize.set(2048, 2048); sun.shadow.radius = 4; sun.shadow.bias = -.0005; sun.shadow.normalBias = .012;
+  s.add(sun, sun.target);
+
+  // window frame that the sun passes through (invisible, shadow only)
+  const win = new THREE.Shape(); win.moveTo(-3, -3); win.lineTo(3, -3); win.lineTo(3, 3); win.lineTo(-3, 3); win.closePath();
+  const pw = .4, ph = .52, gap = .05;
+  for (const cx of [-1, 1]) for (const cy of [-1, 1]) {
+    const x0 = cx * (gap / 2 + pw / 2) - pw / 2, y0 = cy * (gap / 2 + ph / 2) - ph / 2, hole = new THREE.Path();
+    hole.moveTo(x0, y0); hole.lineTo(x0, y0 + ph); hole.lineTo(x0 + pw, y0 + ph); hole.lineTo(x0 + pw, y0); hole.closePath();
+    win.holes.push(hole);
+  }
+  const gobo = new THREE.Mesh(new THREE.ShapeGeometry(win), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, side: THREE.DoubleSide }));
+  gobo.position.copy(T).addScaledVector(L, 1.7); gobo.lookAt(T); gobo.castShadow = true;
+  s.add(gobo);
+
+  // floor outline follows the baseboards so the wall never gets floor shadows
+  const fl = new THREE.Shape([[-1.6, .34], [-.47, -.546], [.17, -.42], [1.6, .54], [1.6, 2.6], [-1.6, 2.6]].map(([x, z]) => new THREE.Vector2(x, -z)));
+  const floor = new THREE.Mesh(new THREE.ShapeGeometry(fl), new THREE.ShadowMaterial({ color: 0x3a2210, opacity: .4 }));
+  floor.rotation.x = -Math.PI / 2; floor.receiveShadow = true; s.add(floor);
+
+  // the pot hides anything behind it
+  const potGeo = new THREE.CylinderGeometry(.165, .13, .22, 24);
+  const pot = new THREE.Mesh(potGeo, DEBUG ? new THREE.MeshBasicMaterial({ color: 0xff0000, wireframe: true }) : new THREE.MeshBasicMaterial({ colorWrite: false }));
+  pot.position.y = .11; pot.renderOrder = -1; s.add(pot);
+  if (DEBUG) { const gh = new THREE.GridHelper(2, 20, 0xff0000, 0x0000ff); s.add(gh); }
+
+  const w = room.world;
+  w.broadphase = new CANNON.SAPBroadphase(w); w.allowSleep = true;
+  w.defaultContactMaterial.friction = .55; w.defaultContactMaterial.restitution = .06;
+  const plane = (pos, axis, ang) => {
+    const b = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+    b.position.set(...pos); if (axis) b.quaternion.setFromAxisAngle(new CANNON.Vec3(...axis), ang);
+    w.addBody(b);
+  };
+  plane([0, 0, 0], [1, 0, 0], -Math.PI / 2);
+  const wall = (pos, nx, nz) => {
+    const b = new CANNON.Body({ mass: 0, shape: new CANNON.Plane() });
+    b.position.set(pos[0], 0, pos[1]);
+    b.quaternion.setFromVectors(new CANNON.Vec3(0, 0, 1), new CANNON.Vec3(nx, 0, nz).unit());
+    w.addBody(b);
+  };
+  WALLS.forEach(([pt, n]) => wall(pt, ...n));
+  plane([0, 0, 1.05], [0, 1, 0], Math.PI);
+  const potB = new CANNON.Body({ mass: 0 });
+  potB.addShape(new CANNON.Cylinder(.165, .13, .22, 16), new CANNON.Vec3(0, .11, 0));
+  potB.addShape(new CANNON.Cylinder(.03, .3, .8, 12), new CANNON.Vec3(0, .62, 0));
+  w.addBody(potB);
+}
+const blobTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128;
+  const x = c.getContext('2d'), g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(.5, 'rgba(0,0,0,.55)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+  return new THREE.CanvasTexture(c);
+})();
+function spawnSpot() {
+  for (let k = 0; k < 40; k++) {
+    let x, z;
+    if (room.gifts.length && Math.random() < .65) {
+      const p = pick(room.gifts).body.position; x = p.x + rand(-.22, .22); z = p.z + rand(-.16, .16);
+    } else { x = rand(-.58, .58); z = rand(-.05, .55); }
+    x = clamp(x, -.42, .5); z = clamp(z, -.5, .7);
+    if (Math.hypot(x, z) > .34 && inRoom(x, z, .14)) return [x, z];
+  }
+  return [rand(-.4, .5), .5];
+}
+function dropGift(snap, tip) {
+  const S = .8, G = buildGift(snap); G.userData.tip = tip; G.scale.setScalar(S);
+  room.scene.add(G);
+  const body = new CANNON.Body({ mass: 1, linearDamping: .05, angularDamping: .25, sleepSpeedLimit: .06 });
+  addPhys(body, snap.shape, Object.fromEntries(Object.entries(snap.dims).map(([k, v]) => [k, v * S])));
+  const [x, z] = spawnSpot();
+  body.position.set(x, 1.05, z);
+  body.quaternion.setFromEuler(rand(-.35, .35), rand(0, Math.PI * 2), rand(-.35, .35));
+  body.velocity.set(0, -1.2, 0);
+  body.angularVelocity.set(rand(-2, 2), rand(-1, 1), rand(-2, 2));
+  body.addEventListener('collide', (e) => {
+    const v = Math.abs(e.contact.getImpactVelocityAlongNormal()), now = performance.now();
+    if (v > .9 && now - room.lastThud > 110) { room.lastThud = now; sound.thud(clamp(v / 4, .2, 1)); }
+  });
+  room.world.addBody(body);
+  const [X, , Z] = bbox(snap.shape, snap.dims);
+  const blob = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: blobTex, color: 0x2a1606, transparent: true, opacity: 0, depthWrite: false }));
+  blob.rotation.x = -Math.PI / 2; blob.scale.set(X * S * 1.25, Z * S * 1.25, 1); blob.renderOrder = 1;
+  room.scene.add(blob);
+  room.gifts.push({ G, body, blob });
+}
+
+/* ---------- tweens & loop ---------- */
+const tweens = [];
+const backOut = (x) => 1 + 2.4 * (x - 1) ** 3 + 1.4 * (x - 1) ** 2;
+function tween(dur, fn) {
+  return new Promise(res => tweens.push({ t0: performance.now(), dur, fn, res }));
+}
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min(.05, (now - last) / 1000); last = now;
+  for (let i = tweens.length - 1; i >= 0; i--) {
+    const t = tweens[i], k = clamp((now - t.t0) / t.dur, 0, 1);
+    t.fn(k); if (k >= 1) { tweens.splice(i, 1); t.res(); }
+  }
+  if (!pv.drag && now - pv.idle > 1800) pv.yaw += dt * .32;
+  pv.holder.rotation.set(pv.pitch, pv.yaw, 0);
+  room.world.step(1 / 60, dt, 5);
+  room.gifts.forEach(({ G, body, blob }) => {
+    G.position.copy(body.position); G.quaternion.copy(body.quaternion);
+    blob.position.set(body.position.x, .002, body.position.z);
+    blob.rotation.z = new THREE.Euler().setFromQuaternion(G.quaternion, 'YXZ').y;
+    blob.material.opacity = .42 * clamp(1 - (body.position.y - .05) / .5, 0, 1);
+  });
+  pv.r.render(pv.scene, pv.cam);
+  room.r.render(room.scene, room.cam);
+  requestAnimationFrame(loop);
+}
+new ResizeObserver(() => { fit(pv.r, pv.cam, $('stage')); if (st) pvFrame(); }).observe($('stage'));
+new ResizeObserver(() => fit(room.r, room.cam, $('room'))).observe($('room'));
+
+/* ---------- sound ---------- */
 const sound = (() => {
   let ctx, master, noise, on = true;
   function init() {
@@ -431,99 +801,118 @@ const sound = (() => {
     },
     pop() { if (!ok()) return; const t = ctx.currentTime; tone(t, 900, 260, .09, .16); burst(t, .03, 4000, 1, .08); },
     peel() { if (!ok()) return; const t = ctx.currentTime; burst(t, .18, 2500, .7, .12, 'highpass'); },
-    thud() { if (!ok()) return; const t = ctx.currentTime; tone(t, 130, 55, .22, .4); burst(t, .12, 380, .8, .3, 'lowpass'); },
+    thud(v = 1) { if (!ok()) return; const t = ctx.currentTime; tone(t, 130, 55, .22, .4 * v); burst(t, .12, 380, .8, .3 * v, 'lowpass'); },
     chime() { if (!ok()) return; const t = ctx.currentTime; tone(t, 1046, 1040, .5, .07); tone(t + .1, 1568, 1560, .6, .06); },
   };
 })();
 addEventListener('pointerdown', () => sound.init(), { once: true });
 $('snd').onclick = () => { sound.init(); $('snd').textContent = sound.toggle() ? 'SOUND ON' : 'SOUND OFF'; };
 
-/* state */
-let deck = [], orderNo = 0, st = null, stickerSel = null, busy = false, stickN = 0;
-const PILE_W = 360;
-const rows = [
-  { name: 'back', s: .32, base: 40, z: 10, hm: new Array(PILE_W).fill(0) },
-  { name: 'front', s: .38, base: 6, z: 200, hm: new Array(PILE_W).fill(0) },
-];
-
+/* ---------- state & UI ---------- */
+let deck = [], orderNo = 0, st = null, stickerSel = null, busy = false, wrapped = 0;
 function nextItem() {
   if (!deck.length) deck = shuffle(ITEMS);
   orderNo++;
-  st = { item: deck.pop(), paper: null, string: null, stickers: [] };
+  const item = deck.pop();
+  st = { item, shape: item.shape, dims: item.d, paper: null, string: null, stickers: [] };
   $('noteNo').textContent = 'ORDER No.' + String(orderNo).padStart(2, '0');
-  $('noteItem').textContent = st.item.name;
-  $('noteMeta').textContent = st.item.meta;
-  $('noteMsg').textContent = st.item.msg;
+  $('noteItem').textContent = item.name;
+  $('noteMeta').textContent = item.meta;
+  $('noteMsg').textContent = item.msg;
   $('note').classList.remove('out');
-  const pkg = $('pkg');
-  pkg.classList.add('enter');
-  draw({});
-  requestAnimationFrame(() => requestAnimationFrame(() => pkg.classList.remove('enter')));
-  refresh();
+  $('itemPh').src = `${IMG}item-${item.id}.png`;
+  $('itemPh').classList.remove('gone');
+  pv.yaw = -.55; pv.pitch = 0; pv.idle = performance.now();
+  pvSet(); refresh();
 }
-
-function draw(anim) { $('pkg').innerHTML = pkgSVG(st, anim); }
-
 function refresh() {
   document.querySelectorAll('.sw').forEach(el => el.classList.toggle('on', el.dataset.id === st.paper));
   document.querySelectorAll('#strings .chip').forEach(el => {
-    el.classList.toggle('on', el.dataset.id === st.string);
-    el.classList.toggle('off', !st.paper);
+    el.classList.toggle('on', el.dataset.id === st.string); el.classList.toggle('off', !st.paper);
   });
   document.querySelectorAll('#stickers .chip').forEach(el => {
-    el.classList.toggle('on', el.dataset.id === stickerSel);
-    el.classList.toggle('off', !st.paper);
+    el.classList.toggle('on', el.dataset.id === stickerSel); el.classList.toggle('off', !st.paper);
   });
+  document.querySelectorAll('#shapes button').forEach(el => el.classList.toggle('on', el.dataset.id === st.shape));
+  $('shapes').classList.toggle('off', !st.paper || busy);
   $('done').disabled = !st.paper || busy;
-  $('peel').disabled = !st.stickers.length;
-  $('pkg').classList.toggle('sticking', !!(stickerSel && st.paper));
+  $('peel').disabled = !st.stickers.length || busy;
+  $('pv').classList.toggle('sticking', !!(stickerSel && st.paper));
   $('hint').innerHTML = !st.paper ? '왼쪽에서 포장지를 골라요'
-    : !st.string ? '아래에서 끈이나 리본을 골라요<br>다른 포장지를 눌러 다시 싸도 돼요'
+    : !st.string ? '아래에서 끈이나 리본을 골라요<br>끌면 선물이 돌아가요'
     : stickerSel ? '선물 위를 눌러 스티커를 붙여요<br>붙인 스티커를 누르면 떨어져요'
-    : '스티커를 붙이거나<br>다 쌌으면 오른쪽 아래 버튼을 눌러요';
+    : '스티커를 붙이거나 모양을 바꿔 봐요<br>다 쌌으면 아래 버튼을 눌러요';
 }
 
 /* palettes */
 $('papers').innerHTML = PAPERS.map(p => `
   <div class="sw" data-id="${p.id}"><i style="background-image:url(${IMG}paper-${p.id}.jpg)"></i><span>${p.name}</span></div>`).join('');
 $('strings').innerHTML = STRINGS.map(s => `
-  <div class="chip" data-id="${s.id}"><svg viewBox="-28 -24 176 144" style="overflow:visible">
-    <rect x="0" y="0" width="120" height="96" rx="3" fill="#ece2d2"/>${ribbon(s.id, 0, 0, 120, 96, false)}</svg><span>${s.name}</span></div>`).join('');
+  <div class="chip" data-id="${s.id}"><img src="${IMG}bow-${s.id}.png" alt=""><span>${s.name}</span></div>`).join('');
 $('stickers').innerHTML = STICKERS.map(s => `
   <div class="chip stk" data-id="${s.id}"><img src="${IMG}st-${s.id}.png" alt=""></div>`).join('');
+$('shapes').innerHTML = SHAPES.map(s => `<button data-id="${s.id}">${s.name}</button>`).join('');
 
 $('papers').onclick = (e) => {
   const el = e.target.closest('.sw'); if (!el || busy) return;
-  st.paper = el.dataset.id; sound.crinkle(); draw({ paper: true, ribbon: !!st.string }); refresh();
+  const first = !st.paper;
+  st.paper = el.dataset.id; sound.crinkle();
+  if (first) $('itemPh').classList.add('gone');
+  pvSet('paper'); refresh();
 };
 $('strings').onclick = (e) => {
   const el = e.target.closest('.chip'); if (!el || busy || !st.paper) return;
-  st.string = el.dataset.id; sound.zip(); draw({ ribbon: true }); refresh();
+  st.string = st.string === el.dataset.id ? null : el.dataset.id; sound.zip(); pvSet('string'); refresh();
 };
 $('stickers').onclick = (e) => {
   const el = e.target.closest('.chip'); if (!el || !st.paper) return;
   stickerSel = stickerSel === el.dataset.id ? null : el.dataset.id; refresh();
 };
-$('pkg').onclick = (e) => {
-  if (busy || !st.paper) return;
-  const hit = e.target.closest('[data-i]');
-  if (hit) {
-    st.stickers = st.stickers.filter(s => String(s.i) !== hit.dataset.i);
-    sound.peel(); draw({}); refresh(); return;
+$('shapes').onclick = (e) => {
+  const el = e.target.closest('button'); if (!el || busy || el.dataset.id === st.shape) return;
+  st.shape = el.dataset.id; st.dims = dimsFor(st.item, st.shape); st.stickers = [];
+  sound.crinkle(); pvSet('paper'); refresh();
+};
+$('peel').onclick = () => { st.stickers = []; sound.peel(); pvSet(); refresh(); };
+
+/* preview input: drag to turn, click to stick */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function hitPv(e) {
+  const r = $('pv').getBoundingClientRect();
+  ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, pv.cam);
+  return pv.gift ? ray.intersectObject(pv.gift, true) : [];
+}
+$('pv').addEventListener('pointerdown', (e) => {
+  pv.drag = { x: e.clientX, y: e.clientY, yaw: pv.yaw, pitch: pv.pitch, moved: false };
+  $('pv').setPointerCapture(e.pointerId);
+});
+$('pv').addEventListener('pointermove', (e) => {
+  const d = pv.drag; if (!d) return;
+  const dx = e.clientX - d.x, dy = e.clientY - d.y;
+  if (Math.hypot(dx, dy) > 4) d.moved = true;
+  if (d.moved) { pv.yaw = d.yaw + dx * .01; pv.pitch = clamp(d.pitch + dy * .006, -.6, .6); }
+});
+$('pv').addEventListener('pointerup', (e) => {
+  const d = pv.drag; pv.drag = null; pv.idle = performance.now();
+  if (!d || d.moved || busy || !st.paper) return;
+  const hits = hitPv(e); if (!hits.length) return;
+  const h = hits[0];
+  if (h.object.userData.si !== undefined) {
+    st.stickers.splice(h.object.userData.si, 1); sound.peel(); pvSet(); refresh(); return;
   }
   if (!stickerSel) return;
-  const svg = $('pkg').querySelector('svg');
-  const pt = new DOMPoint(e.clientX, e.clientY).matrixTransform(svg.getScreenCTM().inverse());
-  st.stickers.push({ id: stickerSel, x: pt.x, y: pt.y, r: Math.round(Math.random() * 40 - 20), i: stickN++ });
-  sound.pop(); draw({ sticker: st.stickers.length - 1 }); refresh();
-};
-$('peel').onclick = () => { st.stickers = []; sound.peel(); draw({}); refresh(); };
+  const paper = pv.gift.userData.paper, ph = hits.find(x => x.object === paper); if (!ph) return;
+  const inv = new THREE.Matrix4().copy(pv.gift.matrixWorld).invert();
+  const p = ph.point.clone().applyMatrix4(inv);
+  const n = ph.face.normal.clone();
+  st.stickers.push({ id: stickerSel, p: p.toArray(), n: n.toArray(), r: rand(-.5, .5) });
+  sound.pop(); pvSet('sticker'); refresh();
+});
 
 /* score & reaction */
-const byId = (arr, id) => arr.find(o => o.id === id);
 function score() {
-  const t = new Set(st.item.tags);
-  const hit = (tags) => tags.filter(x => t.has(x)).length;
+  const t = new Set(st.item.tags), hit = (tags) => tags.filter(x => t.has(x)).length;
   let s = hit(byId(PAPERS, st.paper).tags) * 2;
   if (st.string) s += hit(byId(STRINGS, st.string).tags);
   s += Math.min(2, st.stickers.reduce((a, k) => a + hit(byId(STICKERS, k.id).tags) * .5, 0));
@@ -531,121 +920,61 @@ function score() {
 }
 function reaction(s) {
   const it = st.item, p = byId(PAPERS, st.paper), str = st.string && byId(STRINGS, st.string);
+  if (st.shape !== it.shape && Math.random() < .6) {
+    const sh = byId(SHAPES, st.shape).name;
+    return pick([`${it.short}${josa(it.short, '을', '를')} ${sh} 모양으로요? 뜯기 전엔 아무도 모르겠어요`,
+      `모양만 봐선 절대 ${it.short}인 줄 모르겠어요`, `${sh} 모양 ${it.short}. 받는 사람이 한참 흔들어 보겠어요`]);
+  }
   if (s >= 5) return pick(['딱이에요. 받는 사람 표정이 벌써 보여요', '이건 포장부터 선물이네요', '완벽해요. 뜯기 아까워요']);
   if (s >= 3) return pick(['오, 잘 어울려요', '꽤 그럴듯해요', '받으면 기분 좋겠어요']);
-  const odd = [
+  return pick([
     `${it.short}에 ${p.name}${josa(p.name, '이라니', '라니')}. 그것도 나름 멋이에요`,
-    `뜯어보면 깜짝 놀라겠네요`,
-    str ? `${str.name}${josa(str.name, '이', '가')} 좀 의외지만 괜찮아요` : `끈 없이도 마음은 전해져요`,
-    `이건 이것대로 재밌어요`,
-  ];
-  return pick(odd);
+    '뜯어보면 깜짝 놀라겠네요',
+    str ? `${str.name}${josa(str.name, '이', '가')} 좀 의외지만 괜찮아요` : '끈 없이도 마음은 전해져요',
+    '이건 이것대로 재밌어요',
+  ]);
 }
-function say(text) {
-  $('say').innerHTML = text;
-  $('say').classList.add('show');
-}
-
-/* stack */
-function findSpot(row, bw, bh) {
-  const hm = row.hm, n = Math.ceil(bw);
-  let best = null;
-  for (let x = 6; x + n <= PILE_W - 6; x += 2) {
-    let base = 0;
-    for (let i = x; i < x + n; i++) base = Math.max(base, hm[i]);
-    let lo = -1, hi = -1;
-    for (let i = x; i < x + n; i++) if (hm[i] >= base - 1.5) { if (lo < 0) lo = i; hi = i; }
-    const cx = x + n / 2;
-    if (base > 0 && (cx < lo + 4 || cx > hi - 4 || hi - lo < n * .55)) continue;
-    const top = base + bh;
-    const overTrunk = x < 220 && x + n > 140;
-    const score = row.base + top + (overTrunk && top > 70 ? (top - 70) * 2.5 : 0) + Math.random() * 14;
-    if (!best || score < best.score) best = { x, base, lo, hi, score, flat: hi - lo >= n - 3 };
-  }
-  return best;
-}
-
-function placeOnPile(snap, line) {
-  const pile = $('pile');
-  const it = snap.item;
-  let pick = null;
-  for (const row of rows) {
-    const bw = it.w * row.s, bh = it.h * row.s, spot = findSpot(row, bw, bh);
-    if (spot && (!pick || spot.score < pick.spot.score)) pick = { row, spot, bw, bh };
-  }
-  const { row, spot, bw, bh } = pick, s = row.s;
-  const rot = spot.base === 0 ? Math.random() * 4 - 2 : spot.flat ? Math.random() * 2 - 1 : 0;
-  for (let i = spot.x; i < spot.x + Math.ceil(bw); i++) row.hm[i] = spot.base + bh - 2;
-  const W = (it.w + P * 2) * s, H = (it.h + P * 2) * s;
-  const el = document.createElement('div');
-  el.className = 'stacked ' + row.name;
-  el.style.width = W + 'px'; el.style.height = H + 'px';
-  el.style.left = (spot.x - P * s) + 'px';
-  el.style.bottom = (row.base + spot.base - (P - 5) * s) + 'px';
-  el.style.transform = `rotate(${rot}deg)`;
-  el.dataset.z = row.z + pile.querySelectorAll('.stacked').length;
-  el.style.zIndex = el.dataset.z;
-  el.innerHTML = pkgSVG(snap, {});
-  el.dataset.tip = `${it.short} · ${line}`;
-  pile.appendChild(el);
-  return { el, rot };
-}
-
-function fly(snap, line) {
-  const from = $('pkg').querySelector('svg').getBoundingClientRect();
-  const { el, rot } = placeOnPile(snap, line);
-  const to = el.getBoundingClientRect();
-  $('pkg').style.visibility = 'hidden';
-  const dx = (from.left + from.width / 2) - (to.left + to.width / 2);
-  const dy = (from.top + from.height / 2) - (to.top + to.height / 2);
-  const k = from.width / to.width;
-  el.style.zIndex = 900;
-  const a = el.animate([
-    { transform: `translate(${dx}px, ${dy}px) scale(${k}) rotate(0deg)` },
-    { transform: `translate(${dx * .45}px, ${dy * .45 - 120}px) scale(${(k + 1) / 2}) rotate(${rot * 3}deg)`, offset: .5 },
-    { transform: `rotate(${rot}deg)` },
-  ], { duration: 720, easing: 'cubic-bezier(.4,0,.3,1)' });
-  return a.finished.then(() => {
-    el.style.zIndex = el.dataset.z;
-    el.animate([{ transform: `rotate(${rot}deg) scaleY(.92)` }, { transform: `rotate(${rot}deg)` }], { duration: 180, easing: 'ease-out' });
-    sound.thud();
-  });
-}
-
-let wrapped = 0;
+const wait = (ms) => new Promise(r => setTimeout(r, ms));
 $('done').onclick = async () => {
   if (busy || !st.paper) return;
   busy = true; stickerSel = null; refresh();
   const s = score(), line = reaction(s);
-  const pkg = $('pkg');
-  pkg.classList.remove('jig'); void pkg.offsetWidth; pkg.classList.add('jig');
   if (s >= 5) sound.chime();
-  say(`${line}<small>${st.item.short}</small>`);
+  $('say').innerHTML = `${line}<small>${st.item.short}</small>`;
+  $('say').classList.add('show');
   $('note').classList.add('out');
-  await new Promise(r => setTimeout(r, 2000));
+  await wait(1700);
   $('say').classList.remove('show');
+  const h = pv.holder, x0 = h.position.x;
+  await tween(420, k => { const e = k * k; h.position.x = x0 + e * 1.4; h.scale.setScalar(1 - e * .5); });
   const snap = { ...st, stickers: st.stickers.slice() };
-  await fly(snap, line);
+  dropGift(snap, `${st.item.short} · ${line}`);
   $('count').textContent = ++wrapped;
-  pkg.style.visibility = '';
+  h.position.x = x0; h.scale.setScalar(1);
   busy = false;
   nextItem();
 };
 
-/* tooltip */
-$('pile').addEventListener('mousemove', (e) => {
-  const tip = $('tip'), el = e.target.closest('.stacked');
-  if (!el) { tip.style.opacity = 0; return; }
-  const r = $('pile').getBoundingClientRect();
-  tip.textContent = el.dataset.tip;
-  tip.style.opacity = 1;
-  const x = Math.min(e.clientX - r.left + 12, r.width - tip.offsetWidth - 8);
-  tip.style.left = Math.max(8, x) + 'px';
-  tip.style.top = (e.clientY - r.top - 40) + 'px';
+/* hover tooltip on the room */
+$('rc').addEventListener('pointermove', (e) => {
+  const r = $('rc').getBoundingClientRect(), pr = $('pile').getBoundingClientRect(), tip = $('tip');
+  ndc.set((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1);
+  ray.setFromCamera(ndc, room.cam);
+  const hit = ray.intersectObjects(room.gifts.map(g => g.G), true)[0];
+  let g = hit && hit.object; while (g && !g.userData.tip) g = g.parent;
+  if (!g) { tip.style.opacity = 0; return; }
+  tip.textContent = g.userData.tip; tip.style.opacity = 1;
+  tip.style.left = clamp(e.clientX - pr.left + 12, 8, pr.width - tip.offsetWidth - 8) + 'px';
+  tip.style.top = (e.clientY - pr.top - 40) + 'px';
 });
-$('pile').addEventListener('mouseleave', () => { $('tip').style.opacity = 0; });
+$('rc').addEventListener('pointerleave', () => { $('tip').style.opacity = 0; });
 
+/* ---------- start ---------- */
+await preload();
+fit(pv.r, pv.cam, $('stage')); fit(room.r, room.cam, $('room'));
 nextItem();
+$('loading').classList.add('gone');
+requestAnimationFrame(loop);
 </script>
 </body>
 </html>
