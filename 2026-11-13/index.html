@@ -38,7 +38,7 @@
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
 <div class="snd" id="snd">SOUND: ON</div>
-<div class="hint" id="hint">휠로 확대하면 그 구간의 버스가 달려요 · 마우스로 훑기 · 누르고 있으면 안내된 시간으로 · ← → 시간대</div>
+<div class="hint" id="hint">역을 누르면 그 역에서 다음 역까지, 오늘 지나간 버스가 한 대씩 다시 달려요 · 바깥을 누르면 전체 노선으로</div>
 
 <script>
 // hours[i].ratio[k] = real / announced travel time from stop k to k+1, same buses, that hour
@@ -56,8 +56,20 @@ const BLUE = '#3461b8', RED = '#e2412e', INK = '#23262e', PAPER = '#f7f6f2';
 const SUB = { 1: '#0052A4', 2: '#00A84D', 3: '#EF7C1C', 4: '#00A5DE', 5: '#996CAC', 6: '#CD7C2F', 7: '#747F00' };
 const N = DATA.names.length, TURN = 56;          // stops 1..56 run on top, 57..113 come back below
 const HOURS = DATA.hours;
+const DAY = (() => {
+  const obs = [], pred = [], real = [], ratio = [];
+  for (let k = 0; k < N - 1; k++) {
+    const o = HOURS.flatMap(h => h.obs[k]).sort((a, b) => a[0] - b[0]);
+    const sp = o.reduce((a, v) => a + v[1], 0), sr = o.reduce((a, v) => a + v[2], 0), m = o.length ? sp / o.length : 0;
+    obs.push(o); pred.push(Math.round(m)); real.push(o.length ? Math.round(sr / o.length) : 0);
+    ratio.push(o.length ? +((sr + 2 * m) / (sp + 2 * m)).toFixed(3) : HOURS.reduce((a, h) => a + h.ratio[k], 0) / HOURS.length);   // shrink thin segments toward on time
+  }
+  const h0 = HOURS[0].h, h1 = HOURS[HOURS.length - 1].h, t = h => (h < 12 ? '오전 ' : '오후 ') + ((h + 11) % 12 + 1) + '시';
+  return { h: h0, label: h0 === h1 ? t(h0) + '대' : `${t(h0)}~${(h1 + 11) % 12 + 1}시`, obs, pred, real, ratio };
+})();
+HOURS.push(DAY);
 
-let W = 0, H = 0, S = 1, hi = 0, holding = false, touched = false;
+let W = 0, H = 0, S = 1, hi = 0, focus = -1, shown = -1, hover = -1, lastP = null;
 let autoT = 0, scaleNow = 1, realness = 0, realVel = 0;
 const cam = { z: 1, zt: 1, cx: 0, cy: 0, tx: 0, ty: 0, px: -1, py: -1 };
 const disp = new Float32Array(N - 1).fill(1);    // shown ratio per segment, springs toward target
@@ -144,13 +156,7 @@ function fitScale() {
   return Math.min(1, L.avail / span);
 }
 
-const target = k => holding ? 1 : HOURS[hi].ratio[k];
-
-function setHour(i) {
-  i = clamp(i, 0, HOURS.length - 1);
-  if (i === hi) return;
-  hi = i; sound.bell();
-}
+const target = k => HOURS[hi].ratio[k];
 
 // seconds → "3시간 18분" / "52분"
 function hm(sec) {
@@ -203,30 +209,17 @@ function drawHeader() {
   const xr = W - 150 * S;
   ctx.textAlign = 'right';
   ctx.font = `700 ${22 * S}px 'Noto Sans KR'`; ctx.fillStyle = INK;
-  ctx.fillText(ampm(hr.h) + '대', xr, y - 8 * S);
+  ctx.fillText(hr.label, xr, y - 8 * S);
   ctx.font = `400 ${13 * S}px 'Noto Sans KR'`;
   const b = `   ·   실제  ${hm(R)}`;
-  ctx.fillStyle = holding ? INK : 'rgba(35,38,46,.45)';
+  ctx.fillStyle = 'rgba(35,38,46,.45)';
   ctx.fillText(`안내  ${hm(P)}`, xr - ctx.measureText(b).width, y + 18 * S);
-  ctx.fillStyle = holding ? 'rgba(35,38,46,.45)' : (R > P ? RED : BLUE);
+  ctx.fillStyle = R > P ? RED : BLUE;
   ctx.fillText(b, xr, y + 18 * S);
   ctx.globalAlpha = 1;
 }
 
-const chips = [];
 function drawFooter() {
-  const y = H - 84 * S, gap = 46 * S, x0 = W / 2 - (HOURS.length - 1) * gap / 2;
-  chips.length = 0;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  HOURS.forEach((hr, i) => {
-    const x = x0 + i * gap, cur = i === hi;
-    chips.push({ x: x - 20 * S, y: y - 14 * S, w: 40 * S, h: 28 * S, i });
-    ctx.fillStyle = cur ? BLUE : 'rgba(247,246,242,.85)';
-    ctx.beginPath(); ctx.roundRect(x - 19 * S, y - 12 * S, 38 * S, 24 * S, 12 * S); ctx.fill();
-    ctx.fillStyle = cur ? '#fff' : 'rgba(35,38,46,.45)';
-    ctx.font = `${cur ? 700 : 500} ${12 * S}px 'Noto Sans KR'`;
-    ctx.fillText(hr.h + '시', x, y + 1 * S);
-  });
   ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(35,38,46,.38)';
   ctx.font = `400 ${10.5 * S}px 'Noto Sans KR'`;
   ctx.fillText(`출처: 서울특별시 버스도착정보 · ${DATA.when} · 40초마다 기록`, W - 30 * S, H - 42 * S);
@@ -285,81 +278,61 @@ function drawLine(P) {
 
 // up close, the segment under the view replays every bus of the hour:
 // a pale bus runs on the announced time, the real one runs on the real time
-const race = { k: -1, hi: -1, t: 0, total: 0, heard: new Set() };
-const raceable = k => k >= 0 && k !== TURN - 1 && DATA.names[k] !== DATA.names[k + 1] && HOURS[hi].obs[k].length > 0;
-const RACE_SEC = 2.4, STAGGER = 0.35, ON_TIME = 20;
+const race = { k: -1, t: 0, total: 0, page: 0, heard: new Set(), done: new Set() };
+const raceable = k => k >= 0 && k < N - 1 && k !== TURN - 1 && !DATA.ghost[k] && DATA.names[k] !== DATA.names[k + 1] && HOURS[hi].obs[k].length > 0;
+const RACE_SEC = 2.4, STAGGER = 0.35, ON_TIME = 20, PAGE = 6;
+// the day's buses run six at a time, in the order they left
 function raceLanes(k) {
-  const obs = HOURS[hi].obs[k], f = RACE_SEC / Math.max(20, HOURS[hi].pred[k]);
-  return obs.map(([m, pr, re], i) => ({ m, pr, re, s: i * STAGGER, tp: pr * f, tr: re * f }));
+  const all = HOURS[hi].obs[k], f = RACE_SEC / Math.max(20, HOURS[hi].pred[k]);
+  return all.slice(race.page * PAGE, race.page * PAGE + PAGE)
+    .map(([m, pr, re], i) => ({ m, pr, re, s: i * STAGGER, tp: pr * f, tr: re * f, idx: race.page * PAGE + i }));
 }
-function raceStep(dt, P) {
-  const k = focusSeg(P), on = fiberFade() > 0.5 && raceable(k);
+const laneTotal = k => Math.max(...raceLanes(k).map(l => l.s + Math.max(l.tp, l.tr)));
+function verdict(d) {
+  const ad = Math.abs(d);
+  if (ad < ON_TIME) return { word: '제시간', col: 'rgba(35,38,46,.7)', ontime: true };
+  return { word: `${ad < 60 ? '조금 ' : ad >= 180 ? '많이 ' : ''}${d > 0 ? '늦음' : '일찍'}`, col: d > 0 ? RED : BLUE, ontime: false };
+}
+const signed = d => Math.abs(d) < 1 ? '±0초' : `${d > 0 ? '+' : '−'}${secs(Math.abs(d))}`;
+function raceStep(dt) {
+  const k = focus, on = fiberFade() > 0.5 && raceable(k);
   if (!on) { race.k = -1; return; }
-  if (k !== race.k || hi !== race.hi) {
-    race.k = k; race.hi = hi; race.t = -0.4; race.heard.clear();
-    race.total = Math.max(...raceLanes(k).map(l => l.s + Math.max(l.tp, l.tr)));
-  }
+  if (k !== race.k) { race.k = k; race.page = 0; race.t = -0.4; race.heard.clear(); race.done.clear(); race.total = laneTotal(k); }
   race.t += dt;
-  raceLanes(k).forEach((l, i) => {
+  raceLanes(k).forEach(l => {
     const te = race.t - l.s;
-    if (te >= l.tp && !race.heard.has('g' + i)) { race.heard.add('g' + i); sound.ghost(); }
-    if (te >= l.tr && !race.heard.has('r' + i)) { race.heard.add('r' + i); sound.arrive(l.re / l.pr, Math.abs(l.re - l.pr) < ON_TIME); }
+    if (te >= l.tp && !race.heard.has('g' + l.idx)) { race.heard.add('g' + l.idx); sound.ghost(); }
+    if (te >= l.tr && !race.heard.has('r' + l.idx)) { race.heard.add('r' + l.idx); sound.arrive(l.re / l.pr, Math.abs(l.re - l.pr) < ON_TIME); }
+    if (te >= Math.max(l.tp, l.tr)) race.done.add(l.idx);
   });
-  if (touched && race.t > race.total + 3) { race.t = -0.4; race.heard.clear(); }   // loop while someone is looking
+  if (race.t > race.total + 2.4) {   // next six, and round again once the day is over
+    const pages = Math.ceil(HOURS[hi].obs[k].length / PAGE);
+    race.page = (race.page + 1) % pages; race.t = race.page ? -0.4 : -2.5; race.heard.clear(); race.total = laneTotal(k);
+  }
 }
-const raceDone = () => race.k >= 0 && race.t > race.total + 2.2;
 
-// a Seoul bus shelter with its route pillar, drawn at screen size so it stays crisp however far we zoom
+// bus shelter illustration: Figma vector, exported as SVG (pole at x 458, ground at y 252 in its 484×254 box)
+const SHELTER = new Image();
+SHELTER.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTY4IiBoZWlnaHQ9IjUwOCIgdmlld0JveD0iODYgNzUgNDg0IDI1NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48Zz48Zz48cGF0aCBkPSJNNDczIDE0N0gxMTVWMzA1SDQ3M1YxNDdaIiBmaWxsPSIjQ0JFNEVGIiBmaWxsLW9wYWNpdHk9IjAuNTUiLz48cGF0aCBkPSJNMTQyIDE5NEwxNjggMTY4TTE0MiAyMTFMMTgyIDE3MU0zOTMgMjE4TDQyNSAxODZNNDA5IDIyMkw0MzcgMTk0IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjxwYXRoIGQ9Ik0yMzQgMTQ5VjMwNU0zNTQgMTQ5VjMwNSIgc3Ryb2tlPSIjMjMyNjJFIiBzdHJva2Utd2lkdGg9IjMiLz48cGF0aCBkPSJNMTE1IDMwNUg0NzMiIHN0cm9rZT0iIzIzMjYyRSIgc3Ryb2tlLXdpZHRoPSI0Ii8+PC9nPjxnPjxwYXRoIGQ9Ik0xMTUgMTA5SDEwNlYzMjdIMTE1VjEwOVoiIGZpbGw9IiMyMzI2MkUiLz48cGF0aCBkPSJNNDgyIDEwOUg0NzNWMzI3SDQ4MlYxMDlaIiBmaWxsPSIjMjMyNjJFIi8+PHBhdGggZD0iTTQ5OCA5OEg5MEM4OC44OTU0IDk4IDg4IDk4Ljg5NTQgODggMTAwVjEwOEM4OCAxMDkuMTA1IDg4Ljg5NTQgMTEwIDkwIDExMEg0OThDNDk5LjEwNSAxMTAgNTAwIDEwOS4xMDUgNTAwIDEwOFYxMDBDNTAwIDk4Ljg5NTQgNDk5LjEwNSA5OCA0OTggOThaIiBmaWxsPSIjMjMyNjJFIi8+PC9nPjxnPjxwYXRoIGQ9Ik00NzMgMTE3SDExNVYxNTRINDczVjExN1oiIGZpbGw9IiMzNDYxQjgiLz48L2c+PGc+PHBhdGggZD0iTTE4NyAyNTdIMTgyVjI4NkgxODdWMjU3WiIgZmlsbD0iIzIzMjYyRSIvPjxwYXRoIGQ9Ik00MDcgMjU3SDQwMlYyODZINDA3VjI1N1oiIGZpbGw9IiMyMzI2MkUiLz48cGF0aCBkPSJNNDIxIDI0OUgxNjhDMTY2Ljg5NSAyNDkgMTY2IDI0OS44OTUgMTY2IDI1MVYyNjlDMTY2IDI3MC4xMDUgMTY2Ljg5NSAyNzEgMTY4IDI3MUg0MjFDNDIyLjEwNSAyNzEgNDIzIDI3MC4xMDUgNDIzIDI2OVYyNTFDNDIzIDI0OS44OTUgNDIyLjEwNSAyNDkgNDIxIDI0OVoiIGZpbGw9IiNFMEUzRTciIHN0cm9rZT0iIzIzMjYyRSIgc3Ryb2tlLXdpZHRoPSIyIi8+PHBhdGggZD0iTTE4NyAyODlIMTgwVjMyN0gxODdWMjg5WiIgZmlsbD0iIzIzMjYyRSIvPjxwYXRoIGQ9Ik00MDkgMjg5SDQwMlYzMjdINDA5VjI4OVoiIGZpbGw9IiMyMzI2MkUiLz48cGF0aCBkPSJNNDI3IDI4MUgxNjJDMTYwLjg5NSAyODEgMTYwIDI4MS44OTUgMTYwIDI4M1YyODhDMTYwIDI4OS4xMDUgMTYwLjg5NSAyOTAgMTYyIDI5MEg0MjdDNDI4LjEwNSAyOTAgNDI5IDI4OS4xMDUgNDI5IDI4OFYyODNDNDI5IDI4MS44OTUgNDI4LjEwNSAyODEgNDI3IDI4MVoiIGZpbGw9IiNFMEUzRTciIHN0cm9rZT0iIzIzMjYyRSIgc3Ryb2tlLXdpZHRoPSIyIi8+PC9nPjxnPjxwYXRoIGQ9Ik01NDcgMTM3SDU0MVYzMjdINTQ3VjEzN1oiIGZpbGw9IiMyMzI2MkUiLz48cGF0aCBkPSJNNTYzIDc3SDUyNUM1MjIuMjM5IDc3IDUyMCA3OS4yMzg2IDUyMCA4MlYxMzZDNTIwIDEzOC43NjEgNTIyLjIzOSAxNDEgNTI1IDE0MUg1NjNDNTY1Ljc2MSAxNDEgNTY4IDEzOC43NjEgNTY4IDEzNlY4MkM1NjggNzkuMjM4NiA1NjUuNzYxIDc3IDU2MyA3N1oiIGZpbGw9IndoaXRlIiBzdHJva2U9IiMzNDYxQjgiIHN0cm9rZS13aWR0aD0iMyIvPjxnPjxwYXRoIGQ9Ik01MzYgMTE5SDUzNUM1MzMuODk1IDExOSA1MzMgMTE5Ljg5NSA1MzMgMTIxVjEyNEM1MzMgMTI1LjEwNSA1MzMuODk1IDEyNiA1MzUgMTI2SDUzNkM1MzcuMTA1IDEyNiA1MzggMTI1LjEwNSA1MzggMTI0VjEyMUM1MzggMTE5Ljg5NSA1MzcuMTA1IDExOSA1MzYgMTE5WiIgZmlsbD0iIzIzMjYyRSIvPjxwYXRoIGQ9Ik01NTMgMTE5SDU1MkM1NTAuODk1IDExOSA1NTAgMTE5Ljg5NSA1NTAgMTIxVjEyNEM1NTAgMTI1LjEwNSA1NTAuODk1IDEyNiA1NTIgMTI2SDU1M0M1NTQuMTA1IDEyNiA1NTUgMTI1LjEwNSA1NTUgMTI0VjEyMUM1NTUgMTE5Ljg5NSA1NTQuMTA1IDExOSA1NTMgMTE5WiIgZmlsbD0iIzIzMjYyRSIvPjxwYXRoIGQ9Ik01NTIgOTFINTM2QzUzMy4yMzkgOTEgNTMxIDkzLjIzODYgNTMxIDk2VjExN0M1MzEgMTE5Ljc2MSA1MzMuMjM5IDEyMiA1MzYgMTIySDU1MkM1NTQuNzYxIDEyMiA1NTcgMTE5Ljc2MSA1NTcgMTE3Vjk2QzU1NyA5My4yMzg2IDU1NC43NjEgOTEgNTUyIDkxWiIgZmlsbD0iIzM0NjFCOCIvPjxwYXRoIGQ9Ik01NDggOTRINTQwQzUzOS40NDggOTQgNTM5IDk0LjQ0NzcgNTM5IDk1Vjk2QzUzOSA5Ni41NTIzIDUzOS40NDggOTcgNTQwIDk3SDU0OEM1NDguNTUyIDk3IDU0OSA5Ni41NTIzIDU0OSA5NlY5NUM1NDkgOTQuNDQ3NyA1NDguNTUyIDk0IDU0OCA5NFoiIGZpbGw9IndoaXRlIi8+PHBhdGggZD0iTTU1MiAxMDBINTM2QzUzNS40NDggMTAwIDUzNSAxMDAuNDQ4IDUzNSAxMDFWMTEwQzUzNSAxMTAuNTUyIDUzNS40NDggMTExIDUzNiAxMTFINTUyQzU1Mi41NTIgMTExIDU1MyAxMTAuNTUyIDU1MyAxMTBWMTAxQzU1MyAxMDAuNDQ4IDU1Mi41NTIgMTAwIDU1MiAxMDBaIiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik01MzcgMTE4QzUzOC4xMDUgMTE4IDUzOSAxMTcuMTA1IDUzOSAxMTZDNTM5IDExNC44OTUgNTM4LjEwNSAxMTQgNTM3IDExNEM1MzUuODk1IDExNCA1MzUgMTE0Ljg5NSA1MzUgMTE2QzUzNSAxMTcuMTA1IDUzNS44OTUgMTE4IDUzNyAxMThaIiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik01NTEgMTE4QzU1Mi4xMDUgMTE4IDU1MyAxMTcuMTA1IDU1MyAxMTZDNTUzIDExNC44OTUgNTUyLjEwNSAxMTQgNTUxIDExNEM1NDkuODk1IDExNCA1NDkgMTE0Ljg5NSA1NDkgMTE2QzU0OSAxMTcuMTA1IDU0OS44OTUgMTE4IDU1MSAxMThaIiBmaWxsPSJ3aGl0ZSIvPjxwYXRoIGQ9Ik01MjggMTAyVjEwOE01NjAgMTAyVjEwOCIgc3Ryb2tlPSIjMzQ2MUI4IiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPjwvZz48L2c+PC9nPjwvc3ZnPg==';
 function drawSign(k, x, yFoot, yGround, side, a) {
-  const name = DATA.names[k], no = (DATA.ars || [])[k] || '';
+  if (!SHELTER.complete) return;
+  const name = DATA.names[k], no = (DATA.ars || [])[k] || '', sc = 112 * S / 254;
   ctx.save(); ctx.globalAlpha = a;
-  ctx.font = `900 ${13 * S}px 'Noto Sans KR'`;
-  const w = Math.max(150 * S, ctx.measureText(name).width + 40 * S), h = 92 * S;
-  const x0 = side > 0 ? x + 16 * S : x - 16 * S - w, x1 = x0 + w, yR = yGround - h, yG = yR + 30 * S;
-  // curb
-  ctx.fillStyle = 'rgba(35,38,46,.12)';
-  ctx.fillRect(Math.min(x0, x) - 12 * S, yGround, w + 40 * S, 4 * S);
-  // glass back wall
-  ctx.fillStyle = 'rgba(52,97,184,.09)'; ctx.fillRect(x0 + 6 * S, yG, w - 12 * S, yGround - yG);
-  ctx.strokeStyle = 'rgba(52,97,184,.32)'; ctx.lineWidth = 1 * S;
-  ctx.strokeRect(x0 + 6 * S, yG, w - 12 * S, yGround - yG);
-  ctx.beginPath();
-  for (let i = 1; i < 3; i++) { const mx = x0 + 6 * S + (w - 12 * S) * i / 3; ctx.moveTo(mx, yG); ctx.lineTo(mx, yGround); }
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2 * S; ctx.beginPath();
-  ctx.moveTo(x0 + 16 * S, yG + 30 * S); ctx.lineTo(x0 + 30 * S, yG + 12 * S);
-  ctx.moveTo(x0 + 18 * S, yG + 40 * S); ctx.lineTo(x0 + 40 * S, yG + 12 * S); ctx.stroke();
-  // bench
-  ctx.fillStyle = '#8c9099';
-  ctx.fillRect(x0 + w * 0.28, yGround - 20 * S, w * 0.44, 4 * S);
-  ctx.fillRect(x0 + w * 0.32, yGround - 16 * S, 3 * S, 16 * S); ctx.fillRect(x0 + w * 0.68 - 3 * S, yGround - 16 * S, 3 * S, 16 * S);
-  // posts and roof
-  ctx.fillStyle = INK;
-  ctx.fillRect(x0 + 3 * S, yR + 8 * S, 4 * S, h - 8 * S); ctx.fillRect(x1 - 7 * S, yR + 8 * S, 4 * S, h - 8 * S);
-  ctx.beginPath(); ctx.roundRect(x0 - 8 * S, yR, w + 16 * S, 8 * S, 2 * S); ctx.fill();
-  // name board under the roof
-  ctx.fillStyle = BLUE; ctx.fillRect(x0 + 3 * S, yR + 8 * S, w - 6 * S, 22 * S);
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(name, (x0 + x1) / 2, yR + 19.5 * S);
-  ctx.fillStyle = 'rgba(35,38,46,.5)'; ctx.font = `400 ${10 * S}px 'Space Mono'`;
-  ctx.textAlign = side > 0 ? 'right' : 'left';
-  ctx.fillText(no, side > 0 ? x1 - 12 * S : x0 + 12 * S, yG + 11 * S);
-  // route pillar: the race starts and ends on it
-  ctx.fillStyle = '#5b606b'; ctx.fillRect(x - 3 * S, yR - 6 * S, 6 * S, yFoot - yR + 6 * S);
+  ctx.fillStyle = INK;   // the pole carries on down so the race starts and ends on it
+  ctx.fillRect(x - 3 * sc, yGround - 2 * sc, 6 * sc, yFoot - yGround + 2 * sc);
   ctx.fillRect(x - 10 * S, yFoot - 2 * S, 20 * S, 4 * S);
-  const hx = x - 18 * S, hy = yR - 38 * S;
-  ctx.shadowColor = 'rgba(35,38,46,.18)'; ctx.shadowBlur = 8 * S; ctx.shadowOffsetY = 2 * S;
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(hx, hy, 36 * S, 48 * S, 4 * S); ctx.fill();
-  ctx.shadowColor = 'transparent';
-  const bx = x - 10 * S, by = hy + 6 * S, bw = 20 * S, bh = 13 * S;
-  ctx.fillStyle = INK; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3 * S); ctx.fill();
-  ctx.fillStyle = '#fff';
-  for (let i = 0; i < 3; i++) ctx.fillRect(bx + (2.5 + i * 5.5) * S, by + 2.5 * S, 4 * S, 4 * S);
-  ctx.fillStyle = INK; ctx.beginPath();
-  ctx.arc(bx + 5 * S, by + bh, 2.2 * S, 0, Math.PI * 2); ctx.arc(bx + bw - 5 * S, by + bh, 2.2 * S, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = BLUE; ctx.beginPath(); ctx.roundRect(x - 14 * S, hy + 26 * S, 28 * S, 16 * S, 8 * S); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = `900 ${10.5 * S}px 'Noto Sans KR'`;
-  ctx.fillText('273', x, hy + 34.5 * S);
+  ctx.save(); ctx.translate(x, yGround - 252 * sc);
+  if (side > 0) ctx.scale(-1, 1);   // shelter on the far side of the pole, away from the road between
+  ctx.drawImage(SHELTER, -458 * sc, 0, 484 * sc, 254 * sc);
+  ctx.restore();
+  const bx = x + (side > 0 ? 250 : -250) * sc, top = yGround - 252 * sc;
+  let fs = 14 * S; ctx.font = `900 ${fs}px 'Noto Sans KR'`;
+  const fit = 330 * sc / ctx.measureText(name).width;
+  if (fit < 1) { fs *= fit; ctx.font = `900 ${fs}px 'Noto Sans KR'`; }
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(name, bx, top + 61 * sc);
+  ctx.fillStyle = 'rgba(35,38,46,.55)'; ctx.font = `400 ${10 * S}px 'Space Mono'`;
+  ctx.fillText(no, bx, top + 100 * sc);
   ctx.restore();
 }
 function drawRace(P, ff) {
@@ -412,19 +385,13 @@ function drawRace(P, ff) {
     const tEnd = Math.max(l.tp, l.tr);
     if (te >= tEnd) {
       const pop = clamp((te - tEnd) / 0.25, 0, 1), d = l.re - l.pr;
-      const ad = Math.abs(d), word = ontime ? '제시간' : `${ad < 60 ? '조금 ' : ad >= 180 ? '많이 ' : ''}${d > 0 ? '늦음' : '일찍'}`;
-      const two = gap > 36 * S, tx = xe + dir * 20 * S, ty = two ? y - 7 * S : y;
-      ctx.globalAlpha = a * pop; ctx.textAlign = dir > 0 ? 'left' : 'right';
-      ctx.fillStyle = ontime ? 'rgba(35,38,46,.7)' : col;
+      const v = verdict(d), tx = xe + dir * 20 * S;
+      ctx.globalAlpha = a * pop; ctx.textAlign = dir > 0 ? 'left' : 'right'; ctx.fillStyle = v.col;
       ctx.font = `900 ${lerp(26, 17, pop) * S}px 'Noto Sans KR'`;
-      const ww = ctx.measureText(word).width;
-      ctx.fillText(word, tx, ty);
+      const ww = ctx.measureText(v.word).width;
+      ctx.fillText(v.word, tx, y);
       ctx.font = `700 ${14 * S}px 'Noto Sans KR'`; ctx.globalAlpha = a * pop * 0.85;
-      ctx.fillText(ontime ? (ad < 1 ? '±0초' : `${d > 0 ? '+' : '−'}${secs(ad)}`) : `${d > 0 ? '+' : '−'}${secs(ad)}`, tx + dir * (ww + 8 * S), ty + 1 * S);
-      if (two) {
-        ctx.font = `400 ${10 * S}px 'Space Mono'`; ctx.fillStyle = 'rgba(35,38,46,.5)'; ctx.globalAlpha = a * pop;
-        ctx.fillText(`안내 ${secs(l.pr)} → 실제 ${secs(l.re)}`, tx, y + 11 * S);
-      }
+      ctx.fillText(signed(d), tx + dir * (ww + 8 * S), y + 1 * S);
       ctx.globalAlpha = a;
     }
   });
@@ -452,6 +419,13 @@ function drawStops(P) {
     ctx.globalAlpha = lerp(1, 0.55, ff);
     ctx.beginPath(); ctx.arc(x, y, end ? r * 1.8 : r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
     ctx.globalAlpha = 1;
+    if (k === hover) {
+      const sg = segFrom(k), dir = top ? -1 : 1;
+      ctx.strokeStyle = RED; ctx.lineWidth = 2.5 * S;
+      ctx.beginPath(); ctx.arc(x, y, r + 5 * S, 0, Math.PI * 2); ctx.stroke();
+      ctx.font = `700 ${12 * S}px 'Noto Sans KR'`; ctx.fillStyle = RED;
+      ctx.fillText(`${DATA.names[sg]} → ${DATA.names[sg + 1]}`, x, y - dir * 22 * S);
+    }
     if (PREVIEW || k === N - 1) continue;
     const near = Math.max(disp[k - 1] || 1, disp[k] || 1);
     ctx.fillStyle = near > 1.25 ? RED : INK;
@@ -473,18 +447,6 @@ function drawStops(P) {
   }
 }
 
-// which segment sits under the middle of the view
-function focusSeg(P) {
-  const top = Math.abs(cam.cy - L.yTop) < Math.abs(cam.cy - L.yBot);
-  let best = -1, bd = Infinity;
-  const k0 = top ? 0 : TURN, k1 = top ? TURN - 1 : N - 1;
-  for (let k = k0; k < k1; k++) {
-    const d = Math.abs((P[k].x + P[k + 1].x) / 2 - cam.cx);
-    if (d < bd) { bd = d; best = k; }
-  }
-  return best;
-}
-
 function drawCaption(P, k) {
   const a = clamp((cam.z - 2.5) / 2, 0, 1);
   if (a <= 0 || k < 0) return;
@@ -495,16 +457,66 @@ function drawCaption(P, k) {
   ctx.fillStyle = INK; ctx.font = `900 ${28 * S}px 'Noto Sans KR'`;
   ctx.fillText(`${name(k)}  →  ${name(k + 1)}`, x, y);
   ctx.font = `400 ${12 * S}px 'Space Mono'`; ctx.fillStyle = 'rgba(35,38,46,.6)';
-  const line = realness < 0.5 ? `안내된 시간대로 그린 노선 · 손을 떼면 실제 시간으로` : o.length
-    ? `${ampm(hr.h)}대 · 버스 ${o.length}대 · 안내 평균 ${secs(hr.pred[k])} · 실제 평균 ${secs(hr.real[k])}`
-    : `${ampm(hr.h)}대 · 기록 없음`;
+  const line = o.length
+    ? `${hr.label} · 버스 ${o.length}대 · 안내 평균 ${secs(hr.pred[k])} · 실제 평균 ${secs(hr.real[k])}`
+    : `${hr.label} · 기록 없음`;
   ctx.fillText(line, x, y + 26 * S);
   ctx.globalAlpha = 1;
 }
 
+// every bus that ran this segment today, filled in as its race finishes
+function drawLog(k) {
+  const a = clamp((fiberFade() - 0.5) * 2, 0, 1);
+  if (a <= 0 || !raceable(k)) return;
+  const obs = HOURS[hi].obs[k], x0 = W * 0.705, x1 = W - 40 * S, rowH = 21 * S;
+  const c = [x0, x0 + 62 * S, x0 + 140 * S, x0 + 218 * S];
+  let y = 196 * S;
+  ctx.save(); ctx.globalAlpha = a; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillStyle = 'rgba(247,246,242,.94)'; ctx.fillRect(x0 - 20 * S, y - 26 * S, x1 - x0 + 40 * S, H - 96 * S - y);
+  ctx.fillStyle = INK; ctx.font = `900 ${15 * S}px 'Noto Sans KR'`;
+  ctx.fillText(`오늘 이 구간을 지난 버스 ${obs.length}대`, x0, y);
+  const n = { on: 0, late: 0, early: 0 };
+  obs.forEach(([, pr, re]) => { const v = verdict(re - pr); v.ontime ? n.on++ : re > pr ? n.late++ : n.early++; });
+  y += 24 * S; ctx.font = `700 ${12 * S}px 'Noto Sans KR'`;
+  let xx = x0;
+  for (const [t, col] of [[`제시간 ${n.on}`, 'rgba(35,38,46,.7)'], [`늦음 ${n.late}`, RED], [`일찍 ${n.early}`, BLUE]]) {
+    ctx.fillStyle = col; ctx.fillText(t, xx, y); xx += ctx.measureText(t).width + 14 * S;
+  }
+  y += 28 * S;
+  ctx.fillStyle = 'rgba(35,38,46,.45)'; ctx.font = `400 ${10 * S}px 'Space Mono'`;
+  ['출발', '안내', '실제', '판정'].forEach((t, i) => ctx.fillText(t, c[i], y));
+  ctx.strokeStyle = 'rgba(35,38,46,.18)'; ctx.lineWidth = 1 * S;
+  ctx.beginPath(); ctx.moveTo(x0, y + 11 * S); ctx.lineTo(x1, y + 11 * S); ctx.stroke();
+  y += 24 * S;
+  const fit = Math.max(4, Math.floor((H - 110 * S - y) / rowH));
+  const from = clamp(race.page * PAGE - 1, 0, Math.max(0, obs.length - fit));
+  obs.slice(from, from + fit).forEach(([m, pr, re], j) => {
+    const i = from + j, yy = y + j * rowH, done = race.done.has(i), now = Math.floor(i / PAGE) === race.page;
+    if (now) { ctx.fillStyle = 'rgba(52,97,184,.07)'; ctx.fillRect(x0 - 8 * S, yy - rowH / 2, x1 - x0 + 16 * S, rowH); }
+    ctx.globalAlpha = a * (done ? 1 : now ? 0.55 : 0.25);
+    ctx.fillStyle = INK; ctx.font = `400 ${11 * S}px 'Space Mono'`;
+    ctx.fillText(clock(m), c[0], yy);
+    ctx.fillStyle = 'rgba(35,38,46,.6)'; ctx.font = `500 ${11.5 * S}px 'Noto Sans KR'`;
+    ctx.fillText(secs(pr), c[1], yy);
+    ctx.fillText(done ? secs(re) : '—', c[2], yy);
+    if (done) {
+      const v = verdict(re - pr);
+      ctx.fillStyle = v.col; ctx.font = `900 ${11.5 * S}px 'Noto Sans KR'`; ctx.fillText(v.word, c[3], yy);
+      const w = ctx.measureText(v.word).width;
+      ctx.font = `500 ${11 * S}px 'Noto Sans KR'`; ctx.fillText(signed(re - pr), c[3] + w + 6 * S, yy);
+    }
+  });
+  ctx.globalAlpha = a;
+  if (obs.length > fit) {
+    ctx.fillStyle = 'rgba(35,38,46,.4)'; ctx.font = `400 ${10 * S}px 'Space Mono'`;
+    ctx.fillText(`${from + 1}–${Math.min(obs.length, from + fit)} / ${obs.length}`, x0, y + fit * rowH + 4 * S);
+  }
+  ctx.restore();
+}
+
 function draw() {
   ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
-  const P = place(scaleNow);
+  const P = place(scaleNow); lastP = P;
   drawLine(P);
   drawStops(P);
   if (fiberFade() > 0) drawRace(P, fiberFade());   // on top of everything, poles included
@@ -515,7 +527,8 @@ function draw() {
     return;
   }
   drawHeader();
-  drawCaption(P, focusSeg(P));
+  drawCaption(P, shown);
+  drawLog(shown);
   drawMinimap(P);
   drawFooter();
 }
@@ -528,28 +541,6 @@ function refresh() {
   changeT = T;
 }
 let started = false;
-function hold(v) {
-  if (v === holding) return;
-  holding = v; refresh();
-  v ? sound.snap() : sound.stretch();
-}
-
-// idle: the camera goes and looks at the worst segments by itself
-const tour = { i: 0, t: 0, out: -1 };
-function tourStep(dt, P) {
-  const segs = HOURS[hi].ratio.map((r, k) => ({ r, k })).filter(o => o.k !== TURN - 1 && DATA.names[o.k] !== DATA.names[o.k + 1] && HOURS[hi].obs[o.k].length >= 2)
-    .sort((a, b) => b.r - a.r).slice(0, 6);
-  if (!segs.length) return;
-  tour.t += dt;
-  const s = segs[tour.i % segs.length].k, p = P[s], q = P[s + 1], t = tour.t;
-  cam.tx = (p.x + q.x) / 2; cam.ty = p.y;
-  if (tour.out < 0 && ((race.k === s && raceDone()) || t > 30)) tour.out = t;
-  cam.zt = t < 0.5 || tour.out >= 0 ? 1 : clamp(0.42 * W / Math.abs(q.x - p.x), 7, 28);
-  if (tour.out >= 0 && t - tour.out > 2.2) {
-    tour.t = 0; tour.out = -1; tour.i++;
-    if (HOURS.length > 1 && tour.i % 3 === 0) { hi = (hi + 1) % HOURS.length; sound.bell(); refresh(); }
-  }
-}
 
 function step(dt) {
   T += dt;
@@ -559,21 +550,20 @@ function step(dt) {
     vel[k] *= Math.exp(-6 * dt);
     disp[k] += vel[k] * dt;
   }
-  realVel += ((holding || !started ? 0 : 1) - realness) * 50 * dt;
+  realVel += ((started ? 1 : 0) - realness) * 50 * dt;
   realVel *= Math.exp(-5.5 * dt);
   realness += realVel * dt;
   scaleNow = lerp(scaleNow, fitScale(), 1 - Math.exp(-3 * dt));
   const P = place(scaleNow);
-  if (touched && T - lastInput > 8 && !holding) { touched = false; tour.t = 0; tour.out = -1; }   // left alone: the camera goes back to touring
-  if (!touched) tourStep(dt, P);
-  else if (cam.px >= 0) {          // the pointer is a magnifier over the overview
-    cam.tx = cam.px - (cam.px - W / 2) / cam.z;
-    cam.ty = cam.py - (cam.py - H / 2) / cam.z;
-  }
-  raceStep(dt, P);
+  if (focus >= 0) {                // the clicked segment fills the left of the view, the log sits on the right
+    const p = P[focus], q = P[focus + 1];
+    cam.zt = clamp(0.36 * W / Math.max(1e-3, Math.abs(q.x - p.x)), 6, 40);
+    cam.tx = (p.x + q.x) / 2 + 0.14 * W / cam.zt; cam.ty = p.y;
+  } else { cam.zt = 1; cam.tx = W / 2; cam.ty = H / 2; }
+  raceStep(dt);
   const zBefore = cam.z;
-  cam.z = Math.exp(lerp(Math.log(cam.z), Math.log(cam.zt), 1 - Math.exp(-(touched ? 7 : 1.6) * dt)));
-  const ease = 1 - Math.exp(-(touched ? 9 : 2) * dt);
+  cam.z = Math.exp(lerp(Math.log(cam.z), Math.log(cam.zt), 1 - Math.exp(-2.6 * dt)));
+  const ease = 1 - Math.exp(-3.2 * dt);
   cam.cx = lerp(cam.cx, cam.tx, ease); cam.cy = lerp(cam.cy, cam.ty, ease);
   if (Math.abs(cam.z - zBefore) > 0.01) sound.zoom(cam.z);
   if (cam.z > 5) {                 // a soft tick each time the view slides past a stop
@@ -605,43 +595,43 @@ function frame(t) {
 // ── input ──────────────────────────────────────────────────────────────────
 const sndEl = document.getElementById('snd');
 sndEl.addEventListener('click', () => { sound.kick(); sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF'); });
-let lastInput = -1e9;
-const userTouch = () => {
-  sound.kick(); lastInput = T;
-  if (!touched) { touched = true; hold(false); document.getElementById('hint').classList.add('off'); return true; }
-};
-const stepHour = dir => {
-  userTouch();
-  const before = hi; setHour(hi + dir);
-  if (hi !== before) refresh();
-};
-addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight') stepHour(1);
-  if (e.key === 'ArrowLeft') stepHour(-1);
-  if (e.key === 'ArrowUp' || e.key === '+' || e.key === '=') { userTouch(); cam.zt = clamp(cam.zt * 1.6, 1, 28); }
-  if (e.key === 'ArrowDown' || e.key === '-') { userTouch(); cam.zt = clamp(cam.zt / 1.6, 1, 28); }
-  if (e.key === ' ' && !e.repeat) { userTouch(); hold(true); }
-});
-addEventListener('keyup', e => { if (e.key === ' ') hold(false); });
-addEventListener('wheel', e => {
-  userTouch();
-  cam.px = e.clientX; cam.py = e.clientY;
-  cam.zt = clamp(cam.zt * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0022)), 1, 28);
-}, { passive: true });
+// a stop under the pointer: its circle, or the column of its name
+function stopAt(px, py) {
+  if (!lastP || cam.z > 1.5) return -1;
+  let best = -1, bd = Infinity;
+  for (let k = 0; k < N - 1; k++) {
+    if (DATA.ghost[k]) continue;
+    const x = X(lastP[k].x), y = Y(lastP[k].y), dir = lastP[k].y === L.yTop ? -1 : 1;
+    const dx = Math.abs(px - x), along = (py - y) * dir;
+    if (dx < 9 * S && along > -12 * S && along < 150 * S && dx < bd) { bd = dx; best = k; }
+  }
+  return best;
+}
+// a stop opens the stretch to the next stop; the last stop before the turn and the end look back one
+const segFrom = k => raceable(k) ? k : raceable(k - 1) ? k - 1 : -1;
+function open(k) {
+  const s = segFrom(k);
+  if (s < 0) return;
+  focus = shown = s; sound.bell();
+  document.getElementById('hint').classList.add('off');
+}
+function close() {
+  if (focus < 0) return;
+  focus = -1; sound.stretch();
+  document.getElementById('hint').classList.remove('off');
+}
+addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
 addEventListener('pointermove', e => {
-  cam.px = e.clientX; cam.py = e.clientY;
-  if (touched) lastInput = T;   // moving the mouse only steers once the person has zoomed or clicked
+  hover = focus < 0 ? segFrom(stopAt(e.clientX, e.clientY)) >= 0 ? stopAt(e.clientX, e.clientY) : -1 : -1;
+  cv.style.cursor = hover >= 0 || focus >= 0 ? 'pointer' : 'default';
 });
 addEventListener('pointerdown', e => {
   if (e.target.closest('.snd') || e.target.closest('.home-btn')) return;
-  userTouch();
-  cam.px = e.clientX; cam.py = e.clientY;
-  const c = chips.find(c => e.clientX >= c.x && e.clientX <= c.x + c.w && e.clientY >= c.y && e.clientY <= c.y + c.h);
-  if (c) { stepHour(c.i - hi); return; }
-  hold(true);
+  sound.kick();
+  if (focus >= 0) { close(); return; }
+  const k = stopAt(e.clientX, e.clientY);
+  if (k >= 0) open(k);
 });
-addEventListener('pointerup', () => hold(false));
-addEventListener('pointercancel', () => hold(false));
 addEventListener('resize', resize);
 
 (async () => {
