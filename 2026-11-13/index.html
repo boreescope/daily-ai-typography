@@ -38,7 +38,7 @@
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
 <div class="snd" id="snd">SOUND: ON</div>
-<div class="hint" id="hint">휠로 확대한 뒤 마우스로 훑기 · 누르고 있으면 안내된 시간으로 · ← → 시간대</div>
+<div class="hint" id="hint">휠로 확대하면 그 구간의 버스가 달려요 · 마우스로 훑기 · 누르고 있으면 안내된 시간으로 · ← → 시간대</div>
 
 <script>
 // hours[i].ratio[k] = real / announced travel time from stop k to k+1, same buses, that hour
@@ -98,6 +98,8 @@ const sound = (() => {
     bell() { tone(1318, 0.9, 0.06, 'triangle'); tone(1046, 1.2, 0.05, 'triangle', 0.28); },
     stretch() { tone(110, 0.6, 0.06, 'sine', 0, 0.72); },
     snap() { tone(180, 0.3, 0.05, 'sine', 0, 1.7); },
+    ghost() { tone(1760, 0.18, 0.012, 'sine'); },
+    arrive(r) { tone(clamp(880 / r, 330, 1400), 0.35, 0.05, 'triangle'); if (r > 1.15) tone(clamp(440 / r, 160, 600), 0.5, 0.04, 'sine', 0.06, 0.8); },
     tick(r) { tone(clamp(2400 / r, 900, 3600), 0.05, 0.012, 'sine'); },
     zoom(z) { if (hum) hum.frequency.setTargetAtTime(160 + Math.log(z) * 260, ac.currentTime, 0.2); },
   };
@@ -270,46 +272,98 @@ function drawLine(P) {
     } else ctx.lineTo(x2, Y(q.y));
     ctx.stroke();
   }
-  if (ff > 0) drawFibers(P, ff);
+  if (ff > 0) drawRace(P, ff);
 }
 
-// every bus that ran a segment, as its own strand: it starts at the stop and
-// runs the length its real time would give, so it overshoots or falls short
-function drawFibers(P, ff) {
-  const hr = HOURS[hi], z = cam.z, u = L.u * scaleNow;
-  const label = clamp((z - 9) / 5, 0, 1);
-  for (let k = 0; k < N - 1; k++) {
-    if (k === TURN - 1) continue;
-    const obs = hr.obs[k], n = obs.length;
-    if (!n) continue;
-    const p = P[k], dir = k < TURN ? 1 : -1, xs = X(p.x);
-    if (dir > 0 ? (xs > W + 40 || X(p.x + u * 2.6) < -40) : (xs < -40 || X(p.x - u * 2.6) > W + 40)) continue;
-    const band = L.lw * (1 + 2.6 * ff), step = band / Math.max(1, n);
-    for (let i = 0; i < n; i++) {
-      const [m, pr, re] = obs[i], r = re / pr;
-      const shown = 1 + (r - 1) * realness;
-      const wy = p.y + (i - (n - 1) / 2) * step * ff;
-      const sy = Y(wy), sx2 = X(p.x + dir * u * shown);
-      if (sy < -20 || sy > H + 20) continue;
-      ctx.strokeStyle = segColor(shown, 0.25 + 0.75 * ff);
-      ctx.lineWidth = clamp(step * z * 0.12, 1, 5);
-      ctx.beginPath(); ctx.moveTo(xs, sy); ctx.lineTo(sx2, sy); ctx.stroke();
-      ctx.fillStyle = segColor(shown, ff);
-      ctx.beginPath(); ctx.arc(sx2, sy, clamp(step * z * 0.12, 1.5, 6), 0, Math.PI * 2); ctx.fill();
-      if (label <= 0) continue;
-      const fs = clamp(step * z * 0.2, 9, 13);
-      ctx.globalAlpha = label; ctx.font = `400 ${fs}px 'Space Mono'`; ctx.textBaseline = 'bottom';
-      ctx.fillStyle = 'rgba(35,38,46,.6)'; ctx.textAlign = dir > 0 ? 'left' : 'right';
-      ctx.fillText(`${clock(m)}  안내 ${secs(pr)} → 실제 ${secs(re)}`, xs + dir * 30, sy - 7);
-      const diff = Math.round((re - pr) * realness);
-      ctx.font = `700 ${fs}px 'Space Mono'`; ctx.fillStyle = diff > 0 ? RED : BLUE;
-      ctx.textBaseline = 'middle';
-      ctx.fillText(diff === 0 ? '±0' : (diff > 0 ? '+' : '−') + Math.abs(diff) + 's', sx2 + dir * 12, sy);
-      ctx.globalAlpha = 1;
-    }
+// up close, the segment under the view replays every bus of the hour:
+// a pale bus runs on the announced time, the real one runs on the real time
+const race = { k: -1, hi: -1, t: 0, total: 0, heard: new Set() };
+const raceable = k => k >= 0 && k !== TURN - 1 && DATA.names[k] !== DATA.names[k + 1] && HOURS[hi].obs[k].length > 0;
+const RACE_SEC = 2.4, STAGGER = 0.35;
+function raceLanes(k) {
+  const obs = HOURS[hi].obs[k], f = RACE_SEC / Math.max(20, HOURS[hi].pred[k]);
+  return obs.map(([m, pr, re], i) => ({ m, pr, re, s: i * STAGGER, tp: pr * f, tr: re * f }));
+}
+function raceStep(dt, P) {
+  const k = focusSeg(P), on = fiberFade() > 0.5 && raceable(k);
+  if (!on) { race.k = -1; return; }
+  if (k !== race.k || hi !== race.hi) {
+    race.k = k; race.hi = hi; race.t = -0.4; race.heard.clear();
+    race.total = Math.max(...raceLanes(k).map(l => l.s + Math.max(l.tp, l.tr)));
   }
+  race.t += dt;
+  raceLanes(k).forEach((l, i) => {
+    const te = race.t - l.s;
+    if (te >= l.tp && !race.heard.has('g' + i)) { race.heard.add('g' + i); sound.ghost(); }
+    if (te >= l.tr && !race.heard.has('r' + i)) { race.heard.add('r' + i); sound.arrive(l.re / l.pr); }
+  });
+  if (touched && race.t > race.total + 3) { race.t = -0.4; race.heard.clear(); }   // loop while someone is looking
 }
+const raceDone = () => race.k >= 0 && race.t > race.total + 2.2;
 
+function drawRace(P, ff) {
+  const k = race.k;
+  if (k < 0) return;
+  const p = P[k], q = P[k + 1], xs = X(p.x), xe = X(q.x), yc = Y(p.y);
+  const lanes = raceLanes(k), n = lanes.length, a = clamp((ff - 0.5) * 2, 0, 1);
+  const gap = Math.min(50 * S, H * 0.4 / Math.max(1, n)), dir = Math.sign(xe - xs);
+  const busR = clamp(gap * 0.2, 5, 9) * S;
+  ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round';
+  lanes.forEach((l, i) => {
+    const o = i - (n - 1) / 2, y = yc + o * gap + Math.sign(o || 1) * 30 * S, te = race.t - l.s;   // keep the route itself clear
+    const late = l.tr > l.tp, col = late ? RED : BLUE;
+    const g = clamp(te / l.tp, 0, 1), r = clamp(te / l.tr, 0, 1);
+    const gx = lerp(xs, xe, g), rx = lerp(xs, xe, r);
+    // the road
+    ctx.strokeStyle = 'rgba(35,38,46,.12)'; ctx.lineWidth = 2 * S;
+    ctx.beginPath(); ctx.moveTo(xs, y); ctx.lineTo(xe, y); ctx.stroke();
+    // what is left behind the moment the first one arrives: the error itself
+    const tFirst = Math.min(l.tp, l.tr);
+    if (te >= tFirst) {
+      const fx = lerp(xs, xe, Math.min(l.tp, l.tr) / Math.max(l.tp, l.tr));
+      ctx.strokeStyle = late ? 'rgba(226,65,46,.22)' : 'rgba(52,97,184,.22)'; ctx.lineWidth = busR * 2.2;
+      ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(fx, y); ctx.lineTo(xe, y); ctx.stroke(); ctx.lineCap = 'round';
+    }
+    // the stretch between promise and reality, live
+    if (te > 0 && Math.abs(gx - rx) > 0.5) {
+      const grad = ctx.createLinearGradient(rx, 0, gx, 0);
+      grad.addColorStop(0, col); grad.addColorStop(1, late ? 'rgba(226,65,46,.15)' : 'rgba(52,97,184,.15)');
+      ctx.strokeStyle = grad; ctx.lineWidth = busR * 1.1;
+      ctx.beginPath(); ctx.moveTo(rx, y); ctx.lineTo(gx, y); ctx.stroke();
+    }
+    // announced bus: hollow
+    ctx.strokeStyle = 'rgba(35,38,46,.45)'; ctx.lineWidth = 1.6 * S; ctx.fillStyle = PAPER;
+    ctx.setLineDash([3 * S, 3 * S]);
+    ctx.beginPath(); ctx.arc(gx, y, busR, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.setLineDash([]);
+    // real bus: solid
+    ctx.fillStyle = te > 0 ? col : 'rgba(35,38,46,.5)';
+    ctx.beginPath(); ctx.arc(rx, y, busR, 0, Math.PI * 2); ctx.fill();
+    // departure time
+    ctx.font = `400 ${11 * S}px 'Space Mono'`; ctx.fillStyle = 'rgba(35,38,46,.5)';
+    ctx.textBaseline = 'middle'; ctx.textAlign = dir > 0 ? 'right' : 'left';
+    ctx.fillText(clock(l.m), xs - dir * 18 * S, y);
+    // verdict, once both are in
+    const tEnd = Math.max(l.tp, l.tr);
+    if (te >= tEnd) {
+      const pop = clamp((te - tEnd) / 0.25, 0, 1), d = l.re - l.pr;
+      ctx.globalAlpha = a * pop; ctx.fillStyle = Math.abs(d) < 3 ? INK : col;
+      ctx.font = `900 ${lerp(26, 18, pop) * S}px 'Noto Sans KR'`; ctx.textAlign = dir > 0 ? 'left' : 'right';
+      ctx.fillText(Math.abs(d) < 3 ? '제시간' : `${d > 0 ? '+' : '−'}${secs(Math.abs(d))}`, xe + dir * 20 * S, y);
+      ctx.globalAlpha = a;
+    }
+  });
+  // legend
+  const ly = yc - ((n - 1) / 2) * gap - 30 * S - gap * 0.9 - 6 * S;
+  ctx.font = `400 ${11 * S}px 'Space Mono'`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  const lx = Math.min(xs, xe);
+  ctx.strokeStyle = 'rgba(35,38,46,.45)'; ctx.setLineDash([3 * S, 3 * S]); ctx.lineWidth = 1.4 * S;
+  ctx.beginPath(); ctx.arc(lx + 5 * S, ly, 5 * S, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(35,38,46,.6)'; ctx.fillText('안내대로라면', lx + 15 * S, ly);
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(lx + 125 * S, ly, 5 * S, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = 'rgba(35,38,46,.6)'; ctx.fillText('실제 버스', lx + 135 * S, ly);
+  ctx.restore();
+}
 function drawStops(P) {
   const z = cam.z, ff = fiberFade();
   const fs = Math.max(8, 11 * S) * z, r = Math.min(22, (PREVIEW ? 2.2 : 4.2 * S) * z);
@@ -366,7 +420,7 @@ function drawCaption(P, k) {
   ctx.fillStyle = INK; ctx.font = `900 ${28 * S}px 'Noto Sans KR'`;
   ctx.fillText(`${name(k)}  →  ${name(k + 1)}`, x, y);
   ctx.font = `400 ${12 * S}px 'Space Mono'`; ctx.fillStyle = 'rgba(35,38,46,.6)';
-  const line = o.length
+  const line = realness < 0.5 ? `안내된 시간대로 그린 노선 · 손을 떼면 실제 시간으로` : o.length
     ? `${ampm(hr.h)}대 · 버스 ${o.length}대 · 안내 평균 ${secs(hr.pred[k])} · 실제 평균 ${secs(hr.real[k])}`
     : `${ampm(hr.h)}대 · 기록 없음`;
   ctx.fillText(line, x, y + 26 * S);
@@ -405,20 +459,18 @@ function hold(v) {
 }
 
 // idle: the camera goes and looks at the worst segments by itself
-const tour = { i: 0, t: 0 };
+const tour = { i: 0, t: 0, out: -1 };
 function tourStep(dt, P) {
   const segs = HOURS[hi].ratio.map((r, k) => ({ r, k })).filter(o => o.k !== TURN - 1 && DATA.names[o.k] !== DATA.names[o.k + 1] && HOURS[hi].obs[o.k].length >= 2)
     .sort((a, b) => b.r - a.r).slice(0, 6);
   if (!segs.length) return;
   tour.t += dt;
   const s = segs[tour.i % segs.length].k, p = P[s], q = P[s + 1], t = tour.t;
-  cam.tx = (p.x + q.x) / 2 + (q.x - p.x) * 0.25 * Math.sin(t * 0.3); cam.ty = p.y;
-  if (t < 0.5) cam.zt = 1;
-  else if (t < 10) cam.zt = 20;
-  else cam.zt = 1;
-  if (t > 5.5 && t < 7.6) hold(true); else hold(false);
-  if (t > 12.5) {
-    tour.t = 0; tour.i++;
+  cam.tx = (p.x + q.x) / 2; cam.ty = p.y;
+  if (tour.out < 0 && ((race.k === s && raceDone()) || t > 30)) tour.out = t;
+  cam.zt = t < 0.5 || tour.out >= 0 ? 1 : clamp(0.42 * W / Math.abs(q.x - p.x), 7, 28);
+  if (tour.out >= 0 && t - tour.out > 2.2) {
+    tour.t = 0; tour.out = -1; tour.i++;
     if (HOURS.length > 1 && tour.i % 3 === 0) { hi = (hi + 1) % HOURS.length; sound.bell(); refresh(); }
   }
 }
@@ -436,12 +488,13 @@ function step(dt) {
   realness += realVel * dt;
   scaleNow = lerp(scaleNow, fitScale(), 1 - Math.exp(-3 * dt));
   const P = place(scaleNow);
-  if (touched && T - lastInput > 8 && !holding) { touched = false; tour.t = 0; }   // left alone: the camera goes back to touring
+  if (touched && T - lastInput > 8 && !holding) { touched = false; tour.t = 0; tour.out = -1; }   // left alone: the camera goes back to touring
   if (!touched) tourStep(dt, P);
   else if (cam.px >= 0) {          // the pointer is a magnifier over the overview
     cam.tx = cam.px - (cam.px - W / 2) / cam.z;
     cam.ty = cam.py - (cam.py - H / 2) / cam.z;
   }
+  raceStep(dt, P);
   const zBefore = cam.z;
   cam.z = Math.exp(lerp(Math.log(cam.z), Math.log(cam.zt), 1 - Math.exp(-(touched ? 7 : 1.6) * dt)));
   const ease = 1 - Math.exp(-(touched ? 9 : 2) * dt);
