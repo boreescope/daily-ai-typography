@@ -3,43 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>오차 — HALF A STEP</title>
+<title>오차 — 273</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #f4f1ea; }
-  body { font-family: 'Space Mono', monospace; user-select: none; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #f7f6f2; }
+  body { font-family: 'Noto Sans KR', sans-serif; user-select: none; }
   canvas { display: block; }
 
-  .home-btn {
-    position: fixed; left: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .22em;
-    color: #3a3c44; text-decoration: none; padding: 9px 13px;
-    border: 1px solid rgba(34,37,47,.25); background: rgba(255,255,255,.6);
-    transition: color .3s, border-color .3s;
+  .home-btn, .snd {
+    position: fixed; top: 22px; z-index: 20;
+    font: 700 11px/1 'Noto Sans KR', sans-serif; letter-spacing: .12em;
+    color: #3461b8; text-decoration: none; padding: 9px 13px;
+    border: 1.5px solid rgba(52,97,184,.35); border-radius: 999px; background: rgba(247,246,242,.8);
+    transition: color .3s, border-color .3s, background .3s;
   }
-  .home-btn:hover { color: #e2493a; border-color: rgba(226,73,58,.5); }
-
-  .snd {
-    position: fixed; right: 26px; top: 22px; z-index: 20;
-    font: 700 11px/1 'Space Mono', monospace; letter-spacing: .18em;
-    color: #3a3c44; padding: 9px 13px; cursor: pointer;
-    border: 1px solid rgba(34,37,47,.25); background: rgba(255,255,255,.6);
-    transition: color .3s, border-color .3s;
-  }
-  .snd:hover { color: #e2493a; border-color: rgba(226,73,58,.5); }
+  .home-btn { left: 26px; }
+  .snd { right: 26px; cursor: pointer; }
+  .home-btn:hover, .snd:hover { color: #fff; background: #3461b8; border-color: #3461b8; }
 
   .hint {
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
-    font: 400 12px/1 'Noto Sans KR', sans-serif; letter-spacing: .08em;
-    color: rgba(34,37,47,.75); white-space: nowrap; pointer-events: none;
-    background: rgba(255,255,255,.7); padding: 9px 14px;
+    font: 400 12px/1 'Noto Sans KR', sans-serif; letter-spacing: .04em;
+    color: rgba(40,48,70,.55); white-space: nowrap; pointer-events: none;
     transition: opacity 1s ease;
   }
   .hint.off { opacity: 0; }
-
   body.preview .home-btn, body.preview .snd, body.preview .hint { display: none; }
 </style>
 </head>
@@ -47,36 +38,29 @@
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
 <div class="snd" id="snd">SOUND: ON</div>
-<div class="hint" id="hint">삐져나온 글자를 눌러서 밀어 넣어 보세요</div>
+<div class="hint" id="hint">누르고 있으면 안내된 시간으로 · ← → 시간대</div>
 
 <script>
-const cv = document.getElementById('cv');
-const ctx = cv.getContext('2d');
+// hours[i].ratio[k] = real / announced travel time from stop k to k+1, same buses, that hour
+const DATA = /*DATA*/{"when":"2026.11.20 13:14–13:34","names":["중랑공영차고지","신내데시앙아파트","동성프라자앞","중랑구청","신현중학교","엘지아파트앞","쌍용아파트","이화연립","중흥초등학교","중화역2번출구","중화역3번출구","중화2동주민센터","이문동현대아파트앞","이문동쌍용아파트","이문동삼익아파트","종로사약국","외대역앞","외대앞","경희중고","회기시장","경희대입구","서울바이오허브","한국과학기술원","국방연구원","고대앞","안암역2번출구","고려대이공대","안암동주민센터","보문역4번출구","보문역3번출구","성북구청","삼선동주민센터","삼선교","혜화역","혜화역3번출구","방송통신대","연지공원앞","원남동","서울특별시재향군인회관","종로3가역","종로2가","종로1가","광화문역","서울역사박물관","서대문역사거리","충정로역","아현역","웨딩타운","이대역","신촌오거리","신촌오거리","산울림소극장","삼진제약","홍익대학교","홍대입구역사거리","홍대입구역","홍대입구역","동교동삼거리","신촌오거리","신촌오거리","이대역","웨딩타운","아현역","충정로역","서대문역사거리","서울역사박물관","광화문역","종로1가","종로2가","종로3가역","종로4가","종로5가역","종로5가","효제동","방송통신대","혜화역2번출구","혜화역","삼선교","돈암초교입구","삼선동주민센터","성북구청","보문역5번출구","안암동주민센터","고려대이공대","안암역3번출구","고려대학교앞","국방연구원","한국과학기술원","서울바이오허브","경희대입구","회기시장","경희중고","외대앞","외대역앞","SK뷰아파트","동일스위트리버아파트","서울반도체고","이문동삼익아파트","이문동쌍용아파트","이문동현대아파트","중화2동주민센터","중화역3번출구","중화역2번출구","중흥초등학교","이화연립","쌍용아파트","엘지아파트앞","신현중학교","중랑구청","동성프라자앞","신내데시앙아파트","중랑공영차고지","중랑공영차고지"],"ghost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"lines":[[6],[6],[],[],[],[],[],[],[],[7],[7],[],[],[],[],[],[1],[],[],[],[],[],[],[],[],[6],[],[],[6],[6],[],[],[],[4],[4],[],[],[],[],[1,3,5],[],[1],[5],[],[5],[2,5],[2],[],[2],[2],[],[],[],[],[2],[2],[2],[],[],[2],[2],[],[2],[2,5],[5],[],[5],[1],[],[1,3,5],[],[1],[],[],[],[4],[4],[],[],[],[],[6],[],[],[6],[],[],[],[],[],[],[],[],[1],[],[],[],[],[],[],[],[7],[7],[],[],[],[],[],[],[],[6],[],[6]],"hours":[{"h":13,"n":282,"ratio":[0.99,0.847,1.124,1.09,0.81,1.147,0.976,0.783,1.099,1.169,1.509,0.724,1.203,0.858,1.001,1.132,1.15,1.01,0.925,1.287,0.993,1.105,0.914,1.058,1.104,1.097,1.017,0.79,1.062,1.113,0.871,0.999,0.977,0.63,0.919,0.882,0.858,0.907,1.156,0.992,0.98,1.055,0.957,0.882,1.008,1.004,1.341,1.119,1.008,1.11,0.99,1.217,0.823,1.018,0.871,1.886,1.035,0.865,1.157,0.689,1.216,0.988,0.873,1.017,0.813,1.163,1.082,1.017,0.935,1.278,1.135,0.772,1.073,1.047,0.681,1.051,0.924,0.745,1.072,1.003,1.004,0.847,0.894,0.92,1.053,1.022,0.881,0.824,0.904,1.058,0.875,1.221,0.909,0.931,1.056,0.871,1.023,1.177,1.122,1.11,0.927,0.863,0.983,0.975,1.057,0.997,1.209,1.179,0.823,0.892,0.973,1.337],"pred":[0,129,103,95,53,33,69,56,47,98,90,105,52,115,80,136,89,79,59,112,107,58,90,202,120,139,91,87,74,69,128,140,288,178,90,72,152,91,178,141,144,92,170,105,184,119,106,84,156,130,0,83,61,191,74,60,152,113,129,112,111,81,270,104,159,96,160,117,116,112,116,114,82,100,83,94,222,88,61,109,139,74,69,119,150,194,142,52,91,123,80,55,76,161,147,148,231,63,50,86,67,150,41,62,55,40,46,54,122,166,186,26],"real":[0,100,120,107,40,40,67,40,53,120,160,67,67,93,80,160,107,80,53,160,107,67,80,220,140,160,93,60,80,80,107,140,280,80,80,60,120,80,220,140,140,100,160,90,187,120,160,100,160,160,0,120,40,200,60,140,160,93,160,60,160,80,220,107,120,120,180,120,107,160,140,80,90,107,50,100,200,60,67,110,140,60,60,107,160,200,120,40,80,133,67,70,67,147,160,120,240,80,60,100,60,120,40,60,60,40,60,67,93,140,180,40]}]}/*END*/;
+
 const PREVIEW = new URLSearchParams(location.search).has('preview');
 if (PREVIEW) document.body.classList.add('preview');
 
-const DPR = Math.min(window.devicePixelRatio || 1, 2);
-const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
-const lerp = (a, b, k) => a + (b - a) * k;
-const rnd = (a, b) => a + Math.random() * (b - a);
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
 
-const TEXT = '다같이앞으로나란히';
-const N = TEXT.length;
-const MAX_SHIFT = 3;
-const INK = '#22252f', RED = '#e2493a', CHALK = '#ffffff';
+const BLUE = '#3461b8', RED = '#e2412e', INK = '#23262e', PAPER = '#f7f6f2';
+const SUB = { 1: '#0052A4', 2: '#00A84D', 3: '#EF7C1C', 4: '#00A5DE', 5: '#996CAC', 6: '#CD7C2F', 7: '#747F00' };
+const N = DATA.names.length, TURN = 56;          // stops 1..56 run on top, 57..113 come back below
+const HOURS = DATA.hours;
 
-// fuss: how restless the line has become. everything leans on it.
-let fuss = 0, shift = 0, culprit = -1, pushes = 0, idleT = 0, T = 0;
-let W = 0, H = 0, cell = 0, x0 = 0, baseY = 0;
-let px = -1, py = -1, wide = 0;
-const timers = [];
-const after = (s, fn) => timers.push({ t: s, fn });
-
-const bits = [...TEXT].map((ch, i) => ({
-  ch, i, x: i, xt: i, y: 0, yt: 0, vy: 0,
-  squash: 0, flinch: 0, blink: rnd(1, 5), shut: 0, walk: 0,
-  glance: 0, glanceT: rnd(2, 6), seed: Math.random() * 10,
-}));
+let W = 0, H = 0, S = 1, hi = 0, holding = false, touched = false;
+let autoT = 0, scaleNow = 1;
+const disp = new Float32Array(N - 1).fill(1);    // shown ratio per segment, springs toward target
+const vel = new Float32Array(N - 1);
 
 // ── sound ──────────────────────────────────────────────────────────────────
 const sound = (() => {
@@ -84,356 +68,278 @@ const sound = (() => {
   const boot = () => {
     if (ac) return;
     ac = new (window.AudioContext || window.webkitAudioContext)();
-    master = ac.createGain(); master.gain.value = 0.9;
-    const comp = ac.createDynamicsCompressor();
-    comp.threshold.value = -14; comp.ratio.value = 6;
-    master.connect(comp); comp.connect(ac.destination);
-
-    // a wide open yard: faint air
-    const src = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
-    src.buffer = noise(3); src.loop = true;
-    f.type = 'lowpass'; f.frequency.value = 520;
-    g.gain.value = 0.02;
-    src.connect(f); f.connect(g); g.connect(master); src.start();
-  };
-  const noise = sec => {
-    const n = Math.floor(ac.sampleRate * sec), b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
-    for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
-    return b;
-  };
-  const tone = (type, f0, f1, t0, dur, peak) => {
-    const o = ac.createOscillator(), g = ac.createGain();
-    o.type = type;
-    o.frequency.setValueAtTime(f0, t0);
-    o.frequency.exponentialRampToValueAtTime(f1, t0 + dur);
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(peak, t0 + 0.008);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.05);
-  };
-  const scuff = (t0, dur, peak, freq) => {
+    master = ac.createGain(); master.gain.value = 0.8;
+    master.connect(ac.destination);
+    // engine idle under the floor
+    const n = ac.sampleRate * 2, b = ac.createBuffer(1, n, ac.sampleRate), d = b.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < n; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 5; }
     const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
-    s.buffer = noise(dur + 0.05);
-    f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = 0.8;
-    g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(peak, t0 + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
-    s.connect(f); f.connect(g); g.connect(master); s.start(t0);
+    s.buffer = b; s.loop = true; f.type = 'lowpass'; f.frequency.value = 160; g.gain.value = 0.07;
+    s.connect(f); f.connect(g); g.connect(master); s.start();
+    const o = ac.createOscillator(), og = ac.createGain();
+    o.type = 'sine'; o.frequency.value = 42; og.gain.value = 0.02;
+    o.connect(og); og.connect(master); o.start();
   };
-  const ok = () => ac && on;
+  const tone = (freq, dur, peak, type = 'sine', at = 0, bend = 0) => {
+    if (!ac || !on) return;
+    const t = ac.currentTime + at, o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (bend) o.frequency.exponentialRampToValueAtTime(freq * bend, t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(peak, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(master); o.start(t); o.stop(t + dur + 0.05);
+  };
   return {
     kick() { boot(); if (ac.state === 'suspended') ac.resume(); },
-    live() { return !!ac && ac.state === 'running' && on; },
-    toggle() { on = !on; if (master) master.gain.value = on ? 0.9 : 0; return on; },
-    push(k) {
-      if (!ok()) return;
-      const t = ac.currentTime;
-      tone('sine', 190 + k * 60, 70, t, 0.18, 0.5);
-      scuff(t, 0.12, 0.18, 1400);
-    },
-    pop(k) {
-      if (!ok()) return;
-      const t = ac.currentTime;
-      tone('sine', 320 + k * 120, 820 + k * 300, t, 0.13, 0.32);
-      tone('triangle', 640, 1400, t + 0.02, 0.08, 0.08);
-    },
-    poke() {
-      if (!ok()) return;
-      const t = ac.currentTime;
-      tone('square', 520, 380, t, 0.07, 0.05);
-    },
-    step(i) {
-      if (!ok()) return;
-      scuff(ac.currentTime + i * 0.05, 0.07, 0.09, 700 + Math.random() * 500);
-    },
-    whistle(long) {
-      if (!ok()) return;
-      const t = ac.currentTime, dur = long ? 0.9 : 0.4;
-      const o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), g = ac.createGain();
-      o.type = 'sine'; o.frequency.value = 2650;
-      lfo.frequency.value = 34; lg.gain.value = 140;
-      lfo.connect(lg); lg.connect(o.frequency);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(0.16, t + 0.03);
-      g.gain.setValueAtTime(0.16, t + dur - 0.1);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-      o.connect(g); g.connect(master);
-      o.start(t); lfo.start(t); o.stop(t + dur + 0.05); lfo.stop(t + dur + 0.05);
-      scuff(t, dur, 0.05, 3000);
-    },
+    toggle() { on = !on; if (master) master.gain.value = on ? 0.8 : 0; return on; },
+    bell() { tone(1318, 0.9, 0.06, 'triangle'); tone(1046, 1.2, 0.05, 'triangle', 0.28); },
+    stretch() { tone(110, 0.6, 0.06, 'sine', 0, 0.72); },
+    snap() { tone(180, 0.3, 0.05, 'sine', 0, 1.7); },
   };
 })();
 
-// ── line logic ─────────────────────────────────────────────────────────────
-function popOut(i) {
-  culprit = i;
-  bits.forEach(o => { if (o.i !== i) o.yt = 0; });
-  const b = bits[i];
-  b.yt = 0.5; b.vy = 3.2; b.squash = -0.5;
-  idleT = 0;
-  sound.pop(fuss);
-}
-
-function pickNext(prev) {
-  if (Math.random() < 0.15) return prev;            // stubborn: the same one steps out again
-  let j;
-  do { j = Math.floor(Math.random() * N); } while (j === prev);
-  return j;
-}
-
-function push(i) {
-  const b = bits[i];
-  b.yt = 0; b.vy = -2.4; b.squash = 0.6; b.shut = 0.35;
-  culprit = -1;
-  pushes++;
-  fuss += 0.19;
-  sound.push(fuss);
-  document.getElementById('hint').classList.add('off');
-
-  if (fuss >= 1) { after(0.7, shuffle); return; }
-  const next = pickNext(i);
-  after(next === i ? 0.55 : rnd(0.3, 0.5), () => popOut(next));
-}
-
-// everyone slides one place over, so nobody stands on a mark
-function shuffle() {
-  fuss = 0;
-  wide = 1;
-  if (shift + 1 >= MAX_SHIFT) {
-    sound.whistle(true);
-    shift = 0;
-    after(0.4, () => bits.forEach((b, k) => after(k * 0.04, () => { b.xt = b.i; b.walk = 1; sound.step(0); })));
-    after(2.2, () => popOut(Math.floor(Math.random() * N)));
-    return;
-  }
-  sound.whistle(false);
-  shift++;
-  for (let k = N - 1; k >= 0; k--) {
-    const b = bits[k], d = (N - 1 - k) * 0.09;
-    after(0.3 + d, () => { b.xt = b.i + shift; b.walk = 1; sound.step(0); });
-  }
-  after(2.4, () => popOut(Math.floor(Math.random() * N)));
-}
-
-function error() {
-  return shift + (culprit >= 0 ? bits[culprit].y : 0);
-}
-
 // ── layout ─────────────────────────────────────────────────────────────────
-function resize() {
-  W = innerWidth; H = innerHeight;
-  cv.width = Math.ceil(W * DPR); cv.height = Math.ceil(H * DPR);
-  cv.style.width = W + 'px'; cv.style.height = H + 'px';
-  if (PREVIEW) {
-    cell = Math.min(W * 0.94 / (N + 0.6), H * 0.34);
-    x0 = (W - N * cell) / 2 + cell / 2;
-    baseY = H * 0.66;
-  } else {
-    cell = Math.min(W * 0.9 / (N + 4), H * 0.19);
-    x0 = (W - N * cell) / 2 + cell / 2;
-    baseY = H * 0.6;
-  }
+const L = {};
+function layout() {
+  S = Math.min(W / 1440, H / 900);
+  const mid = PREVIEW ? H * 0.56 : H * 0.5;
+  L.gap = PREVIEW ? 64 : 104 * S;
+  L.yTop = mid - L.gap / 2; L.yBot = mid + L.gap / 2;
+  L.x0 = PREVIEW ? 34 : 120 * S;
+  L.avail = W - L.x0 - (PREVIEW ? 34 : 150 * S);
+  L.u = L.avail * 0.8 / (TURN - 1);              // px per segment when real == announced
+  L.lw = PREVIEW ? 5 : 7 * S;
 }
 
-function geo(b) {
-  const s = 1 + b.y * 0.16;
-  const gx = x0 + b.x * cell;
-  const gy = baseY + b.y * cell * 0.62;
-  const fs = cell * 0.8 * s;
-  const leg = cell * 0.2 * s;
-  return { s, gx, gy, fs, leg, cy: gy - leg - fs * 0.42 };
+// positions of every stop for the shown ratios
+function place(scale) {
+  const P = new Array(N), u = L.u * scale;
+  P[0] = { x: L.x0, y: L.yTop };
+  for (let k = 1; k < TURN; k++) P[k] = { x: P[k - 1].x + u * disp[k - 1], y: L.yTop };
+  P[TURN] = { x: P[TURN - 1].x, y: L.yBot };      // the turn segment bulges instead of moving
+  for (let k = TURN + 1; k < N; k++) P[k] = { x: P[k - 1].x - u * disp[k - 1], y: L.yBot };
+  return P;
 }
 
-function hit(x, y) {
-  let best = -1, bd = 1e9;
-  bits.forEach((b, k) => {
-    const g = geo(b);
-    const dx = Math.abs(x - g.gx), dy = Math.abs(y - g.cy);
-    if (dx < cell * 0.55 && dy < g.fs * 0.75 && dx + dy < bd) { bd = dx + dy; best = k; }
-  });
-  return best;
+function fitScale() {
+  const P = place(1);
+  let maxX = 0, minX = Infinity;
+  for (const p of P) { maxX = Math.max(maxX, p.x); minX = Math.min(minX, p.x); }
+  const span = maxX - Math.min(L.x0, minX);
+  return Math.min(1, L.avail / span);
 }
 
-// ── step ───────────────────────────────────────────────────────────────────
-function step(dt) {
-  T += dt;
-  for (let k = timers.length - 1; k >= 0; k--) {
-    timers[k].t -= dt;
-    if (timers[k].t <= 0) { const f = timers[k].fn; timers.splice(k, 1); f(); }
-  }
-  fuss = Math.max(0, fuss - dt * 0.012);
-  wide = Math.max(0, wide - dt * 0.6);
+const target = k => holding ? 1 : HOURS[hi].ratio[k];
 
-  if (culprit >= 0) {
-    idleT += dt;
-    bits[culprit].yt = 0.5 + Math.min(0.32, idleT * 0.018);   // left alone, it creeps further out
-  }
-
-  bits.forEach(b => {
-    const ax = (b.xt - b.x);
-    b.x += ax * Math.min(1, dt * 5.5);
-    if (Math.abs(ax) < 0.02) b.walk = Math.max(0, b.walk - dt * 3);
-
-    b.vy += ((b.yt - b.y) * 90 - b.vy * 11) * dt;
-    b.y += b.vy * dt;
-    b.squash *= Math.exp(-dt * 9);
-    b.flinch = Math.max(0, b.flinch - dt * 2.5);
-    b.shut = Math.max(0, b.shut - dt);
-
-    b.blink -= dt;
-    if (b.blink < 0) { b.shut = Math.max(b.shut, 0.13); b.blink = rnd(2.5, 6); }
-    b.glanceT -= dt;
-    if (b.glanceT < 0) { b.glance = b.glance ? 0 : 1; b.glanceT = b.glance ? rnd(0.6, 1.4) : rnd(3, 7); }
-  });
+function setHour(i) {
+  i = clamp(i, 0, HOURS.length - 1);
+  if (i === hi) return;
+  hi = i; sound.bell();
 }
+
+// seconds → "3시간 18분" / "52분"
+function hm(sec) {
+  const m = Math.round(sec / 60), h = Math.floor(m / 60);
+  return h ? `${h}시간 ${m % 60}분` : `${m}분`;
+}
+const ampm = h => (h < 12 ? '오전 ' : '오후 ') + ((h + 11) % 12 + 1) + '시';
 
 // ── draw ───────────────────────────────────────────────────────────────────
-function drawGround() {
-  const top = baseY - cell * 0.18, bot = baseY + cell * 0.85;
-  const g = ctx.createLinearGradient(0, top, 0, bot);
-  g.addColorStop(0, 'rgba(226,214,190,0)');
-  g.addColorStop(0.25, 'rgba(226,214,190,.55)');
-  g.addColorStop(1, 'rgba(226,214,190,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, top, W, bot - top);
-
-  ctx.strokeStyle = CHALK; ctx.lineCap = 'round';
-  ctx.globalAlpha = 0.9;
-  ctx.lineWidth = Math.max(1.5, cell * 0.035);
-  for (let i = 0; i < N; i++) {
-    const x = x0 + i * cell, w = cell * 0.2;
-    ctx.beginPath();
-    ctx.moveTo(x - w, baseY + cell * 0.04); ctx.lineTo(x + w, baseY + cell * 0.04);
-    ctx.moveTo(x, baseY - cell * 0.02); ctx.lineTo(x, baseY + cell * 0.1);
-    ctx.stroke();
-  }
-  ctx.globalAlpha = 1;
+function segColor(d) {
+  const t = clamp((d - 1.08) / 0.5, 0, 1);
+  if (t <= 0) return BLUE;
+  const a = [0x34, 0x61, 0xb8], b = [0xe2, 0x41, 0x2e];
+  return `rgb(${a.map((v, i) => Math.round(lerp(v, b[i], t))).join(',')})`;
 }
 
-function lookAt(b, g) {
-  if (wide > 0.3) return [0, 0.25];
-  if (b.i === culprit) {
-    if (px >= 0) {
-      const dx = px - g.gx, dy = py - g.cy, d = Math.hypot(dx, dy) || 1;
-      return [dx / d, dy / d];
-    }
-    return [Math.sin(T * 7) * 0.5, 0.6];
+function stackText(str, x, y, dir, fs) {
+  const lh = fs * 1.06, chars = [...str];
+  for (let i = 0; i < chars.length; i++) {
+    const j = dir < 0 ? chars.length - 1 - i : i;
+    ctx.fillText(chars[j], x, y + dir * i * lh);
   }
-  if (culprit >= 0 && !b.glance) {
-    const c = geo(bits[culprit]);
-    return [Math.sign(c.gx - g.gx) * 0.95, 0.25];
-  }
-  return [0, 0.35];
+  return chars.length * lh;
 }
 
-function drawBit(b) {
-  const g = geo(b);
-  const { gx, gy, fs, leg } = g;
-  const sway = Math.sin(T * (1.3 + fuss * 4) + b.seed) * (0.012 + fuss * 0.07)
-             + b.flinch * 0.22 * Math.sin(b.seed * 3);
+function drawHeader() {
+  const hr = HOURS[hi], y = 70 * S;
+  ctx.textBaseline = 'middle';
+  ctx.fillStyle = BLUE;
+  ctx.beginPath(); ctx.roundRect(L.x0, y - 24 * S, 104 * S, 48 * S, 10 * S); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+  ctx.font = `900 ${32 * S}px 'Noto Sans KR'`;
+  ctx.fillText('273', L.x0 + 52 * S, y + 1 * S);
+  ctx.textAlign = 'left';
+  ctx.strokeStyle = BLUE; ctx.lineWidth = 1.5 * S;
+  ctx.beginPath(); ctx.roundRect(L.x0 + 118 * S, y - 11 * S, 40 * S, 22 * S, 11 * S); ctx.stroke();
+  ctx.fillStyle = BLUE; ctx.font = `700 ${12 * S}px 'Noto Sans KR'`;
+  ctx.fillText('간선', L.x0 + 126 * S, y + 1 * S);
+  ctx.fillStyle = INK; ctx.font = `700 ${19 * S}px 'Noto Sans KR'`;
+  ctx.fillText('중랑공영차고지  ↔  홍익대학교', L.x0 + 172 * S, y + 1 * S);
 
-  ctx.fillStyle = 'rgba(34,37,47,.12)';
-  ctx.beginPath();
-  ctx.ellipse(gx, gy + fs * 0.02, fs * 0.36, fs * 0.06, 0, 0, Math.PI * 2);
-  ctx.fill();
+  const P = hr.pred.reduce((a, b) => a + b, 0), R = hr.real.reduce((a, b) => a + b, 0);
+  const xr = W - 150 * S;
+  ctx.textAlign = 'right';
+  ctx.font = `700 ${22 * S}px 'Noto Sans KR'`; ctx.fillStyle = INK;
+  ctx.fillText(ampm(hr.h) + '대', xr, y - 8 * S);
+  ctx.font = `400 ${13 * S}px 'Noto Sans KR'`;
+  ctx.fillStyle = holding ? INK : 'rgba(35,38,46,.45)';
+  const a = `안내  ${hm(P)}`, b = `실제  ${hm(R)}`;
+  ctx.fillText(a, xr - ctx.measureText(`   ·   ${b}`).width, y + 18 * S);
+  ctx.fillStyle = holding ? 'rgba(35,38,46,.45)' : (R > P ? RED : BLUE);
+  ctx.fillText(`   ·   ${b}`, xr, y + 18 * S);
+}
 
-  ctx.save();
-  ctx.translate(gx, gy);
-  ctx.rotate(sway);
-  ctx.scale(1 + b.squash * 0.22, 1 - b.squash * 0.22);
-
-  // legs
-  ctx.strokeStyle = INK; ctx.lineCap = 'round';
-  ctx.lineWidth = fs * 0.065;
-  for (const side of [-1, 1]) {
-    const lift = Math.max(0, Math.sin(T * 15 + b.seed + (side > 0 ? Math.PI : 0))) * b.walk * leg * 0.55;
-    const lx = side * fs * 0.13;
-    ctx.beginPath();
-    ctx.moveTo(lx, -leg - fs * 0.02);
-    ctx.lineTo(lx, -lift);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.ellipse(lx + side * fs * 0.03, -lift, fs * 0.06, fs * 0.03, 0, 0, Math.PI * 2);
-    ctx.fillStyle = INK; ctx.fill();
-  }
-
-  // body
-  const cy = -leg - fs * 0.42;
-  ctx.fillStyle = INK;
-  ctx.font = `${fs}px 'Black Han Sans'`;
+function drawFooter() {
+  const y = H - 84 * S, gap = 46 * S, x0 = W / 2 - (HOURS.length - 1) * gap / 2;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText(b.ch, 0, cy + fs * 0.04);
-
-  // cheeks
-  const blush = clamp(b.y * 1.7, 0, 0.85);
-  if (blush > 0.02) {
-    ctx.fillStyle = `rgba(241,120,120,${blush})`;
-    for (const side of [-1, 1]) {
-      ctx.beginPath();
-      ctx.ellipse(side * fs * 0.3, cy + fs * 0.06, fs * 0.075, fs * 0.04, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  // eyes
-  const [lx, ly] = lookAt(b, g);
-  const jit = b.i === culprit ? fuss * 0.15 : fuss * 0.08;
-  const rx = fs * 0.085 * (1 + wide * 0.25);
-  const ry = rx * (b.shut > 0 ? 0.14 : 1.12);
-  for (const side of [-1, 1]) {
-    const ex = side * fs * 0.15, ey = cy - fs * 0.1;
-    ctx.beginPath();
-    ctx.ellipse(ex, ey, rx, ry, 0, 0, Math.PI * 2);
-    ctx.fillStyle = '#fff'; ctx.fill();
-    ctx.lineWidth = fs * 0.02; ctx.strokeStyle = INK; ctx.stroke();
-    if (b.shut <= 0) {
-      const pr = rx * 0.5;
-      const ox = clamp(lx + rnd(-jit, jit), -1, 1) * (rx - pr) * 0.95;
-      const oy = clamp(ly + rnd(-jit, jit), -1, 1) * (ry - pr) * 0.8;
-      ctx.beginPath();
-      ctx.arc(ex + ox, ey + oy, pr, 0, Math.PI * 2);
-      ctx.fillStyle = INK; ctx.fill();
-    }
-  }
-  ctx.restore();
+  HOURS.forEach((hr, i) => {
+    const x = x0 + i * gap, cur = i === hi;
+    if (cur) { ctx.fillStyle = BLUE; ctx.beginPath(); ctx.roundRect(x - 19 * S, y - 12 * S, 38 * S, 24 * S, 12 * S); ctx.fill(); }
+    ctx.fillStyle = cur ? '#fff' : 'rgba(35,38,46,.4)';
+    ctx.font = `${cur ? 700 : 500} ${12 * S}px 'Noto Sans KR'`;
+    ctx.fillText(hr.h + '시', x, y + 1 * S);
+  });
+  ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(35,38,46,.38)';
+  ctx.font = `400 ${10.5 * S}px 'Noto Sans KR'`;
+  ctx.fillText(`출처: 서울특별시 버스도착정보 · ${DATA.when} · 40초마다 기록`, W - 30 * S, H - 26 * S);
 }
 
-function drawHud() {
-  const e = error();
-  const cx = W / 2;
-  if (PREVIEW) {
-    ctx.fillStyle = RED;
-    ctx.font = `700 ${Math.round(H * 0.1)}px 'Space Mono'`;
-    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
-    ctx.fillText(`+${e.toFixed(2)}`, cx, H * 0.2);
-    return;
+function drawLine(P) {
+  const hr = HOURS[hi];
+  ctx.lineCap = 'round';
+  // left loop back to the garage: no data, drawn plain
+  const a = P[N - 1], z = P[0], bx = Math.min(a.x, z.x) - L.gap * 0.55;
+  ctx.strokeStyle = BLUE; ctx.globalAlpha = 0.55; ctx.lineWidth = L.lw;
+  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.bezierCurveTo(bx, a.y, bx, z.y, z.x, z.y); ctx.stroke();
+  ctx.globalAlpha = 1;
+  for (let k = 0; k < N - 1; k++) {
+    const p = P[k], q = P[k + 1], d = disp[k];
+    ctx.strokeStyle = segColor(d);
+    ctx.lineWidth = clamp(L.lw / Math.sqrt(Math.max(0.2, d)), L.lw * 0.35, L.lw * 1.7);
+    ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    if (k === TURN - 1) {
+      const bx2 = p.x + L.gap * 0.55 * Math.max(0.4, d);
+      ctx.bezierCurveTo(bx2, p.y, bx2, q.y, q.x, q.y);
+    } else ctx.lineTo(q.x, q.y);
+    ctx.stroke();
   }
-  const y = H * 0.17;
-  ctx.textAlign = 'center';
-  ctx.fillStyle = 'rgba(34,37,47,.55)';
-  ctx.font = `700 ${Math.round(cell * 0.13)}px 'Noto Sans KR'`;
-  ctx.fillText('오차', cx, y - cell * 0.42);
-  ctx.fillStyle = e > 0.01 ? RED : INK;
-  ctx.font = `700 ${Math.round(cell * 0.42)}px 'Space Mono'`;
-  ctx.fillText(`+${e.toFixed(2)}`, cx, y + cell * 0.04);
-  ctx.fillStyle = 'rgba(34,37,47,.55)';
-  ctx.font = `400 ${Math.round(cell * 0.11)}px 'Space Mono'`;
-  ctx.fillText(`PUSHED ${String(pushes).padStart(2, '0')}   ·   SHIFT ${shift}/${MAX_SHIFT - 1}`, cx, y + cell * 0.3);
+  // direction chevrons
+  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.4 * S;
+  for (let k = 3; k < N - 1; k += 7) {
+    if (k === TURN - 1 || DATA.ghost[k] || DATA.ghost[k + 1]) continue;
+    const p = P[k], q = P[k + 1], mx = (p.x + q.x) / 2, dir = Math.sign(q.x - p.x) || 1, c = 2.2 * S;
+    if (Math.abs(q.x - p.x) < 12 * S) continue;
+    ctx.beginPath(); ctx.moveTo(mx - dir * c, p.y - c); ctx.lineTo(mx + dir * c, p.y); ctx.lineTo(mx - dir * c, p.y + c); ctx.stroke();
+  }
+  // delay tags on the most stretched segments
+  if (!PREVIEW) {
+    const top = hr.ratio.map((r, k) => ({ k, r, diff: hr.real[k] - hr.pred[k] }))
+      .filter(o => o.r > 1.2 && o.diff >= 20 && o.k !== TURN - 1).sort((a, b) => b.diff - a.diff).slice(0, 5);
+    ctx.textAlign = 'center'; ctx.font = `700 ${11 * S}px 'Noto Sans KR'`;
+    for (const o of top) {
+      const p = P[o.k], q = P[o.k + 1], show = clamp((disp[o.k] - 1) / (o.r - 1), 0, 1);
+      if (show < 0.05) continue;
+      ctx.globalAlpha = show; ctx.fillStyle = RED;
+      const inward = p.y === L.yTop ? 1 : -1;
+      ctx.textBaseline = inward > 0 ? 'top' : 'bottom';
+      ctx.fillText(`+${o.diff}초`, (p.x + q.x) / 2, p.y + inward * 11 * S);
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function drawStops(P) {
+  const fs = Math.max(8, 11 * S), r = PREVIEW ? 2.2 : 4.2 * S;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let k = 0; k < N; k++) {
+    if (DATA.ghost[k]) continue;
+    const p = P[k], top = p.y === L.yTop, end = k === 0 || k === 53;
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = BLUE; ctx.lineWidth = (end ? 3 : 2) * (PREVIEW ? 0.6 : S);
+    ctx.beginPath(); ctx.arc(p.x, p.y, end ? r * 1.8 : r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    if (PREVIEW || k === N - 1) continue;
+    const near = Math.max(disp[k - 1] || 1, disp[k] || 1);
+    ctx.fillStyle = near > 1.25 ? RED : INK;
+    ctx.font = `${end ? 900 : 500} ${fs}px 'Noto Sans KR'`;
+    const name = [...DATA.names[k]].slice(0, 9).join('');
+    const dir = top ? -1 : 1, y0 = p.y + dir * (r + 10 * S);
+    const len = stackText(name, p.x, y0, dir, fs);
+    let y = y0 + dir * (len + 4 * S);
+    for (const ln of DATA.lines[k]) {
+      ctx.fillStyle = SUB[ln];
+      ctx.beginPath(); ctx.arc(p.x, y, 6 * S, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `700 ${8.5 * S}px 'Noto Sans KR'`;
+      ctx.fillText(ln, p.x, y + 0.5 * S);
+      ctx.font = `500 ${fs}px 'Noto Sans KR'`;
+      y += dir * 14 * S;
+    }
+  }
 }
 
 function draw() {
-  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  ctx.fillStyle = '#f4f1ea';
-  ctx.fillRect(0, 0, W, H);
-  drawGround();
-  [...bits].sort((a, b) => a.y - b.y).forEach(drawBit);
-  drawHud();
+  ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
+  ctx.save();
+  // the whole map shrinks to fit when the stretched route runs out of paper
+  const P = place(scaleNow);
+  if (!PREVIEW) drawHeader();
+  else {
+    ctx.fillStyle = BLUE; ctx.beginPath(); ctx.roundRect(L.x0, 20, 64, 30, 7); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.font = `900 20px 'Noto Sans KR'`; ctx.fillText('273', L.x0 + 32, 36);
+  }
+  drawLine(P);
+  drawStops(P);
+  if (!PREVIEW) drawFooter();
+  ctx.restore();
+}
+
+// ── motion ─────────────────────────────────────────────────────────────────
+let T = 0, changeT = 0;
+const want = new Float32Array(N - 1).fill(1), tgt = new Float32Array(N - 1).fill(1);
+function refresh() {
+  for (let k = 0; k < N - 1; k++) want[k] = target(k);
+  changeT = T;
+}
+function hold(v) {
+  if (v === holding) return;
+  holding = v; refresh();
+  v ? sound.snap() : sound.stretch();
+}
+
+function step(dt) {
+  T += dt;
+  for (let k = 0; k < N - 1; k++) {
+    if (T - changeT >= k * 0.009) tgt[k] = want[k];   // change runs down the route like a pulled cord
+    vel[k] += (tgt[k] - disp[k]) * 70 * dt;
+    vel[k] *= Math.exp(-6 * dt);
+    disp[k] += vel[k] * dt;
+  }
+  scaleNow = lerp(scaleNow, fitScale(), 1 - Math.exp(-3 * dt));
+  if (!touched) {
+    autoT += dt;
+    if (!holding && autoT > 7) { autoT = 0; hold(true); }
+    if (holding && autoT > 2.4) {
+      autoT = 0;
+      if (HOURS.length > 1) { hi = (hi + 1) % HOURS.length; sound.bell(); }
+      hold(false);
+    }
+  }
+}
+
+function resize() {
+  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  W = innerWidth; H = innerHeight;
+  cv.width = W * dpr; cv.height = H * dpr;
+  cv.style.width = W + 'px'; cv.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  layout();
 }
 
 let last = 0;
 function frame(t) {
-  const dt = Math.min(0.05, (t - (last || t)) / 1000);
-  last = t;
+  const dt = Math.min(0.05, (t - (last || t)) / 1000); last = t;
   if (!PREVIEW) step(dt);
   draw();
   requestAnimationFrame(frame);
@@ -441,42 +347,42 @@ function frame(t) {
 
 // ── input ──────────────────────────────────────────────────────────────────
 const sndEl = document.getElementById('snd');
-sndEl.addEventListener('click', () => {
+sndEl.addEventListener('click', () => { sound.kick(); sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF'); });
+const userTouch = () => {
   sound.kick();
-  sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF');
+  if (!touched) { touched = true; document.getElementById('hint').classList.add('off'); }
+};
+const stepHour = dir => {
+  userTouch();
+  const before = hi; setHour(hi + dir);
+  if (hi !== before) refresh();
+};
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') stepHour(1);
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') stepHour(-1);
+  if (e.key === ' ' && !e.repeat) { userTouch(); hold(true); }
 });
-
-addEventListener('resize', resize);
-addEventListener('pointermove', e => { px = e.clientX; py = e.clientY; });
-addEventListener('pointerleave', () => { px = py = -1; });
+addEventListener('keyup', e => { if (e.key === ' ') hold(false); });
+let wheelAcc = 0;
+addEventListener('wheel', e => { wheelAcc += e.deltaY; if (Math.abs(wheelAcc) > 80) { stepHour(Math.sign(wheelAcc)); wheelAcc = 0; } }, { passive: true });
 addEventListener('pointerdown', e => {
   if (e.target.closest('.snd') || e.target.closest('.home-btn')) return;
-  sound.kick();
-  px = e.clientX; py = e.clientY;
-  const k = hit(px, py);
-  if (k < 0) return;
-  if (k === culprit) push(k);
-  else { bits[k].flinch = 1; bits[k].shut = 0.2; sound.poke(); }
+  userTouch(); hold(true);
 });
+addEventListener('pointerup', () => hold(false));
+addEventListener('pointercancel', () => hold(false));
+addEventListener('resize', resize);
 
 (async () => {
   try {
-    await Promise.all([
-      document.fonts.load("400 80px 'Black Han Sans'"),
-      document.fonts.load("700 20px 'Noto Sans KR'"),
-      document.fonts.load("700 20px 'Space Mono'"),
-      document.fonts.load("400 20px 'Space Mono'"),
-    ]);
-  } catch (e) { /* fall back to system glyphs */ }
+    await Promise.all([500, 700, 900].map(w => document.fonts.load(`${w} 20px 'Noto Sans KR'`)));
+  } catch (e) { /* fall back */ }
+  hi = HOURS.length - 1;
   resize();
-  if (PREVIEW) {
-    culprit = 4;
-    bits[4].y = bits[4].yt = 0.58;
-    pushes = 6;
-  } else {
-    sound.kick();
-    setTimeout(() => sound.kick(), 400);
-    after(1.2, () => popOut(4));
+  if (PREVIEW) { for (let k = 0; k < N - 1; k++) disp[k] = target(k); scaleNow = fitScale(); }
+  else {
+    sound.kick(); setTimeout(() => sound.kick(), 400);
+    setTimeout(() => { refresh(); sound.stretch(); }, 900);   // opens on the announced map, then lets go
   }
   requestAnimationFrame(frame);
 })();
