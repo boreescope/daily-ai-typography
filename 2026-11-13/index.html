@@ -229,7 +229,8 @@ function drawFooter() {
   });
   ctx.textAlign = 'right'; ctx.fillStyle = 'rgba(35,38,46,.38)';
   ctx.font = `400 ${10.5 * S}px 'Noto Sans KR'`;
-  ctx.fillText(`출처: 서울특별시 버스도착정보 · ${DATA.when} · 40초마다 기록 · 소리: freesound.org CC0`, W - 30 * S, H - 26 * S);
+  ctx.fillText(`출처: 서울특별시 버스도착정보 · ${DATA.when} · 40초마다 기록`, W - 30 * S, H - 42 * S);
+  ctx.fillText('소리: freesound.org CC0 녹음', W - 30 * S, H - 26 * S);
 }
 
 // a small whole-route map with the view box, so a close-up never loses its place
@@ -308,31 +309,57 @@ function raceStep(dt, P) {
 }
 const raceDone = () => race.k >= 0 && race.t > race.total + 2.2;
 
-// a Seoul bus stop sign, drawn at screen size so it stays crisp however far we zoom
-function drawSign(k, x, yFoot, yTop, a) {
+// a Seoul bus shelter with its route pillar, drawn at screen size so it stays crisp however far we zoom
+function drawSign(k, x, yFoot, yGround, side, a) {
   const name = DATA.names[k], no = (DATA.ars || [])[k] || '';
   ctx.save(); ctx.globalAlpha = a;
-  ctx.font = `900 ${15 * S}px 'Noto Sans KR'`;
-  const w = Math.max(96 * S, ctx.measureText(name).width + 28 * S), hb = 24 * S, h = hb + 46 * S;
-  const x0 = x - w / 2, y0 = yTop - h;
-  ctx.strokeStyle = '#8c9099'; ctx.lineWidth = 4 * S; ctx.lineCap = 'butt';
-  ctx.beginPath(); ctx.moveTo(x, y0 + h); ctx.lineTo(x, yFoot); ctx.stroke();
-  ctx.fillStyle = '#8c9099'; ctx.fillRect(x - 9 * S, yFoot - 2 * S, 18 * S, 4 * S);
-  ctx.shadowColor = 'rgba(35,38,46,.18)'; ctx.shadowBlur = 10 * S; ctx.shadowOffsetY = 3 * S;
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(x0, y0, w, h, 6 * S); ctx.fill();
+  ctx.font = `900 ${13 * S}px 'Noto Sans KR'`;
+  const w = Math.max(150 * S, ctx.measureText(name).width + 40 * S), h = 92 * S;
+  const x0 = side > 0 ? x + 16 * S : x - 16 * S - w, x1 = x0 + w, yR = yGround - h, yG = yR + 30 * S;
+  // curb
+  ctx.fillStyle = 'rgba(35,38,46,.12)';
+  ctx.fillRect(Math.min(x0, x) - 12 * S, yGround, w + 40 * S, 4 * S);
+  // glass back wall
+  ctx.fillStyle = 'rgba(52,97,184,.09)'; ctx.fillRect(x0 + 6 * S, yG, w - 12 * S, yGround - yG);
+  ctx.strokeStyle = 'rgba(52,97,184,.32)'; ctx.lineWidth = 1 * S;
+  ctx.strokeRect(x0 + 6 * S, yG, w - 12 * S, yGround - yG);
+  ctx.beginPath();
+  for (let i = 1; i < 3; i++) { const mx = x0 + 6 * S + (w - 12 * S) * i / 3; ctx.moveTo(mx, yG); ctx.lineTo(mx, yGround); }
+  ctx.stroke();
+  ctx.strokeStyle = 'rgba(255,255,255,.9)'; ctx.lineWidth = 2 * S; ctx.beginPath();
+  ctx.moveTo(x0 + 16 * S, yG + 30 * S); ctx.lineTo(x0 + 30 * S, yG + 12 * S);
+  ctx.moveTo(x0 + 18 * S, yG + 40 * S); ctx.lineTo(x0 + 40 * S, yG + 12 * S); ctx.stroke();
+  // bench
+  ctx.fillStyle = '#8c9099';
+  ctx.fillRect(x0 + w * 0.28, yGround - 20 * S, w * 0.44, 4 * S);
+  ctx.fillRect(x0 + w * 0.32, yGround - 16 * S, 3 * S, 16 * S); ctx.fillRect(x0 + w * 0.68 - 3 * S, yGround - 16 * S, 3 * S, 16 * S);
+  // posts and roof
+  ctx.fillStyle = INK;
+  ctx.fillRect(x0 + 3 * S, yR + 8 * S, 4 * S, h - 8 * S); ctx.fillRect(x1 - 7 * S, yR + 8 * S, 4 * S, h - 8 * S);
+  ctx.beginPath(); ctx.roundRect(x0 - 8 * S, yR, w + 16 * S, 8 * S, 2 * S); ctx.fill();
+  // name board under the roof
+  ctx.fillStyle = BLUE; ctx.fillRect(x0 + 3 * S, yR + 8 * S, w - 6 * S, 22 * S);
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(name, (x0 + x1) / 2, yR + 19.5 * S);
+  ctx.fillStyle = 'rgba(35,38,46,.5)'; ctx.font = `400 ${10 * S}px 'Space Mono'`;
+  ctx.textAlign = side > 0 ? 'right' : 'left';
+  ctx.fillText(no, side > 0 ? x1 - 12 * S : x0 + 12 * S, yG + 11 * S);
+  // route pillar: the race starts and ends on it
+  ctx.fillStyle = '#5b606b'; ctx.fillRect(x - 3 * S, yR - 6 * S, 6 * S, yFoot - yR + 6 * S);
+  ctx.fillRect(x - 10 * S, yFoot - 2 * S, 20 * S, 4 * S);
+  const hx = x - 18 * S, hy = yR - 38 * S;
+  ctx.shadowColor = 'rgba(35,38,46,.18)'; ctx.shadowBlur = 8 * S; ctx.shadowOffsetY = 2 * S;
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(hx, hy, 36 * S, 48 * S, 4 * S); ctx.fill();
   ctx.shadowColor = 'transparent';
-  ctx.fillStyle = BLUE; ctx.beginPath(); ctx.roundRect(x0, y0, w, hb, [6 * S, 6 * S, 0, 0]); ctx.fill();
-  // bus pictogram
-  const bx = x0 + 10 * S, by = y0 + 5 * S, bw = 20 * S, bh = 13 * S;
-  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3 * S); ctx.fill();
-  ctx.fillStyle = BLUE;
+  const bx = x - 10 * S, by = hy + 6 * S, bw = 20 * S, bh = 13 * S;
+  ctx.fillStyle = INK; ctx.beginPath(); ctx.roundRect(bx, by, bw, bh, 3 * S); ctx.fill();
+  ctx.fillStyle = '#fff';
   for (let i = 0; i < 3; i++) ctx.fillRect(bx + (2.5 + i * 5.5) * S, by + 2.5 * S, 4 * S, 4 * S);
-  ctx.beginPath(); ctx.arc(bx + 5 * S, by + bh, 2.2 * S, 0, Math.PI * 2); ctx.arc(bx + bw - 5 * S, by + bh, 2.2 * S, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
-  ctx.font = `700 ${11 * S}px 'Noto Sans KR'`; ctx.fillText('버스정류소', bx + bw + 7 * S, y0 + hb / 2 + 0.5 * S);
-  ctx.textAlign = 'center'; ctx.fillStyle = INK;
-  ctx.font = `900 ${15 * S}px 'Noto Sans KR'`; ctx.fillText(name, x, y0 + hb + 17 * S);
-  ctx.fillStyle = 'rgba(35,38,46,.5)'; ctx.font = `400 ${10.5 * S}px 'Space Mono'`; ctx.fillText(no, x, y0 + hb + 35 * S);
+  ctx.fillStyle = INK; ctx.beginPath();
+  ctx.arc(bx + 5 * S, by + bh, 2.2 * S, 0, Math.PI * 2); ctx.arc(bx + bw - 5 * S, by + bh, 2.2 * S, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = BLUE; ctx.beginPath(); ctx.roundRect(x - 14 * S, hy + 26 * S, 28 * S, 16 * S, 8 * S); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = `900 ${10.5 * S}px 'Noto Sans KR'`;
+  ctx.fillText('273', x, hy + 34.5 * S);
   ctx.restore();
 }
 function drawRace(P, ff) {
@@ -344,7 +371,7 @@ function drawRace(P, ff) {
   const busR = clamp(gap * 0.2, 5, 9) * S;
   const laneTop = yc - ((n - 1) / 2) * gap - 30 * S, laneBot = yc + ((n - 1) / 2) * gap + 30 * S;
   const ly = laneTop - gap * 0.5 - 8 * S, signTop = ly - 16 * S;
-  drawSign(k, xs, laneBot + 6 * S, signTop, a); drawSign(k + 1, xe, laneBot + 6 * S, signTop, a);   // the race runs pole to pole
+  drawSign(k, xs, laneBot + 6 * S, signTop, -dir, a); drawSign(k + 1, xe, laneBot + 6 * S, signTop, dir, a);   // the race runs pole to pole
   ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round';
   lanes.forEach((l, i) => {
     const o = i - (n - 1) / 2, y = yc + o * gap + Math.sign(o || 1) * 30 * S, te = race.t - l.s;   // keep the route itself clear
@@ -385,20 +412,31 @@ function drawRace(P, ff) {
     const tEnd = Math.max(l.tp, l.tr);
     if (te >= tEnd) {
       const pop = clamp((te - tEnd) / 0.25, 0, 1), d = l.re - l.pr;
-      ctx.globalAlpha = a * pop; ctx.fillStyle = ontime ? 'rgba(35,38,46,.55)' : col;
-      ctx.font = `900 ${lerp(26, 18, pop) * S}px 'Noto Sans KR'`; ctx.textAlign = dir > 0 ? 'left' : 'right';
-      ctx.fillText(ontime ? '제시간' : `${d > 0 ? '+' : '−'}${secs(Math.abs(d))}`, xe + dir * 20 * S, y);
+      const ad = Math.abs(d), word = ontime ? '제시간' : `${ad < 60 ? '조금 ' : ad >= 180 ? '많이 ' : ''}${d > 0 ? '늦음' : '일찍'}`;
+      const two = gap > 36 * S, tx = xe + dir * 20 * S, ty = two ? y - 7 * S : y;
+      ctx.globalAlpha = a * pop; ctx.textAlign = dir > 0 ? 'left' : 'right';
+      ctx.fillStyle = ontime ? 'rgba(35,38,46,.7)' : col;
+      ctx.font = `900 ${lerp(26, 17, pop) * S}px 'Noto Sans KR'`;
+      const ww = ctx.measureText(word).width;
+      ctx.fillText(word, tx, ty);
+      ctx.font = `700 ${14 * S}px 'Noto Sans KR'`; ctx.globalAlpha = a * pop * 0.85;
+      ctx.fillText(ontime ? (ad < 1 ? '±0초' : `${d > 0 ? '+' : '−'}${secs(ad)}`) : `${d > 0 ? '+' : '−'}${secs(ad)}`, tx + dir * (ww + 8 * S), ty + 1 * S);
+      if (two) {
+        ctx.font = `400 ${10 * S}px 'Space Mono'`; ctx.fillStyle = 'rgba(35,38,46,.5)'; ctx.globalAlpha = a * pop;
+        ctx.fillText(`안내 ${secs(l.pr)} → 실제 ${secs(l.re)}`, tx, y + 11 * S);
+      }
       ctx.globalAlpha = a;
     }
   });
   // legend
   ctx.font = `400 ${11 * S}px 'Space Mono'`; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
-  const lx = (xs + xe) / 2 - 95 * S;
+  const lx = (xs + xe) / 2 - 170 * S;
   ctx.strokeStyle = 'rgba(35,38,46,.45)'; ctx.setLineDash([3 * S, 3 * S]); ctx.lineWidth = 1.4 * S;
   ctx.beginPath(); ctx.arc(lx + 5 * S, ly, 5 * S, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
   ctx.fillStyle = 'rgba(35,38,46,.6)'; ctx.fillText('안내대로라면', lx + 15 * S, ly);
   ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(lx + 125 * S, ly, 5 * S, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = 'rgba(35,38,46,.6)'; ctx.fillText('실제 버스', lx + 135 * S, ly);
+  ctx.fillStyle = 'rgba(35,38,46,.45)'; ctx.fillText('· 차이가 20초 안쪽이면 제시간', lx + 210 * S, ly);
   ctx.restore();
 }
 function drawStops(P) {
