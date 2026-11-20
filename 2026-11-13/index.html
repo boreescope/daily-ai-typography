@@ -279,7 +279,7 @@ function drawLine(P) {
 // a pale bus runs on the announced time, the real one runs on the real time
 const race = { k: -1, hi: -1, t: 0, total: 0, heard: new Set() };
 const raceable = k => k >= 0 && k !== TURN - 1 && DATA.names[k] !== DATA.names[k + 1] && HOURS[hi].obs[k].length > 0;
-const RACE_SEC = 2.4, STAGGER = 0.35;
+const RACE_SEC = 2.4, STAGGER = 0.35, ON_TIME = 20;
 function raceLanes(k) {
   const obs = HOURS[hi].obs[k], f = RACE_SEC / Math.max(20, HOURS[hi].pred[k]);
   return obs.map(([m, pr, re], i) => ({ m, pr, re, s: i * STAGGER, tp: pr * f, tr: re * f }));
@@ -311,7 +311,8 @@ function drawRace(P, ff) {
   ctx.save(); ctx.globalAlpha = a; ctx.lineCap = 'round';
   lanes.forEach((l, i) => {
     const o = i - (n - 1) / 2, y = yc + o * gap + Math.sign(o || 1) * 30 * S, te = race.t - l.s;   // keep the route itself clear
-    const late = l.tr > l.tp, col = late ? RED : BLUE;
+    const late = l.tr > l.tp, ontime = Math.abs(l.re - l.pr) < ON_TIME;   // 40s polling can't tell smaller gaps apart
+    const col = ontime ? 'rgba(35,38,46,.55)' : late ? RED : BLUE;
     const g = clamp(te / l.tp, 0, 1), r = clamp(te / l.tr, 0, 1);
     const gx = lerp(xs, xe, g), rx = lerp(xs, xe, r);
     // the road
@@ -321,13 +322,13 @@ function drawRace(P, ff) {
     const tFirst = Math.min(l.tp, l.tr);
     if (te >= tFirst) {
       const fx = lerp(xs, xe, Math.min(l.tp, l.tr) / Math.max(l.tp, l.tr));
-      ctx.strokeStyle = late ? 'rgba(226,65,46,.22)' : 'rgba(52,97,184,.22)'; ctx.lineWidth = busR * 2.2;
+      ctx.strokeStyle = ontime ? 'rgba(35,38,46,.08)' : late ? 'rgba(226,65,46,.22)' : 'rgba(52,97,184,.22)'; ctx.lineWidth = busR * 2.2;
       ctx.lineCap = 'butt'; ctx.beginPath(); ctx.moveTo(fx, y); ctx.lineTo(xe, y); ctx.stroke(); ctx.lineCap = 'round';
     }
     // the stretch between promise and reality, live
     if (te > 0 && Math.abs(gx - rx) > 0.5) {
       const grad = ctx.createLinearGradient(rx, 0, gx, 0);
-      grad.addColorStop(0, col); grad.addColorStop(1, late ? 'rgba(226,65,46,.15)' : 'rgba(52,97,184,.15)');
+      grad.addColorStop(0, col); grad.addColorStop(1, ontime ? 'rgba(35,38,46,.08)' : late ? 'rgba(226,65,46,.15)' : 'rgba(52,97,184,.15)');
       ctx.strokeStyle = grad; ctx.lineWidth = busR * 1.1;
       ctx.beginPath(); ctx.moveTo(rx, y); ctx.lineTo(gx, y); ctx.stroke();
     }
@@ -347,9 +348,9 @@ function drawRace(P, ff) {
     const tEnd = Math.max(l.tp, l.tr);
     if (te >= tEnd) {
       const pop = clamp((te - tEnd) / 0.25, 0, 1), d = l.re - l.pr;
-      ctx.globalAlpha = a * pop; ctx.fillStyle = Math.abs(d) < 3 ? INK : col;
+      ctx.globalAlpha = a * pop; ctx.fillStyle = ontime ? 'rgba(35,38,46,.55)' : col;
       ctx.font = `900 ${lerp(26, 18, pop) * S}px 'Noto Sans KR'`; ctx.textAlign = dir > 0 ? 'left' : 'right';
-      ctx.fillText(Math.abs(d) < 3 ? '제시간' : `${d > 0 ? '+' : '−'}${secs(Math.abs(d))}`, xe + dir * 20 * S, y);
+      ctx.fillText(ontime ? '제시간' : `${d > 0 ? '+' : '−'}${secs(Math.abs(d))}`, xe + dir * 20 * S, y);
       ctx.globalAlpha = a;
     }
   });
