@@ -6,7 +6,7 @@
 <title>오차 — 273</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #f7f6f2; }
@@ -38,11 +38,11 @@
 <canvas id="cv"></canvas>
 <a class="home-btn" href="../index.html">← INDEX</a>
 <div class="snd" id="snd">SOUND: ON</div>
-<div class="hint" id="hint">누르고 있으면 안내된 시간으로 · ← → 시간대</div>
+<div class="hint" id="hint">휠로 확대 · 마우스로 훑기 · 누르고 있으면 안내된 시간으로 · ← → 시간대</div>
 
 <script>
 // hours[i].ratio[k] = real / announced travel time from stop k to k+1, same buses, that hour
-const DATA = /*DATA*/{"when":"2026.11.20 13:14–13:34","names":["중랑공영차고지","신내데시앙아파트","동성프라자앞","중랑구청","신현중학교","엘지아파트앞","쌍용아파트","이화연립","중흥초등학교","중화역2번출구","중화역3번출구","중화2동주민센터","이문동현대아파트앞","이문동쌍용아파트","이문동삼익아파트","종로사약국","외대역앞","외대앞","경희중고","회기시장","경희대입구","서울바이오허브","한국과학기술원","국방연구원","고대앞","안암역2번출구","고려대이공대","안암동주민센터","보문역4번출구","보문역3번출구","성북구청","삼선동주민센터","삼선교","혜화역","혜화역3번출구","방송통신대","연지공원앞","원남동","서울특별시재향군인회관","종로3가역","종로2가","종로1가","광화문역","서울역사박물관","서대문역사거리","충정로역","아현역","웨딩타운","이대역","신촌오거리","신촌오거리","산울림소극장","삼진제약","홍익대학교","홍대입구역사거리","홍대입구역","홍대입구역","동교동삼거리","신촌오거리","신촌오거리","이대역","웨딩타운","아현역","충정로역","서대문역사거리","서울역사박물관","광화문역","종로1가","종로2가","종로3가역","종로4가","종로5가역","종로5가","효제동","방송통신대","혜화역2번출구","혜화역","삼선교","돈암초교입구","삼선동주민센터","성북구청","보문역5번출구","안암동주민센터","고려대이공대","안암역3번출구","고려대학교앞","국방연구원","한국과학기술원","서울바이오허브","경희대입구","회기시장","경희중고","외대앞","외대역앞","SK뷰아파트","동일스위트리버아파트","서울반도체고","이문동삼익아파트","이문동쌍용아파트","이문동현대아파트","중화2동주민센터","중화역3번출구","중화역2번출구","중흥초등학교","이화연립","쌍용아파트","엘지아파트앞","신현중학교","중랑구청","동성프라자앞","신내데시앙아파트","중랑공영차고지","중랑공영차고지"],"ghost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"lines":[[6],[6],[],[],[],[],[],[],[],[7],[7],[],[],[],[],[],[1],[],[],[],[],[],[],[],[],[6],[],[],[6],[6],[],[],[],[4],[4],[],[],[],[],[1,3,5],[],[1],[5],[],[5],[2,5],[2],[],[2],[2],[],[],[],[],[2],[2],[2],[],[],[2],[2],[],[2],[2,5],[5],[],[5],[1],[],[1,3,5],[],[1],[],[],[],[4],[4],[],[],[],[],[6],[],[],[6],[],[],[],[],[],[],[],[],[1],[],[],[],[],[],[],[],[7],[7],[],[],[],[],[],[],[],[6],[],[6]],"hours":[{"h":13,"n":282,"ratio":[0.99,0.847,1.124,1.09,0.81,1.147,0.976,0.783,1.099,1.169,1.509,0.724,1.203,0.858,1.001,1.132,1.15,1.01,0.925,1.287,0.993,1.105,0.914,1.058,1.104,1.097,1.017,0.79,1.062,1.113,0.871,0.999,0.977,0.63,0.919,0.882,0.858,0.907,1.156,0.992,0.98,1.055,0.957,0.882,1.008,1.004,1.341,1.119,1.008,1.11,0.99,1.217,0.823,1.018,0.871,1.886,1.035,0.865,1.157,0.689,1.216,0.988,0.873,1.017,0.813,1.163,1.082,1.017,0.935,1.278,1.135,0.772,1.073,1.047,0.681,1.051,0.924,0.745,1.072,1.003,1.004,0.847,0.894,0.92,1.053,1.022,0.881,0.824,0.904,1.058,0.875,1.221,0.909,0.931,1.056,0.871,1.023,1.177,1.122,1.11,0.927,0.863,0.983,0.975,1.057,0.997,1.209,1.179,0.823,0.892,0.973,1.337],"pred":[0,129,103,95,53,33,69,56,47,98,90,105,52,115,80,136,89,79,59,112,107,58,90,202,120,139,91,87,74,69,128,140,288,178,90,72,152,91,178,141,144,92,170,105,184,119,106,84,156,130,0,83,61,191,74,60,152,113,129,112,111,81,270,104,159,96,160,117,116,112,116,114,82,100,83,94,222,88,61,109,139,74,69,119,150,194,142,52,91,123,80,55,76,161,147,148,231,63,50,86,67,150,41,62,55,40,46,54,122,166,186,26],"real":[0,100,120,107,40,40,67,40,53,120,160,67,67,93,80,160,107,80,53,160,107,67,80,220,140,160,93,60,80,80,107,140,280,80,80,60,120,80,220,140,140,100,160,90,187,120,160,100,160,160,0,120,40,200,60,140,160,93,160,60,160,80,220,107,120,120,180,120,107,160,140,80,90,107,50,100,200,60,67,110,140,60,60,107,160,200,120,40,80,133,67,70,67,147,160,120,240,80,60,100,60,120,40,60,60,40,60,67,93,140,180,40]}]}/*END*/;
+const DATA = /*DATA*/{"when":"2026.11.20 13:14–13:56","names":["중랑공영차고지","신내데시앙아파트","동성프라자앞","중랑구청","신현중학교","엘지아파트앞","쌍용아파트","이화연립","중흥초등학교","중화역2번출구","중화역3번출구","중화2동주민센터","이문동현대아파트앞","이문동쌍용아파트","이문동삼익아파트","종로사약국","외대역앞","외대앞","경희중고","회기시장","경희대입구","서울바이오허브","한국과학기술원","국방연구원","고대앞","안암역2번출구","고려대이공대","안암동주민센터","보문역4번출구","보문역3번출구","성북구청","삼선동주민센터","삼선교","혜화역","혜화역3번출구","방송통신대","연지공원앞","원남동","서울특별시재향군인회관","종로3가역","종로2가","종로1가","광화문역","서울역사박물관","서대문역사거리","충정로역","아현역","웨딩타운","이대역","신촌오거리","신촌오거리","산울림소극장","삼진제약","홍익대학교","홍대입구역사거리","홍대입구역","홍대입구역","동교동삼거리","신촌오거리","신촌오거리","이대역","웨딩타운","아현역","충정로역","서대문역사거리","서울역사박물관","광화문역","종로1가","종로2가","종로3가역","종로4가","종로5가역","종로5가","효제동","방송통신대","혜화역2번출구","혜화역","삼선교","돈암초교입구","삼선동주민센터","성북구청","보문역5번출구","안암동주민센터","고려대이공대","안암역3번출구","고려대학교앞","국방연구원","한국과학기술원","서울바이오허브","경희대입구","회기시장","경희중고","외대앞","외대역앞","SK뷰아파트","동일스위트리버아파트","서울반도체고","이문동삼익아파트","이문동쌍용아파트","이문동현대아파트","중화2동주민센터","중화역3번출구","중화역2번출구","중흥초등학교","이화연립","쌍용아파트","엘지아파트앞","신현중학교","중랑구청","동성프라자앞","신내데시앙아파트","중랑공영차고지","중랑공영차고지"],"ghost":[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],"lines":[[6],[6],[],[],[],[],[],[],[],[7],[7],[],[],[],[],[],[1],[],[],[],[],[],[],[],[],[6],[],[],[6],[6],[],[],[],[4],[4],[],[],[],[],[1,3,5],[],[1],[5],[],[5],[2,5],[2],[],[2],[2],[],[],[],[],[2],[2],[2],[],[],[2],[2],[],[2],[2,5],[5],[],[5],[1],[],[1,3,5],[],[1],[],[],[],[4],[4],[],[],[],[],[6],[],[],[6],[],[],[],[],[],[],[],[],[1],[],[],[],[],[],[],[],[7],[7],[],[],[],[],[],[],[],[6],[],[6]],"hours":[{"h":13,"n":597,"ratio":[0.995,1.125,1.103,1.103,0.808,1.469,0.91,0.876,1.022,0.925,1.198,0.983,1.13,0.818,0.926,0.996,0.99,1.005,0.967,1.053,0.93,0.908,0.898,1.016,1.089,0.983,0.977,1.063,0.971,1.169,0.833,1.118,0.984,0.583,0.971,0.951,0.789,1.021,1.124,0.943,1.048,0.841,1.009,0.911,0.95,0.966,1.092,0.874,1.12,1.178,1.29,0.996,1.142,1.115,0.924,1.261,0.964,1.043,1.011,0.765,1.29,0.897,0.96,0.909,0.779,1.078,1.149,0.984,0.809,1.146,0.889,1.116,0.941,0.999,0.666,1.041,1.031,0.968,1.005,0.981,1.037,0.843,1.004,1.145,1.03,1.082,0.78,0.969,0.873,1.045,0.943,1.08,0.996,0.892,0.973,1.01,1.029,1.202,1.181,0.932,1.178,1.05,1.249,0.875,0.987,0.959,1.274,1.087,0.958,0.819,0.975,1.889],"pred":[0,124,107,96,54,33,67,54,46,95,110,103,53,112,80,141,89,79,62,112,117,60,91,206,126,155,89,80,77,70,126,143,287,171,86,74,163,93,199,137,142,90,173,104,181,117,98,84,156,131,167,80,59,192,77,63,153,114,130,111,110,82,260,107,162,97,158,116,124,116,120,110,83,102,83,93,220,83,62,111,140,73,67,117,153,197,145,53,87,128,79,58,75,158,145,148,231,65,51,87,73,147,41,59,57,42,46,59,113,166,189,27],"real":[0,142,120,108,42,51,60,47,47,87,136,101,61,89,73,140,88,80,60,119,108,53,80,211,140,152,87,87,74,84,100,163,282,86,83,70,120,95,229,128,150,73,175,94,170,112,109,72,180,160,240,80,69,222,70,82,146,120,132,80,150,72,247,95,119,106,187,114,96,136,104,125,77,102,51,97,228,80,63,109,147,60,67,136,158,216,108,51,74,135,74,63,74,139,140,150,240,80,62,80,88,156,54,50,56,40,61,65,108,130,184,56],"obs":[[],[[801,130,120],[808,128,80],[816,123,120],[821,120,160],[828,118,232]],[[795,97,80],[803,104,160],[810,107,120],[818,109,80],[824,111,120],[831,114,160]],[[796,95,120],[806,95,80],[812,95,120],[819,97,120],[826,98,100]],[[794,56,40],[798,54,40],[807,50,40],[814,54,40],[821,59,40],[827,54,54]],[[794,33,40],[799,33,40],[808,34,40],[814,34,40],[822,33,40],[828,32,108]],[[795,74,80],[800,65,80],[808,67,40],[815,68,40],[822,66,40],[830,62,80]],[[796,55,40],[801,57,40],[809,56,40],[816,52,80],[823,52,40],[831,55,40]],[[797,48,40],[802,47,80],[810,46,40],[817,46,40],[824,44,40],[832,42,40]],[[798,101,80],[803,98,120],[810,94,160],[818,91,80],[824,93,40],[833,92,40]],[[799,86,160],[805,95,160],[813,120,160],[819,122,160],[825,126,40]],[[794,109,40],[802,105,80],[808,101,80],[816,98,160],[822,101,40],[826,104,206]],[[794,52,40],[803,52,80],[809,53,80],[818,53,40],[822,53,80],[829,53,44]],[[795,116,120],[804,115,80],[810,113,80],[819,110,80],[824,111,80],[830,110,92]],[[797,80,80],[806,80,40],[812,79,120],[820,80,80],[825,80,40],[831,82,80]],[[794,131,160],[798,135,160],[806,141,160],[814,147,80],[822,149,80],[826,142,202]],[[796,88,80],[801,89,120],[809,89,120],[815,89,80],[823,90,80],[829,89,48]],[[798,78,80],[803,78,120],[811,80,40],[816,81,80],[824,80,80]],[[799,56,40],[805,58,40],[812,63,80],[818,66,40],[826,66,77],[831,62,80]],[[800,109,200],[806,114,120],[813,113,80],[818,113,120],[827,111,111],[832,109,80]],[[794,102,120],[803,105,160],[808,115,40],[814,116,160],[820,123,120],[829,127,74],[833,131,80]],[[796,57,40],[806,58,80],[808,60,80],[817,60,40],[822,61,40],[830,62,40]],[[796,86,120],[807,90,80],[810,94,40],[818,94,40],[823,91,80],[831,89,120]],[[798,201,200],[808,202,240],[818,210,160],[824,212,243]],[[794,117,160],[802,124,120],[812,127,160],[821,132,120],[828,131,139]],[[796,139,160],[804,139,160],[815,156,120],[823,172,120],[831,169,200]],[[794,96,80],[799,90,120],[806,87,80],[817,83,160],[825,86,40],[834,92,40]],[[795,92,80],[801,91,28],[808,82,40],[820,70,120],[822,67,120],[826,81,131]],[[796,71,40],[802,75,52],[808,75,120],[822,79,80],[824,85,80]],[[797,71,120],[802,69,80],[810,68,40],[823,67,80],[826,70,101],[830,73,80]],[[799,131,120],[804,129,120],[811,125,80],[824,120,80]],[[801,139,200],[806,140,80],[812,140,160],[826,147,215],[831,147,160]],[[794,289,320],[804,288,240],[815,287,280],[829,284,287]],[[799,173,80],[808,182,80],[813,185,120],[820,171,68],[834,144,80]],[[800,96,80],[810,85,80],[815,82,80],[821,81,92]],[[802,68,80],[811,77,40],[816,78,80],[822,75,80]],[[803,145,160],[812,158,80],[818,173,120],[824,175,120]],[[795,91,120],[806,89,80],[813,93,40],[820,96,80],[826,96,157]],[[797,171,240],[807,184,200],[814,204,320],[821,218,200],[828,219,185]],[[801,142,80],[810,140,200],[819,139,160],[824,132,80],[831,133,120]],[[794,145,160],[802,142,120],[814,140,120],[822,141,160],[826,144,219],[833,139,120]],[[796,90,160],[804,94,40],[816,88,80],[824,87,40],[829,89,43]],[[799,170,160],[805,170,160],[817,169,160],[825,176,193],[830,178,200]],[[794,105,120],[797,104,120],[802,105,80],[808,107,40],[820,104,80],[828,105,97],[833,101,120]],[[796,158,240],[803,186,200],[808,208,120],[821,181,160],[830,172,132]],[[800,123,120],[806,118,80],[810,116,160],[824,115,120],[832,111,80]],[[802,107,160],[808,104,160],[813,103,80],[826,89,106],[833,88,40]],[[805,83,120],[810,86,80],[814,86,40],[828,78,78],[834,88,40]],[[807,156,160],[812,155,160],[815,155,200],[829,158,198]],[[810,130,160],[814,130,160],[818,130,160],[832,133,160]],[[812,157,280],[821,177,200]],[[794,83,120],[817,83,80],[820,78,40],[824,77,80]],[[796,61,40],[818,59,80],[820,57,80],[826,58,77]],[[797,191,200],[820,194,120],[827,191,345]],[[794,73,40],[800,75,80],[822,76,80],[833,85,80]],[[794,51,28],[802,55,200],[807,65,80],[823,69,80],[826,68,63],[834,68,40]],[[795,150,172],[805,153,160],[808,154,120],[824,153,80],[831,154,200]],[[798,113,40],[808,114,80],[810,113,160],[826,116,201]],[[798,129,160],[809,129,160],[813,130,120],[829,132,61],[831,132,160]],[[801,112,80],[812,111,40],[815,112,120],[830,111,120],[834,110,40]],[[802,111,160],[812,110,120],[817,109,160],[832,110,160]],[[794,82,80],[805,80,80],[814,82,40],[820,83,120],[835,83,40]],[[796,274,280],[806,266,188],[815,255,280],[822,243,240]],[[795,102,52],[800,104,120],[810,106,92],[820,108,80],[826,115,133]],[[796,163,80],[802,157,120],[811,157,160],[821,168,120],[828,167,117]],[[797,95,120],[804,97,120],[814,100,120],[823,97,120],[830,97,52]],[[799,160,200],[806,159,160],[816,153,200],[825,160,173],[831,159,200]],[[794,119,120],[802,116,120],[809,116,120],[819,115,80],[828,114,129]],[[796,114,80],[804,115,80],[811,120,160],[820,132,120],[830,141,40]],[[797,110,200],[806,115,120],[814,116,80],[822,116,120],[831,121,160]],[[800,116,160],[808,116,120],[815,120,120],[824,122,80],[833,125,40]],[[794,120,80],[803,117,80],[810,106,80],[817,103,200],[826,104,187]],[[795,78,120],[804,83,40],[806,85,80],[811,83,120],[820,85,40],[829,83,63]],[[797,103,80],[805,98,120],[808,99,120],[813,108,80],[821,103,160],[830,101,52]],[[794,86,40],[798,82,40],[807,81,40],[810,82,80],[814,83,80],[824,83,40],[831,85,40]],[[794,94,120],[799,93,120],[808,94,80],[811,94,80],[816,92,80],[824,91,80],[831,91,120]],[[794,203,200],[801,239,200],[809,223,200],[817,218,240],[826,217,302]],[[797,93,40],[800,91,40],[804,87,80],[812,80,80],[816,75,120],[821,75,120],[831,80,80]],[[798,63,80],[800,60,80],[806,59,40],[814,61,40],[818,62,80],[823,64,40],[832,68,80]],[[794,114,80],[799,109,120],[802,108,120],[806,106,120],[814,112,80],[820,113,160],[824,114,80]],[[795,138,160],[801,139,80],[804,139,160],[808,140,160],[816,143,160],[822,144,160]],[[798,76,40],[802,74,40],[806,74,80],[811,72,80],[818,72,80],[825,72,40]],[[798,73,40],[803,70,80],[808,69,80],[812,64,40],[820,62,40],[826,62,122]],[[799,120,120],[804,119,80],[809,118,120],[813,116,160],[820,114,120],[828,115,115],[830,117,240]],[[794,142,200],[801,148,160],[806,154,160],[811,155,120],[816,157,120],[822,156,160],[830,156,185]],[[798,190,200],[804,193,160],[808,198,240],[813,199,200],[818,199,280],[825,203,216]],[[801,142,160],[806,142,120],[812,142,80],[816,146,80],[822,147,120],[829,149,86]],[[794,52,40],[804,52,40],[808,52,40],[814,52,80],[818,53,80],[824,55,40],[830,57,40]],[[794,91,120],[804,93,80],[809,90,40],[815,89,80],[819,85,80],[825,81,40],[831,79,80]],[[796,118,160],[806,122,160],[810,130,80],[816,130,80],[820,132,160],[826,131,183],[832,133,120]],[[799,80,80],[808,79,80],[811,80,40],[818,80,80],[823,79,40],[829,79,119],[834,78,80]],[[794,52,80],[800,52,40],[810,57,40],[812,58,120],[819,61,80],[824,61,40],[831,62,40]],[[795,78,40],[801,77,80],[810,72,80],[814,72,40],[820,72,120],[824,75,80],[831,76,80]],[[796,157,160],[802,162,160],[812,164,120],[814,164,120],[822,159,120],[826,151,170],[833,148,120]],[[798,150,120],[805,144,200],[814,141,160],[824,144,80]],[[800,148,120],[808,148,120],[816,147,120],[820,147,160],[826,148,217],[830,148,160]],[[794,231,240],[802,231,240],[810,231,240],[818,232,240]],[[798,62,80],[806,64,80],[814,65,80],[822,65,80],[826,66,121],[832,67,40]],[[800,50,80],[808,51,40],[816,51,40],[824,50,80],[828,52,52],[833,53,80]],[[801,85,80],[808,86,120],[816,87,80],[825,88,40],[834,89,80]],[[802,75,40],[810,59,80],[818,58,120],[826,70,122],[830,102,80]],[[803,156,120],[812,144,120],[820,144,160],[828,145,180],[831,146,200]],[[794,40,28],[805,41,40],[814,41,40],[822,41,80],[831,43,80]],[[795,60,52],[806,64,40],[814,61,80],[824,57,40],[832,54,40]],[[796,55,40],[806,55,80],[816,56,80],[824,58,40],[833,60,40]],[[796,39,40],[808,41,40],[817,43,40],[825,45,40],[833,42,40]],[[797,41,80],[808,50,40],[818,49,28],[826,46,78],[834,44,80]],[[794,54,40],[798,55,40],[809,52,120],[818,60,52],[827,74,74]],[[794,126,160],[799,121,40],[811,118,80],[819,100,160],[828,101,98]],[[797,165,80],[800,167,200],[812,166,200],[822,167,120],[830,167,52]],[[798,186,160],[803,187,200],[816,188,160],[824,192,120],[831,194,280]],[[801,27,40],[806,26,40],[818,27,40],[826,27,106]]]}]}/*END*/;
 
 const PREVIEW = new URLSearchParams(location.search).has('preview');
 if (PREVIEW) document.body.classList.add('preview');
@@ -58,13 +58,14 @@ const N = DATA.names.length, TURN = 56;          // stops 1..56 run on top, 57..
 const HOURS = DATA.hours;
 
 let W = 0, H = 0, S = 1, hi = 0, holding = false, touched = false;
-let autoT = 0, scaleNow = 1;
+let autoT = 0, scaleNow = 1, realness = 0, realVel = 0;
+const cam = { z: 1, zt: 1, cx: 0, cy: 0, tx: 0, ty: 0, px: -1, py: -1 };
 const disp = new Float32Array(N - 1).fill(1);    // shown ratio per segment, springs toward target
 const vel = new Float32Array(N - 1);
 
 // ── sound ──────────────────────────────────────────────────────────────────
 const sound = (() => {
-  let ac = null, master = null, on = true;
+  let ac = null, master = null, hum = null, on = true;
   const boot = () => {
     if (ac) return;
     ac = new (window.AudioContext || window.webkitAudioContext)();
@@ -75,7 +76,7 @@ const sound = (() => {
     let last = 0;
     for (let i = 0; i < n; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 5; }
     const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
-    s.buffer = b; s.loop = true; f.type = 'lowpass'; f.frequency.value = 160; g.gain.value = 0.07;
+    s.buffer = b; s.loop = true; f.type = 'lowpass'; f.frequency.value = 160; hum = f; g.gain.value = 0.07;
     s.connect(f); f.connect(g); g.connect(master); s.start();
     const o = ac.createOscillator(), og = ac.createGain();
     o.type = 'sine'; o.frequency.value = 42; og.gain.value = 0.02;
@@ -97,6 +98,8 @@ const sound = (() => {
     bell() { tone(1318, 0.9, 0.06, 'triangle'); tone(1046, 1.2, 0.05, 'triangle', 0.28); },
     stretch() { tone(110, 0.6, 0.06, 'sine', 0, 0.72); },
     snap() { tone(180, 0.3, 0.05, 'sine', 0, 1.7); },
+    tick(r) { tone(clamp(2400 / r, 900, 3600), 0.05, 0.012, 'sine'); },
+    zoom(z) { if (hum) hum.frequency.setTargetAtTime(160 + Math.log(z) * 260, ac.currentTime, 0.2); },
   };
 })();
 
@@ -146,26 +149,34 @@ function hm(sec) {
 }
 const ampm = h => (h < 12 ? '오전 ' : '오후 ') + ((h + 11) % 12 + 1) + '시';
 
-// ── draw ───────────────────────────────────────────────────────────────────
-function segColor(d) {
-  const t = clamp((d - 1.08) / 0.5, 0, 1);
-  if (t <= 0) return BLUE;
+// ── camera: world = the overview map, screen = world zoomed around cam.c ─────
+const X = x => (x - cam.cx) * cam.z + W / 2;
+const Y = y => (y - cam.cy) * cam.z + H / 2;
+const fiberFade = () => clamp((cam.z - 3) / 7, 0, 1);
+const secs = v => v >= 60 ? `${Math.floor(v / 60)}분 ${v % 60}초` : `${v}초`;
+const clock = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+
+function segColor(d, alpha = 1) {
+  const t = clamp((d - 1.005) / 0.015, 0, 1);   // on time or early = blue, late = red, no muddy middle
   const a = [0x34, 0x61, 0xb8], b = [0xe2, 0x41, 0x2e];
-  return `rgb(${a.map((v, i) => Math.round(lerp(v, b[i], t))).join(',')})`;
+  const c = a.map((v, i) => Math.round(lerp(v, b[i], t)));
+  return `rgba(${c.join(',')},${alpha})`;
 }
 
 function stackText(str, x, y, dir, fs) {
   const lh = fs * 1.06, chars = [...str];
   for (let i = 0; i < chars.length; i++) {
-    const j = dir < 0 ? chars.length - 1 - i : i;
-    ctx.fillText(chars[j], x, y + dir * i * lh);
+    const j = dir < 0 ? chars.length - 1 - i : i, yy = y + dir * i * lh;
+    if (yy < -fs || yy > H + fs) continue;
+    ctx.fillText(chars[j], x, yy);
   }
   return chars.length * lh;
 }
 
 function drawHeader() {
-  const hr = HOURS[hi], y = 70 * S;
-  ctx.textBaseline = 'middle';
+  const hr = HOURS[hi], y = 70 * S, a = clamp(1.6 - cam.z * 0.4, 0, 1);
+  if (a <= 0) return;
+  ctx.globalAlpha = a; ctx.textBaseline = 'middle';
   ctx.fillStyle = BLUE;
   ctx.beginPath(); ctx.roundRect(L.x0, y - 24 * S, 104 * S, 48 * S, 10 * S); ctx.fill();
   ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
@@ -178,27 +189,31 @@ function drawHeader() {
   ctx.fillText('간선', L.x0 + 126 * S, y + 1 * S);
   ctx.fillStyle = INK; ctx.font = `700 ${19 * S}px 'Noto Sans KR'`;
   ctx.fillText('중랑공영차고지  ↔  홍익대학교', L.x0 + 172 * S, y + 1 * S);
-
   const P = hr.pred.reduce((a, b) => a + b, 0), R = hr.real.reduce((a, b) => a + b, 0);
   const xr = W - 150 * S;
   ctx.textAlign = 'right';
   ctx.font = `700 ${22 * S}px 'Noto Sans KR'`; ctx.fillStyle = INK;
   ctx.fillText(ampm(hr.h) + '대', xr, y - 8 * S);
   ctx.font = `400 ${13 * S}px 'Noto Sans KR'`;
+  const b = `   ·   실제  ${hm(R)}`;
   ctx.fillStyle = holding ? INK : 'rgba(35,38,46,.45)';
-  const a = `안내  ${hm(P)}`, b = `실제  ${hm(R)}`;
-  ctx.fillText(a, xr - ctx.measureText(`   ·   ${b}`).width, y + 18 * S);
+  ctx.fillText(`안내  ${hm(P)}`, xr - ctx.measureText(b).width, y + 18 * S);
   ctx.fillStyle = holding ? 'rgba(35,38,46,.45)' : (R > P ? RED : BLUE);
-  ctx.fillText(`   ·   ${b}`, xr, y + 18 * S);
+  ctx.fillText(b, xr, y + 18 * S);
+  ctx.globalAlpha = 1;
 }
 
+const chips = [];
 function drawFooter() {
   const y = H - 84 * S, gap = 46 * S, x0 = W / 2 - (HOURS.length - 1) * gap / 2;
+  chips.length = 0;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   HOURS.forEach((hr, i) => {
     const x = x0 + i * gap, cur = i === hi;
-    if (cur) { ctx.fillStyle = BLUE; ctx.beginPath(); ctx.roundRect(x - 19 * S, y - 12 * S, 38 * S, 24 * S, 12 * S); ctx.fill(); }
-    ctx.fillStyle = cur ? '#fff' : 'rgba(35,38,46,.4)';
+    chips.push({ x: x - 20 * S, y: y - 14 * S, w: 40 * S, h: 28 * S, i });
+    ctx.fillStyle = cur ? BLUE : 'rgba(247,246,242,.85)';
+    ctx.beginPath(); ctx.roundRect(x - 19 * S, y - 12 * S, 38 * S, 24 * S, 12 * S); ctx.fill();
+    ctx.fillStyle = cur ? '#fff' : 'rgba(35,38,46,.45)';
     ctx.font = `${cur ? 700 : 500} ${12 * S}px 'Noto Sans KR'`;
     ctx.fillText(hr.h + '시', x, y + 1 * S);
   });
@@ -207,105 +222,205 @@ function drawFooter() {
   ctx.fillText(`출처: 서울특별시 버스도착정보 · ${DATA.when} · 40초마다 기록`, W - 30 * S, H - 26 * S);
 }
 
-function drawLine(P) {
-  const hr = HOURS[hi];
-  ctx.lineCap = 'round';
-  // left loop back to the garage: no data, drawn plain
-  const a = P[N - 1], z = P[0], bx = Math.min(a.x, z.x) - L.gap * 0.55;
-  ctx.strokeStyle = BLUE; ctx.globalAlpha = 0.55; ctx.lineWidth = L.lw;
-  ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.bezierCurveTo(bx, a.y, bx, z.y, z.x, z.y); ctx.stroke();
+// a small whole-route map with the view box, so a close-up never loses its place
+function drawMinimap(P) {
+  const a = clamp((cam.z - 1.4) / 1.5, 0, 1);
+  if (a <= 0) return;
+  let minX = Infinity, maxX = -Infinity;
+  for (const p of P) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); }
+  const bw = 210 * S, k = bw / (maxX - minX + L.gap), ox = 30 * S, oy = H - 150 * S;
+  const mx = x => ox + (x - minX + L.gap / 2) * k, my = y => oy + (y - L.yTop) * k;
+  ctx.globalAlpha = a;
+  ctx.fillStyle = 'rgba(247,246,242,.96)';
+  ctx.fillRect(ox - 8 * S, oy - 36 * S, bw + 16 * S, L.gap * k + 50 * S);
+  ctx.strokeStyle = BLUE; ctx.lineWidth = 2 * S; ctx.lineCap = 'round';
+  ctx.beginPath();
+  P.forEach((p, i) => i ? ctx.lineTo(mx(p.x), my(p.y)) : ctx.moveTo(mx(p.x), my(p.y)));
+  ctx.closePath(); ctx.stroke();
+  const vx0 = cam.cx - W / 2 / cam.z, vx1 = cam.cx + W / 2 / cam.z;
+  const vy0 = cam.cy - H / 2 / cam.z, vy1 = cam.cy + H / 2 / cam.z;
+  ctx.save(); ctx.beginPath(); ctx.rect(ox - 8 * S, oy - 14 * S, bw + 16 * S, L.gap * k + 28 * S); ctx.clip();
+  ctx.strokeStyle = RED; ctx.lineWidth = 1.2 * S;
+  ctx.strokeRect(mx(vx0), my(vy0), Math.max(2, (vx1 - vx0) * k), Math.max(2, (vy1 - vy0) * k));
+  ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'bottom'; ctx.fillStyle = 'rgba(35,38,46,.55)';
+  ctx.font = `700 ${10 * S}px 'Space Mono'`;
+  ctx.fillText(`×${cam.z.toFixed(1)}`, ox, oy - 18 * S);
   ctx.globalAlpha = 1;
+}
+
+function drawLine(P) {
+  const z = cam.z, ff = fiberFade(), lw = L.lw * z;
+  ctx.lineCap = 'round';
+  // loop back to the garage: no data, drawn plain
+  const a = P[N - 1], o = P[0], bx = Math.min(a.x, o.x) - L.gap * 0.55;
+  ctx.strokeStyle = segColor(1, 0.5); ctx.lineWidth = lw;
+  ctx.beginPath(); ctx.moveTo(X(a.x), Y(a.y)); ctx.bezierCurveTo(X(bx), Y(a.y), X(bx), Y(o.y), X(o.x), Y(o.y)); ctx.stroke();
   for (let k = 0; k < N - 1; k++) {
     const p = P[k], q = P[k + 1], d = disp[k];
-    ctx.strokeStyle = segColor(d);
-    ctx.lineWidth = clamp(L.lw / Math.sqrt(Math.max(0.2, d)), L.lw * 0.35, L.lw * 1.7);
-    ctx.beginPath(); ctx.moveTo(p.x, p.y);
+    const x1 = X(p.x), x2 = X(q.x);
+    if (k !== TURN - 1 && Math.max(x1, x2) < -50 || Math.min(x1, x2) > W + 50) continue;
+    const thin = k === TURN - 1 ? 1 : 1 - ff * 0.82;   // the averaged band gives way to the buses inside it
+    ctx.strokeStyle = segColor(d, k === TURN - 1 ? 1 : lerp(1, 0.22, ff));
+    ctx.lineWidth = clamp(lw / Math.sqrt(Math.max(0.2, d)), lw * 0.35, lw * 1.7) * thin;
+    ctx.beginPath(); ctx.moveTo(x1, Y(p.y));
     if (k === TURN - 1) {
-      const bx2 = p.x + L.gap * 0.55 * Math.max(0.4, d);
-      ctx.bezierCurveTo(bx2, p.y, bx2, q.y, q.x, q.y);
-    } else ctx.lineTo(q.x, q.y);
+      const b2 = p.x + L.gap * 0.55 * Math.max(0.4, d);
+      ctx.bezierCurveTo(X(b2), Y(p.y), X(b2), Y(q.y), x2, Y(q.y));
+    } else ctx.lineTo(x2, Y(q.y));
     ctx.stroke();
   }
-  // direction chevrons
-  ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.4 * S;
-  for (let k = 3; k < N - 1; k += 7) {
-    if (k === TURN - 1 || DATA.ghost[k] || DATA.ghost[k + 1]) continue;
-    const p = P[k], q = P[k + 1], mx = (p.x + q.x) / 2, dir = Math.sign(q.x - p.x) || 1, c = 2.2 * S;
-    if (Math.abs(q.x - p.x) < 12 * S) continue;
-    ctx.beginPath(); ctx.moveTo(mx - dir * c, p.y - c); ctx.lineTo(mx + dir * c, p.y); ctx.lineTo(mx - dir * c, p.y + c); ctx.stroke();
+  if (ff > 0) drawFibers(P, ff);
+}
+
+// every bus that ran a segment, as its own strand: it starts at the stop and
+// runs the length its real time would give, so it overshoots or falls short
+function drawFibers(P, ff) {
+  const hr = HOURS[hi], z = cam.z, u = L.u * scaleNow;
+  const label = clamp((z - 9) / 5, 0, 1);
+  for (let k = 0; k < N - 1; k++) {
+    if (k === TURN - 1) continue;
+    const obs = hr.obs[k], n = obs.length;
+    if (!n) continue;
+    const p = P[k], dir = k < TURN ? 1 : -1, xs = X(p.x);
+    if (dir > 0 ? (xs > W + 40 || X(p.x + u * 2.6) < -40) : (xs < -40 || X(p.x - u * 2.6) > W + 40)) continue;
+    const band = L.lw * (1 + 2.6 * ff), step = band / Math.max(1, n);
+    for (let i = 0; i < n; i++) {
+      const [m, pr, re] = obs[i], r = re / pr;
+      const shown = 1 + (r - 1) * realness;
+      const wy = p.y + (i - (n - 1) / 2) * step * ff;
+      const sy = Y(wy), sx2 = X(p.x + dir * u * shown);
+      if (sy < -20 || sy > H + 20) continue;
+      ctx.strokeStyle = segColor(shown, 0.25 + 0.75 * ff);
+      ctx.lineWidth = clamp(step * z * 0.12, 1, 5);
+      ctx.beginPath(); ctx.moveTo(xs, sy); ctx.lineTo(sx2, sy); ctx.stroke();
+      ctx.fillStyle = segColor(shown, ff);
+      ctx.beginPath(); ctx.arc(sx2, sy, clamp(step * z * 0.12, 1.5, 6), 0, Math.PI * 2); ctx.fill();
+      if (label <= 0) continue;
+      const fs = clamp(step * z * 0.2, 9, 13);
+      ctx.globalAlpha = label; ctx.font = `400 ${fs}px 'Space Mono'`; ctx.textBaseline = 'bottom';
+      ctx.fillStyle = 'rgba(35,38,46,.6)'; ctx.textAlign = dir > 0 ? 'left' : 'right';
+      ctx.fillText(`${clock(m)}  안내 ${secs(pr)} → 실제 ${secs(re)}`, xs + dir * 30, sy - 7);
+      const diff = Math.round((re - pr) * realness);
+      ctx.font = `700 ${fs}px 'Space Mono'`; ctx.fillStyle = diff > 0 ? RED : BLUE;
+      ctx.textBaseline = 'middle';
+      ctx.fillText(diff === 0 ? '±0' : (diff > 0 ? '+' : '−') + Math.abs(diff) + 's', sx2 + dir * 12, sy);
+      ctx.globalAlpha = 1;
+    }
   }
-  // delay tags on the most stretched segments
-  if (!PREVIEW) {
-    const top = hr.ratio.map((r, k) => ({ k, r, diff: hr.real[k] - hr.pred[k] }))
-      .filter(o => o.r > 1.2 && o.diff >= 20 && o.k !== TURN - 1).sort((a, b) => b.diff - a.diff).slice(0, 5);
-    ctx.textAlign = 'center'; ctx.font = `700 ${11 * S}px 'Noto Sans KR'`;
-    for (const o of top) {
-      const p = P[o.k], q = P[o.k + 1], show = clamp((disp[o.k] - 1) / (o.r - 1), 0, 1);
-      if (show < 0.05) continue;
-      ctx.globalAlpha = show; ctx.fillStyle = RED;
-      const inward = p.y === L.yTop ? 1 : -1;
-      ctx.textBaseline = inward > 0 ? 'top' : 'bottom';
-      ctx.fillText(`+${o.diff}초`, (p.x + q.x) / 2, p.y + inward * 11 * S);
+}
+
+function drawStops(P) {
+  const z = cam.z, ff = fiberFade();
+  const fs = Math.max(8, 11 * S) * z, r = Math.min(22, (PREVIEW ? 2.2 : 4.2 * S) * z);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  for (let k = 0; k < N; k++) {
+    if (DATA.ghost[k]) continue;
+    const p = P[k], x = X(p.x), y = Y(p.y), top = p.y === L.yTop, end = k === 0 || k === 53;
+    if (x < -fs * 2 || x > W + fs * 2) continue;
+    ctx.fillStyle = '#fff'; ctx.strokeStyle = BLUE;
+    ctx.lineWidth = Math.min(5, (end ? 3 : 2) * (PREVIEW ? 0.6 : S) * z);
+    ctx.globalAlpha = lerp(1, 0.55, ff);
+    ctx.beginPath(); ctx.arc(x, y, end ? r * 1.8 : r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.globalAlpha = 1;
+    if (PREVIEW || k === N - 1) continue;
+    const near = Math.max(disp[k - 1] || 1, disp[k] || 1);
+    ctx.fillStyle = near > 1.25 ? RED : INK;
+    ctx.globalAlpha = lerp(1, 0.16, ff);   // up close the names turn into a pale backdrop
+    ctx.font = `${end ? 900 : 500} ${fs}px 'Noto Sans KR'`;
+    const name = [...DATA.names[k]].slice(0, 9).join('');
+    const dir = top ? -1 : 1;
+    const y0 = y + dir * (r + fs * 0.6 + L.lw * 1.4 * ff * z);
+    const len = stackText(name, x, y0, dir, fs);
+    let yy = y0 + dir * (len + 4 * S * z);
+    for (const ln of DATA.lines[k]) {
+      ctx.fillStyle = SUB[ln];
+      ctx.beginPath(); ctx.arc(x, yy, 6 * S * z, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.font = `700 ${8.5 * S * z}px 'Noto Sans KR'`;
+      ctx.fillText(ln, x, yy + 0.5 * S * z);
+      yy += dir * 14 * S * z;
     }
     ctx.globalAlpha = 1;
   }
 }
 
-function drawStops(P) {
-  const fs = Math.max(8, 11 * S), r = PREVIEW ? 2.2 : 4.2 * S;
-  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  for (let k = 0; k < N; k++) {
-    if (DATA.ghost[k]) continue;
-    const p = P[k], top = p.y === L.yTop, end = k === 0 || k === 53;
-    ctx.fillStyle = '#fff'; ctx.strokeStyle = BLUE; ctx.lineWidth = (end ? 3 : 2) * (PREVIEW ? 0.6 : S);
-    ctx.beginPath(); ctx.arc(p.x, p.y, end ? r * 1.8 : r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-    if (PREVIEW || k === N - 1) continue;
-    const near = Math.max(disp[k - 1] || 1, disp[k] || 1);
-    ctx.fillStyle = near > 1.25 ? RED : INK;
-    ctx.font = `${end ? 900 : 500} ${fs}px 'Noto Sans KR'`;
-    const name = [...DATA.names[k]].slice(0, 9).join('');
-    const dir = top ? -1 : 1, y0 = p.y + dir * (r + 10 * S);
-    const len = stackText(name, p.x, y0, dir, fs);
-    let y = y0 + dir * (len + 4 * S);
-    for (const ln of DATA.lines[k]) {
-      ctx.fillStyle = SUB[ln];
-      ctx.beginPath(); ctx.arc(p.x, y, 6 * S, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff'; ctx.font = `700 ${8.5 * S}px 'Noto Sans KR'`;
-      ctx.fillText(ln, p.x, y + 0.5 * S);
-      ctx.font = `500 ${fs}px 'Noto Sans KR'`;
-      y += dir * 14 * S;
-    }
+// which segment sits under the middle of the view
+function focusSeg(P) {
+  const top = Math.abs(cam.cy - L.yTop) < Math.abs(cam.cy - L.yBot);
+  let best = -1, bd = Infinity;
+  const k0 = top ? 0 : TURN, k1 = top ? TURN - 1 : N - 1;
+  for (let k = k0; k < k1; k++) {
+    const d = Math.abs((P[k].x + P[k + 1].x) / 2 - cam.cx);
+    if (d < bd) { bd = d; best = k; }
   }
+  return best;
+}
+
+function drawCaption(P, k) {
+  const a = clamp((cam.z - 2.5) / 2, 0, 1);
+  if (a <= 0 || k < 0) return;
+  const hr = HOURS[hi], o = hr.obs[k];
+  const name = i => DATA.ghost[i] ? DATA.names[i + 1] : DATA.names[i];
+  ctx.globalAlpha = a; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const x = 30 * S, y = 112 * S;
+  ctx.fillStyle = INK; ctx.font = `900 ${28 * S}px 'Noto Sans KR'`;
+  ctx.fillText(`${name(k)}  →  ${name(k + 1)}`, x, y);
+  ctx.font = `400 ${12 * S}px 'Space Mono'`; ctx.fillStyle = 'rgba(35,38,46,.6)';
+  const line = o.length
+    ? `${ampm(hr.h)}대 · 버스 ${o.length}대 · 안내 평균 ${secs(hr.pred[k])} · 실제 평균 ${secs(hr.real[k])}`
+    : `${ampm(hr.h)}대 · 기록 없음`;
+  ctx.fillText(line, x, y + 26 * S);
+  ctx.globalAlpha = 1;
 }
 
 function draw() {
   ctx.fillStyle = PAPER; ctx.fillRect(0, 0, W, H);
-  ctx.save();
-  // the whole map shrinks to fit when the stretched route runs out of paper
   const P = place(scaleNow);
-  if (!PREVIEW) drawHeader();
-  else {
+  drawLine(P);
+  drawStops(P);
+  if (PREVIEW) {
     ctx.fillStyle = BLUE; ctx.beginPath(); ctx.roundRect(L.x0, 20, 64, 30, 7); ctx.fill();
     ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.font = `900 20px 'Noto Sans KR'`; ctx.fillText('273', L.x0 + 32, 36);
+    return;
   }
-  drawLine(P);
-  drawStops(P);
-  if (!PREVIEW) drawFooter();
-  ctx.restore();
+  drawHeader();
+  drawCaption(P, focusSeg(P));
+  drawMinimap(P);
+  drawFooter();
 }
 
 // ── motion ─────────────────────────────────────────────────────────────────
-let T = 0, changeT = 0;
+let T = 0, changeT = 0, lastStop = -1;
 const want = new Float32Array(N - 1).fill(1), tgt = new Float32Array(N - 1).fill(1);
 function refresh() {
   for (let k = 0; k < N - 1; k++) want[k] = target(k);
   changeT = T;
 }
+let started = false;
 function hold(v) {
   if (v === holding) return;
   holding = v; refresh();
   v ? sound.snap() : sound.stretch();
+}
+
+// idle: the camera goes and looks at the worst segments by itself
+const tour = { i: 0, t: 0 };
+function tourStep(dt, P) {
+  const segs = HOURS[hi].ratio.map((r, k) => ({ r, k })).filter(o => o.k !== TURN - 1 && DATA.names[o.k] !== DATA.names[o.k + 1] && HOURS[hi].obs[o.k].length >= 2)
+    .sort((a, b) => b.r - a.r).slice(0, 6);
+  if (!segs.length) return;
+  tour.t += dt;
+  const s = segs[tour.i % segs.length].k, p = P[s], q = P[s + 1], t = tour.t;
+  cam.tx = (p.x + q.x) / 2 + (q.x - p.x) * 0.25 * Math.sin(t * 0.3); cam.ty = p.y;
+  if (t < 1.2) cam.zt = 1;
+  else if (t < 10) cam.zt = 20;
+  else cam.zt = 1;
+  if (t > 5.5 && t < 7.6) hold(true); else hold(false);
+  if (t > 12.5) {
+    tour.t = 0; tour.i++;
+    if (HOURS.length > 1 && tour.i % 3 === 0) { hi = (hi + 1) % HOURS.length; sound.bell(); refresh(); }
+  }
 }
 
 function step(dt) {
@@ -316,15 +431,26 @@ function step(dt) {
     vel[k] *= Math.exp(-6 * dt);
     disp[k] += vel[k] * dt;
   }
+  realVel += ((holding || !started ? 0 : 1) - realness) * 50 * dt;
+  realVel *= Math.exp(-5.5 * dt);
+  realness += realVel * dt;
   scaleNow = lerp(scaleNow, fitScale(), 1 - Math.exp(-3 * dt));
-  if (!touched) {
-    autoT += dt;
-    if (!holding && autoT > 7) { autoT = 0; hold(true); }
-    if (holding && autoT > 2.4) {
-      autoT = 0;
-      if (HOURS.length > 1) { hi = (hi + 1) % HOURS.length; sound.bell(); }
-      hold(false);
-    }
+  const P = place(scaleNow);
+  if (!touched) tourStep(dt, P);
+  else if (cam.px >= 0) {          // the pointer is a magnifier over the overview
+    cam.tx = cam.px - (cam.px - W / 2) / cam.z;
+    cam.ty = cam.py - (cam.py - H / 2) / cam.z;
+  }
+  const zBefore = cam.z;
+  cam.z = Math.exp(lerp(Math.log(cam.z), Math.log(cam.zt), 1 - Math.exp(-(touched ? 7 : 1.6) * dt)));
+  const ease = 1 - Math.exp(-(touched ? 9 : 2) * dt);
+  cam.cx = lerp(cam.cx, cam.tx, ease); cam.cy = lerp(cam.cy, cam.ty, ease);
+  if (Math.abs(cam.z - zBefore) > 0.01) sound.zoom(cam.z);
+  if (cam.z > 5) {                 // a soft tick each time the view slides past a stop
+    let best = -1, bd = Infinity;
+    for (let k = 0; k < N; k++) { const d = Math.hypot(P[k].x - cam.cx, P[k].y - cam.cy); if (d < bd) { bd = d; best = k; } }
+    if (best !== lastStop && lastStop >= 0) sound.tick(disp[Math.min(best, N - 2)]);
+    lastStop = best;
   }
 }
 
@@ -335,6 +461,7 @@ function resize() {
   cv.style.width = W + 'px'; cv.style.height = H + 'px';
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   layout();
+  if (cam.z < 1.01) { cam.cx = cam.tx = W / 2; cam.cy = cam.ty = H / 2; }
 }
 
 let last = 0;
@@ -350,7 +477,7 @@ const sndEl = document.getElementById('snd');
 sndEl.addEventListener('click', () => { sound.kick(); sndEl.textContent = 'SOUND: ' + (sound.toggle() ? 'ON' : 'OFF'); });
 const userTouch = () => {
   sound.kick();
-  if (!touched) { touched = true; document.getElementById('hint').classList.add('off'); }
+  if (!touched) { touched = true; hold(false); document.getElementById('hint').classList.add('off'); return true; }
 };
 const stepHour = dir => {
   userTouch();
@@ -358,16 +485,31 @@ const stepHour = dir => {
   if (hi !== before) refresh();
 };
 addEventListener('keydown', e => {
-  if (e.key === 'ArrowRight' || e.key === 'ArrowUp') stepHour(1);
-  if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') stepHour(-1);
+  if (e.key === 'ArrowRight') stepHour(1);
+  if (e.key === 'ArrowLeft') stepHour(-1);
+  if (e.key === 'ArrowUp' || e.key === '+' || e.key === '=') { userTouch(); cam.zt = clamp(cam.zt * 1.6, 1, 28); }
+  if (e.key === 'ArrowDown' || e.key === '-') { userTouch(); cam.zt = clamp(cam.zt / 1.6, 1, 28); }
   if (e.key === ' ' && !e.repeat) { userTouch(); hold(true); }
 });
 addEventListener('keyup', e => { if (e.key === ' ') hold(false); });
-let wheelAcc = 0;
-addEventListener('wheel', e => { wheelAcc += e.deltaY; if (Math.abs(wheelAcc) > 80) { stepHour(Math.sign(wheelAcc)); wheelAcc = 0; } }, { passive: true });
+addEventListener('wheel', e => {
+  userTouch();
+  cam.px = e.clientX; cam.py = e.clientY;
+  cam.zt = clamp(cam.zt * Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0022)), 1, 28);
+}, { passive: true });
+let moved = 0;
+addEventListener('pointermove', e => {
+  if (cam.px >= 0) moved += Math.hypot(e.clientX - cam.px, e.clientY - cam.py);
+  cam.px = e.clientX; cam.py = e.clientY;
+  if (moved > 80 && userTouch()) cam.zt = 1;   // a hand on the mouse takes over: back out, then let them look
+});
 addEventListener('pointerdown', e => {
   if (e.target.closest('.snd') || e.target.closest('.home-btn')) return;
-  userTouch(); hold(true);
+  userTouch();
+  cam.px = e.clientX; cam.py = e.clientY;
+  const c = chips.find(c => e.clientX >= c.x && e.clientX <= c.x + c.w && e.clientY >= c.y && e.clientY <= c.y + c.h);
+  if (c) { stepHour(c.i - hi); return; }
+  hold(true);
 });
 addEventListener('pointerup', () => hold(false));
 addEventListener('pointercancel', () => hold(false));
@@ -375,14 +517,15 @@ addEventListener('resize', resize);
 
 (async () => {
   try {
-    await Promise.all([500, 700, 900].map(w => document.fonts.load(`${w} 20px 'Noto Sans KR'`)));
+    await Promise.all([500, 700, 900].map(w => document.fonts.load(`${w} 20px 'Noto Sans KR'`))
+      .concat([400, 700].map(w => document.fonts.load(`${w} 12px 'Space Mono'`))));
   } catch (e) { /* fall back */ }
   hi = HOURS.length - 1;
   resize();
   if (PREVIEW) { for (let k = 0; k < N - 1; k++) disp[k] = target(k); scaleNow = fitScale(); }
   else {
     sound.kick(); setTimeout(() => sound.kick(), 400);
-    setTimeout(() => { refresh(); sound.stretch(); }, 900);   // opens on the announced map, then lets go
+    setTimeout(() => { started = true; refresh(); sound.stretch(); }, 900);   // opens on the announced map, then lets go
   }
   requestAnimationFrame(frame);
 })();
